@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TikTok Analyzer</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
+    label { display:block; margin-top: 12px; font-weight: 600; }
+    input[type=text], textarea, select { width: 520px; max-width: 100%; padding: 8px; }
+    button { margin-top: 16px; padding: 10px 16px; cursor: pointer; }
+    small { color: #666; }
+  </style>
+</head>
+<body>
+  <h1>TikTok Analyzer</h1>
+
+  <form action="/analyze" method="POST">
+    <label for="tiktok_url">TikTok URL</label>
+    <input type="text" id="tiktok_url" name="tiktok_url" placeholder="https://www.tiktok.com/@user/video/..." required>
+
+    <label for="creator_note">Creator Note (optional)</label>
+    <textarea id="creator_note" name="creator_note" rows="4" placeholder="e.g. Lots of comments, few follows; include a stronger CTA"></textarea>
+
+
+    <h3>Sampling</h3>
+    <label for="strategy">Strategy</label>
+    <select id="strategy" name="strategy">
+      <option value="smart" selected>Smart (intro/outro + scene+settle + blur filter + dedupe + OCR)</option>
+      <option value="uniform">Uniform (by duration)</option>
+    </select>
+
+    <label for="frames_per_minute">Frames per minute (uniform)</label>
+    <input type="text" id="frames_per_minute" name="frames_per_minute" value="12">
+    <small>Used only when strategy = uniform</small>
+
+    <label for="cap">Max frames (cap)</label>
+    <input type="text" id="cap" name="cap" value="60">
+
+    <label for="scene_threshold">Scene threshold (smart)</label>
+    <input type="text" id="scene_threshold" name="scene_threshold" value="0.35">
+    <small>Higher = fewer frames; lower = more frames</small>
+
+    <h3>Script Preferences</h3>
+    <label for="platform">Platform</label>
+    <select id="platform" name="platform">
+      <option value="tiktok" selected>TikTok</option>
+      <option value="reels">Instagram Reels</option>
+      <option value="shorts">YouTube Shorts</option>
+    </select>
+
+    <label for="target_duration">Target Duration (seconds)</label>
+    <input type="text" id="target_duration" name="target_duration" value="30">
+
+    <label for="goal">Primary Goal</label>
+    <select id="goal" name="goal">
+      <option value="follows" selected>Follows</option>
+      <option value="comments">Comments</option>
+      <option value="website_visits">Website visits</option>
+      <option value="inquiries">Project inquiries</option>
+      <option value="shares">Shares</option>
+    </select>
+
+    <label for="tone">Tone</label>
+    <input type="text" id="tone" name="tone" value="confident, friendly">
+
+    <label for="audience">Audience</label>
+    <input type="text" id="audience" name="audience" value="creators and small business owners">
+
+    <div>
+      <button type="submit">Analyze</button>
+    </div>
+  </form>
+</body>
+</html>
