@@ -63,9 +63,9 @@ Frame-by-frame visual notes:
 Return an in depth, conversational, and explanation driven analysis covering:
 Why this generated the results shared in the content notes. What about it likely is the reason for any noted views, shares, website visits, project inquiries, sales, or virality. Use Sales psychology and everything you know about viral videos 
 
-An analysis of the video overall and why it was or wasn't successful depending on what is revealed in the creator notes. Then share an in-depth formula with verbal hook, text hook, and visual hook where applicable for the video that could be used for any topic. Include tips that the video uses to generate engagement, viewer retention, and conversion to website visits or purchases or simply why its viral.
+An analysis of the video overall and why it was or wasn't successful depending on what is revealed in the creator notes. Then share an in-depth formula for the video that could be used for any topic. Include tips that the video uses to generate engagement, viewer retention, and conversion to website visits or purchases or simply why its viral.
 
-Suggeset what this formula might be most useful for. Views, engagement, follows, sales, etc. 
+Suggest what this formula might be most useful for. Views, engagement, follows, sales, etc. 
 """
 
     def _call():
