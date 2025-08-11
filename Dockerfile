@@ -1,3 +1,4 @@
+
 FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -10,7 +11,9 @@ ENV KMP_DUPLICATE_LIB_OK=TRUE \
 
 WORKDIR /app
 COPY requirements.txt /app/
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip install --no-cache-dir -r requirements.txt
+
 
 COPY . /app
 
