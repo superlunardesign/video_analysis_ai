@@ -406,90 +406,118 @@
   </div>
 
   <script>
-    // Formula tab switching
-    function showFormula(formulaType) {
-      // Hide all formula contents
-      const contents = document.querySelectorAll('.formula-content');
-      contents.forEach(content => content.classList.remove('active'));
+// Make sure functions are globally available
+window.showFormula = function(formulaType) {
+  // Hide all formula contents
+  const contents = document.querySelectorAll('.formula-content');
+  contents.forEach(content => content.classList.remove('active'));
+  
+  // Remove active class from all tabs
+  const tabs = document.querySelectorAll('.formula-tab');
+  tabs.forEach(tab => tab.classList.remove('active'));
+  
+  // Show selected formula
+  const targetContent = document.getElementById(formulaType + '-formula-content');
+  if (targetContent) {
+    targetContent.classList.add('active');
+  }
+  
+  // Activate clicked tab
+  event.target.classList.add('active');
+};
+
+// Copy formula function
+window.copyFormula = function(formulaId) {
+  const element = document.getElementById(formulaId);
+  const textElement = element.querySelector('.formula-text') || element.querySelector('pre');
+  if (textElement) {
+    copyToClipboard(textElement.textContent, event.target);
+  }
+};
+
+// Copy all hooks function
+window.copyAllHooks = function() {
+  const hooks = [];
+  document.querySelectorAll('.hook-item').forEach(item => {
+    hooks.push(item.textContent.replace(/"/g, '').trim());
+  });
+  copyToClipboard(hooks.join('\n'), event.target);
+};
+
+// Main copy function (keep your existing copyToClipboard if you have it)
+function copyToClipboard(text, button) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showCopySuccess(button);
+    }).catch(() => {
+      fallbackCopy(text, button);
+    });
+  } else {
+    fallbackCopy(text, button);
+  }
+}
+
+// Show copy success
+function showCopySuccess(button) {
+  const originalText = button.textContent;
+  button.textContent = 'Copied!';
+  button.classList.add('copied');
+  
+  setTimeout(() => {
+    button.textContent = originalText;
+    button.classList.remove('copied');
+  }, 2000);
+}
+
+// Fallback copy method
+function fallbackCopy(text, button) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.left = '-999999px';
+  textArea.style.top = '-999999px';
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  
+  try {
+    document.execCommand('copy');
+    showCopySuccess(button);
+  } catch (err) {
+    console.error('Copy failed:', err);
+    alert('Copy failed. Please try selecting and copying the text manually.');
+  }
+  
+  document.body.removeChild(textArea);
+}
+
+// Wait for DOM to load
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Results page loaded, functions available');
+  
+  // Set up any existing formula tab functionality
+  const formulaTabs = document.querySelectorAll('.formula-tab');
+  const formulaContents = document.querySelectorAll('.formula-content');
+  
+  formulaTabs.forEach(tab => {
+    tab.addEventListener('click', function() {
+      const targetFormula = this.getAttribute('data-formula');
       
-      // Remove active class from all tabs
-      const tabs = document.querySelectorAll('.formula-tab');
-      tabs.forEach(tab => tab.classList.remove('active'));
+      // Remove active class from all tabs and contents
+      formulaTabs.forEach(t => t.classList.remove('active'));
+      formulaContents.forEach(c => c.classList.remove('active'));
       
-      // Show selected formula
-      const targetContent = document.getElementById(formulaType + '-formula');
+      // Add active class to clicked tab
+      this.classList.add('active');
+      
+      // Show corresponding content
+      const targetContent = document.getElementById(targetFormula + '-formula-content');
       if (targetContent) {
         targetContent.classList.add('active');
       }
-      
-      // Activate clicked tab
-      event.target.classList.add('active');
-    }
-
-    // Copy formula function
-    function copyFormula(formulaId) {
-      const element = document.getElementById(formulaId);
-      const textElement = element.querySelector('.formula-text');
-      if (textElement) {
-        copyToClipboard(textElement.textContent, event.target);
-      }
-    }
-
-    // Copy all hooks function
-    function copyAllHooks() {
-      const hooks = [];
-      document.querySelectorAll('.hook-item').forEach(item => {
-        hooks.push(item.textContent.replace(/"/g, '').trim());
-      });
-      copyToClipboard(hooks.join('\n'), event.target);
-    }
-
-    // Main copy function
-    function copyToClipboard(text, button) {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => {
-          showCopySuccess(button);
-        }).catch(() => {
-          fallbackCopy(text, button);
-        });
-      } else {
-        fallbackCopy(text, button);
-      }
-    }
-
-    // Show copy success
-    function showCopySuccess(button) {
-      const originalText = button.textContent;
-      button.textContent = 'Copied!';
-      button.classList.add('copied');
-      
-      setTimeout(() => {
-        button.textContent = originalText;
-        button.classList.remove('copied');
-      }, 2000);
-    }
-
-    // Fallback copy method
-    function fallbackCopy(text, button) {
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      
-      try {
-        document.execCommand('copy');
-        showCopySuccess(button);
-      } catch (err) {
-        console.error('Copy failed:', err);
-        alert('Copy failed. Please try selecting and copying the text manually.');
-      }
-      
-      document.body.removeChild(textArea);
-    }
-  </script>
+    });
+  });
+});
+</script>
 </body>
 </html>
