@@ -1,6 +1,7 @@
 import os
 import subprocess
 import base64
+import random  # Added missing import
 import ffmpeg
 import whisper
 from openai import OpenAI
@@ -8,11 +9,11 @@ from config import OPENAI_API_KEY
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
- def run_analysis(filepath, goal):
+def run_analysis(filepath, goal):  # Fixed indentation
     # Pretend we read the transcript / visuals from the KB or ML model
     sample_hooks = [
         "how i accidentally became a 12yo scammer",
-        "good morning, we’re making sourdough",
+        "good morning, we're making sourdough",
         "I quit my job with zero backup plan",
     ]
 
@@ -38,7 +39,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
     """
 
     # Goal-specific formula
-    if goal == "Views/Virality":
+    if goal == "viral_reach":  # Updated to match form values
         formula = """
         1. Open with a curiosity-driven hook.
         2. Set the "promise" in first 3 seconds.
@@ -46,14 +47,14 @@ client = OpenAI(api_key=OPENAI_API_KEY)
         4. Save final reveal/payoff for last 10%.
         5. End with share/comment trigger.
         """
-    elif goal == "Follower Growth":
+    elif goal == "follower_growth":  # Updated to match form values
         formula = """
         1. Hook with something your niche audience instantly relates to.
         2. State the promise of value they'll get from following you.
         3. Deliver a short, engaging story or tip.
         4. End with clear call-to-follow for more content like this.
         """
-    else:  # Sales/Leads
+    else:  # sales_conversions
         formula = """
         1. Hook with a problem your product/service solves.
         2. Promise the solution or transformation.

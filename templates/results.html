@@ -3,79 +3,208 @@
 <head>
   <title>Analysis Results</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
-    .meta { color: #555; margin-bottom: 12px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
-    img { width: 100%; height: auto; border-radius: 8px; }
-    pre { white-space: pre-wrap; background: #f7f7f8; padding: 12px; border-radius: 8px; }
-    .card { border: 1px solid #eee; border-radius: 10px; padding: 12px; background: #fff; }
-    .tag { display: inline-block; background: #eef2ff; color: #3730a3; padding: 2px 8px; border-radius: 999px; font-size: 12px; margin-right: 6px; }
+    body { 
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; 
+      margin: 24px; 
+      background: #f5f5f5;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .meta { 
+      color: #555; 
+      margin-bottom: 12px; 
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+      gap: 10px; 
+    }
+    img { 
+      width: 100%; 
+      height: auto; 
+      border-radius: 8px; 
+    }
+    pre { 
+      white-space: pre-wrap; 
+      background: #f7f7f8; 
+      padding: 12px; 
+      border-radius: 8px; 
+      overflow-x: auto;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .card { 
+      border: 1px solid #eee; 
+      border-radius: 10px; 
+      padding: 16px; 
+      background: #fff; 
+      margin-bottom: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .tag { 
+      display: inline-block; 
+      background: #eef2ff; 
+      color: #3730a3; 
+      padding: 4px 8px; 
+      border-radius: 999px; 
+      font-size: 12px; 
+      margin-right: 6px; 
+      margin-bottom: 4px;
+    }
+    .copy-btn {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    .copy-btn:hover {
+      background: #4338ca;
+    }
+    h1, h2 {
+      color: #1f2937;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 32px;
+      color: #4f46e5;
+    }
+    h2 {
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 8px;
+      margin-top: 32px;
+      margin-bottom: 16px;
+    }
+    .back-link {
+      display: inline-block;
+      background: #6b7280;
+      color: white;
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      margin-top: 32px;
+    }
+    .back-link:hover {
+      background: #4b5563;
+    }
+    .hooks-list {
+      background: #f0f9ff;
+      border: 1px solid #0ea5e9;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .hook-item {
+      background: white;
+      border: 1px solid #e0e7ff;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
+      font-style: italic;
+    }
   </style>
-        <script>
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text);
-            alert("Copied to clipboard!");
-        }
-    </script>
+  <script>
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Copied to clipboard!");
+      }).catch(err => {
+        console.error('Failed to copy: ', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert("Copied to clipboard!");
+      });
+    }
+  </script>
 </head>
 <body>
-
-  <h1>Analysis Results</h1>
-
-  <div class="meta">
-    <div><strong>URL:</strong> {{ tiktok_url }}</div>
-    {% if creator_note %}<div><strong>Your note:</strong> {{ creator_note }}</div>{% endif %}
-    <div>
-      <span class="tag">Strategy: {{ strategy }}</span>
-      <span class="tag">Cap: {{ cap }}</span>
-      {% if strategy == 'uniform' %}
-        <span class="tag">Frames/min: {{ frames_per_minute }}</span>
-      {% else %}
-        <span class="tag">Scene threshold: {{ scene_threshold }}</span>
-      {% endif %}
-      <span class="tag">Frames kept: {{ frames_count }}</span>
-    </div>
-  </div>
-
-  <h2>Transcript</h2>
-  <pre>{{ transcript }}</pre>
-
-  <h2>Frames (sampled)</h2>
-  <div class="grid">
-    {% for img in frame_gallery %}
-      <div class="card"><img src="{{ img }}" alt="Frame"></div>
-    {% endfor %}
-  </div>
-
-  <h2>Frame-by-frame Visual Notes</h2>
-  {% for block in frame_summaries %}
-    <div class="card">
-      <pre>{{ block }}</pre>
-    </div>
-  {% endfor %}
-
-  <h2>Custom GPT Synthesis</h2>
-  <div class="card">
-    <pre>{{ gpt_response }}</pre>
-  </div>
-
-
-<div>
+  <div class="container">
     <h1>Analysis Results (Goal: {{ goal }})</h1>
 
-    <h2>Hooks Found</h2>
-    <pre>{{ hooks | default([]) | tojson(indent=2) }}</pre>
-    <button onclick="copyToClipboard(`{{ hooks | default([]) | tojson(indent=2) }}`)">Copy Hooks</button>
+    <div class="meta">
+      <div><strong>URL:</strong> {{ tiktok_url }}</div>
+      {% if creator_note %}<div><strong>Your note:</strong> {{ creator_note }}</div>{% endif %}
+      <div style="margin-top: 8px;">
+        <span class="tag">Strategy: {{ strategy }}</span>
+        <span class="tag">Cap: {{ cap }}</span>
+        {% if strategy == 'uniform' %}
+          <span class="tag">Frames/min: {{ frames_per_minute }}</span>
+        {% else %}
+          <span class="tag">Scene threshold: {{ scene_threshold }}</span>
+        {% endif %}
+        <span class="tag">Frames kept: {{ frames_count | default(frame_paths | length, true) }}</span>
+        <span class="tag">Platform: {{ platform }}</span>
+        <span class="tag">Duration: {{ target_duration }}s</span>
+      </div>
+    </div>
 
+    <h2>🎯 Alternative Hooks</h2>
+    <div class="card hooks-list">
+      {% if hooks and hooks | length > 0 %}
+        {% for hook in hooks %}
+          <div class="hook-item">{{ hook }}</div>
+        {% endfor %}
+        <button class="copy-btn" onclick="copyToClipboard(`{{ hooks | join('\n') }}`)">Copy All Hooks</button>
+      {% else %}
+        <p>No alternative hooks generated.</p>
+      {% endif %}
+    </div>
 
-    <h2>Analysis</h2>
-    <pre>{{ analysis }}</pre>
+    <h2>📝 Analysis</h2>
+    <div class="card">
+      <pre>{{ analysis | default(gpt_response, true) }}</pre>
+    </div>
 
-    <h2>Formula to Reuse</h2>
-    <pre>{{ formula }}</pre>
-    <button onclick="copyToClipboard(`{{ formula }}`)">Copy Formula</button>
+    {% if formula %}
+    <h2>📋 Reusable Formula</h2>
+    <div class="card">
+      <pre>{{ formula }}</pre>
+      <button class="copy-btn" onclick="copyToClipboard(`{{ formula }}`)">Copy Formula</button>
+    </div>
+    {% endif %}
+
+    <h2>🎬 Transcript</h2>
+    <div class="card">
+      <pre>{{ transcript }}</pre>
+    </div>
+
+    <h2>🖼️ Frames (sampled)</h2>
+    <div class="grid">
+      {% for img in frame_gallery %}
+        <div class="card"><img src="{{ img }}" alt="Frame"></div>
+      {% endfor %}
+    </div>
+
+    <h2>👁️ Frame-by-frame Visual Notes</h2>
+    {% if frame_summaries and frame_summaries | length > 1 %}
+      {% for block in frame_summaries %}
+        <div class="card">
+          <pre>{{ block }}</pre>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="card">
+        <pre>{{ frame_summary | default(frames_summaries_text, true) }}</pre>
+      </div>
+    {% endif %}
+
+    {% if knowledge_context %}
+    <h2>📚 Knowledge Base Context Used</h2>
+    <div class="card">
+      <pre>{{ knowledge_context }}</pre>
+    </div>
+    {% endif %}
+
+    <a href="/" class="back-link">← Analyze Another Video</a>
   </div>
-
-  <p><a href="/">Analyze another</a></p>
 </body>
 </html>
