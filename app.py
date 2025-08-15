@@ -126,6 +126,9 @@ def process():
         knowledge_context=knowledge_context,
         frames_dir=frames_dir,
         frame_paths=frame_paths,
+        video_title=video_title,
+    analysis=analysis_data.get("analysis", ""),
+    hooks=analysis_data.get("hooks", []),  # ✅ Never None
     )
 
 
