@@ -475,6 +475,8 @@ PSYCHOLOGICAL TRIGGERS:
 </style>
 {% endif %}
 
+// Replace the copy button functionality in your results.html template with this:
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   // Formula tab switching
@@ -500,33 +502,57 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   
-  // Copy functionality
-  const copyButtons = document.querySelectorAll('.copy-btn');
-  
-  copyButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const targetId = this.getAttribute('data-target');
-      const targetElement = document.getElementById(targetId);
+  // Copy functionality - improved version
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('copy-btn')) {
+      let textToCopy = '';
       
-      if (targetElement) {
-        const textElement = targetElement.querySelector('.formula-text');
-        if (textElement) {
-          const textToCopy = textElement.textContent;
-          
-          // Try modern clipboard API first
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(textToCopy).then(() => {
-              showCopySuccess(this);
-            }).catch(() => {
-              fallbackCopy(textToCopy, this);
-            });
-          } else {
-            fallbackCopy(textToCopy, this);
+      // Check if it's the "Copy All Hooks" button
+      if (e.target.textContent.includes('Copy All Hooks')) {
+        const hooks = [];
+        document.querySelectorAll('.hook-item').forEach(item => {
+          hooks.push(item.textContent.replace(/"/g, '').trim());
+        });
+        textToCopy = hooks.join('\n');
+      }
+      // Check if it has a data-target attribute
+      else if (e.target.hasAttribute('data-target')) {
+        const targetId = e.target.getAttribute('data-target');
+        const targetElement = document.getElementById(targetId);
+        if (targetElement) {
+          const textElement = targetElement.querySelector('.formula-text') || targetElement.querySelector('pre');
+          if (textElement) {
+            textToCopy = textElement.textContent;
           }
         }
       }
-    });
+      // Otherwise, look for nearby content to copy
+      else {
+        const nearbyContent = e.target.parentElement.querySelector('pre') || 
+                             e.target.parentElement.querySelector('.formula-text');
+        if (nearbyContent) {
+          textToCopy = nearbyContent.textContent;
+        }
+      }
+      
+      if (textToCopy) {
+        copyToClipboard(textToCopy, e.target);
+      }
+    }
   });
+  
+  function copyToClipboard(text, button) {
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        showCopySuccess(button);
+      }).catch(() => {
+        fallbackCopy(text, button);
+      });
+    } else {
+      fallbackCopy(text, button);
+    }
+  }
   
   function showCopySuccess(button) {
     const originalText = button.textContent;
@@ -561,6 +587,29 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.removeChild(textArea);
   }
 });
+
+// Legacy function for backwards compatibility
+function copyToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert("Copied to clipboard!");
+    }).catch(() => {
+      fallbackLegacyCopy(text);
+    });
+  } else {
+    fallbackLegacyCopy(text);
+  }
+}
+
+function fallbackLegacyCopy(text) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  document.body.appendChild(textArea);
+  textArea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textArea);
+  alert("Copied to clipboard!");
+}
 </script>
       
 
