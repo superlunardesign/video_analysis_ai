@@ -85,6 +85,7 @@ def process():
     goal = form.get("goal", "follows").strip()
     tone = form.get("tone", "confident, friendly").strip()
     audience = form.get("audience", "creators and small business owners").strip()
+    video_title = analysis_data.get("video_title", "Untitled Video")
 
     # --- Video Processing ---
     audio_path, frames_dir, frame_paths = extract_audio_and_frames(
