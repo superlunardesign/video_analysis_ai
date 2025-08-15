@@ -1,9 +1,20 @@
-# Dockerfile
 FROM python:3.11-slim
 
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg wkhtmltopdf libgl1 libglib2.0-0 fontconfig ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+    ffmpeg \
+    xfonts-75dpi \
+    xfonts-base \
+    libgl1 \
+    libglib2.0-0 \
+    fontconfig \
+    ca-certificates \
+    curl \
+    gnupg \
+ && curl -sSL https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.buster_amd64.deb -o wkhtmltox.deb \
+ && apt-get install -y ./wkhtmltox.deb \
+ && rm wkhtmltox.deb \
+ && rm -rf /var/lib/apt/lists/*
 
 ENV KMP_DUPLICATE_LIB_OK=TRUE \
     PYTHONDONTWRITEBYTECODE=1 \
