@@ -123,6 +123,9 @@
     .copy-btn:hover {
       background: #5a67d8;
     }
+    .copy-btn.copied {
+      background: #10b981;
+    }
     .grid { 
       display: grid; 
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
@@ -167,22 +170,62 @@
       margin-bottom: 6px;
       border: 1px solid rgba(102, 126, 234, 0.2);
     }
-  </style>
-  <script>
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        alert("Copied to clipboard!");
-      }).catch(err => {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        alert("Copied to clipboard!");
-      });
+    
+    /* Formula tabs styling */
+    .formula-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+      padding-bottom: 12px;
     }
-  </script>
+    .formula-tab {
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+      border: 1px solid rgba(102, 126, 234, 0.2);
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    .formula-tab:hover {
+      background: rgba(102, 126, 234, 0.2);
+      transform: translateY(-1px);
+    }
+    .formula-tab.active {
+      background: #667eea;
+      color: white;
+      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    }
+    .formula-content {
+      display: none;
+    }
+    .formula-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in;
+    }
+    .formula-content h4 {
+      margin: 0 0 12px 0;
+      color: #4a5568;
+      font-size: 1.1rem;
+    }
+    .formula-text {
+      white-space: pre-wrap;
+      font-family: inherit;
+      margin: 0;
+      line-height: 1.6;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 16px;
+      border-radius: 8px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -271,347 +314,61 @@
             <div class="hook-item">"{{ hook }}"</div>
           {% endfor %}
         </div>
-        <button class="copy-btn" onclick="copyToClipboard(`{{ hooks | join('\n') }}`)">Copy All Hooks</button>
+        <button class="copy-btn" onclick="copyAllHooks()">Copy All Hooks</button>
       {% else %}
         <p>No alternative hooks generated.</p>
       {% endif %}
     </div>
 
-{% if formula or basic_formula %}
-<div class="card">
-  <h2>📋 Your Reusable Formulas</h2>
-  
-  <!-- Formula Type Selector -->
-  <div class="formula-selector">
-    <button class="formula-tab active" data-formula="basic">Basic Structure</button>
-    <button class="formula-tab" data-formula="timing">With Timing</button>
-    <button class="formula-tab" data-formula="template">Template Format</button>
-    <button class="formula-tab" data-formula="psychology">Psychology Framework</button>
-  </div>
+    {% if formula or basic_formula %}
+    <div class="card">
+      <h2>📋 Your Reusable Formulas</h2>
+      
+      <!-- Formula Type Selector -->
+      <div class="formula-selector">
+        <button class="formula-tab active" onclick="showFormula('basic')">Basic Structure</button>
+        <button class="formula-tab" onclick="showFormula('timing')">With Timing</button>
+        <button class="formula-tab" onclick="showFormula('template')">Template Format</button>
+        <button class="formula-tab" onclick="showFormula('psychology')">Psychology Framework</button>
+      </div>
 
-  <!-- Basic Structure -->
-  <div id="basic-formula-content" class="formula-content active">
-    <div class="formula-box">
-      <h4>📝 Basic Structure</h4>
-      <pre class="formula-text">{{ basic_formula or formula }}</pre>
-      <button class="copy-btn" data-target="basic-formula-content">Copy Basic Formula</button>
+      <!-- Basic Structure -->
+      <div id="basic-formula" class="formula-content active">
+        <div class="formula-box">
+          <h4>📝 Basic Structure</h4>
+          <pre class="formula-text">{{ basic_formula or formula }}</pre>
+          <button class="copy-btn" onclick="copyFormula('basic-formula')">Copy Basic Formula</button>
+        </div>
+      </div>
+
+      <!-- Timing-Based Formula -->
+      <div id="timing-formula" class="formula-content">
+        <div class="formula-box">
+          <h4>⏱️ Step-by-Step with Timing</h4>
+          <pre class="formula-text">{{ timing_formula or "TIMING-BASED FORMULA FOR " + goal.upper() + ":\n\n0-3 seconds: Hook with strong opener that grabs attention immediately\n3-7 seconds: Set clear promise of what they'll learn/discover by the end\nMiddle section: Build engagement with progressive reveals and retention tactics\nFinal 10 seconds: Deliver satisfying payoff that fulfills the promise\n\nKey Timing Notes:\n- Hook must grab attention in first 1-2 seconds\n- Promise clarification by 5-second mark\n- Save strongest revelation for final moments\n- End with engagement trigger (question/challenge)" }}</pre>
+          <button class="copy-btn" onclick="copyFormula('timing-formula')">Copy Timing Formula</button>
+        </div>
+      </div>
+
+      <!-- Template Format -->
+      <div id="template-formula" class="formula-content">
+        <div class="formula-box">
+          <h4>📋 Template Format</h4>
+          <pre class="formula-text">{{ template_formula or "TEMPLATE FORMAT FOR " + goal.replace('_', ' ').upper() + ":\n\n\"[STRONG OPENER] + [CLEAR PROMISE] + [ENGAGING BUILD] + [SATISFYING PAYOFF] + [ENGAGEMENT HOOK]\"\n\nExample Structure:\n\"[Controversial statement] + [Promise to explain why] + [Build case with examples] + [Deliver the insight] + [Question to drive comments]\"\n\nFill in your content:\n- Strong Opener: ________________\n- Clear Promise: ________________\n- Engaging Build: ________________\n- Satisfying Payoff: ________________\n- Engagement Hook: ________________" }}</pre>
+          <button class="copy-btn" onclick="copyFormula('template-formula')">Copy Template</button>
+        </div>
+      </div>
+
+      <!-- Psychology Framework -->
+      <div id="psychology-formula" class="formula-content">
+        <div class="formula-box">
+          <h4>🧠 Psychology Framework</h4>
+          <pre class="formula-text">{{ psychology_formula or "PSYCHOLOGY-BASED RETENTION FRAMEWORK:\n\n1. CURIOSITY GAP CREATION\n   → Create a question they MUST know the answer to\n   → Example: \"Why your [expertise area] isn't working\"\n\n2. PROMISE ESTABLISHMENT\n   → What will they learn/gain by watching?\n   → Time-bound commitment: \"in the next 30 seconds\"\n\n3. DELAYED GRATIFICATION TACTICS\n   → Mini-reveals that build anticipation\n   → \"But first, let me tell you about...\"\n   → Progressive disclosure of information\n\n4. SATISFYING PAYOFF DELIVERY\n   → Answer the curiosity gap completely\n   → Add bonus insight they didn't expect\n   → Emotional + practical satisfaction\n\n5. ENGAGEMENT AMPLIFICATION\n   → Question that drives comments\n   → Challenge that encourages shares\n   → Hook for follow-up content\n\nPSYCHOLOGICAL TRIGGERS:\n✓ Social proof (\"Most people don't know...\")\n✓ Authority (\"As someone who...\")\n✓ Scarcity (\"This only works if...\")\n✓ Reciprocity (\"I'm sharing this because...\")\n✓ Curiosity (\"The real reason is...\")" }}</pre>
+          <button class="copy-btn" onclick="copyFormula('psychology-formula')">Copy Framework</button>
+        </div>
+      </div>
     </div>
-  </div>
-
-  <!-- Timing-Based Formula -->
-  <div id="timing-formula-content" class="formula-content">
-    <div class="formula-box">
-      <h4>⏱️ Step-by-Step with Timing</h4>
-      <pre class="formula-text">{% if timing_formula %}{{ timing_formula }}{% else %}TIMING-BASED FORMULA FOR {{ goal.upper() }}:
-
-0-3 seconds: Hook with strong opener that grabs attention immediately
-3-7 seconds: Set clear promise of what they'll learn/discover by the end
-Middle section: Build engagement with progressive reveals and retention tactics
-Final 10 seconds: Deliver satisfying payoff that fulfills the promise
-
-Key Timing Notes:
-- Hook must grab attention in first 1-2 seconds
-- Promise clarification by 5-second mark  
-- Save strongest revelation for final moments
-- End with engagement trigger (question/challenge){% endif %}</pre>
-      <button class="copy-btn" data-target="timing-formula-content">Copy Timing Formula</button>
-    </div>
-  </div>
-
-  <!-- Template Format -->
-  <div id="template-formula-content" class="formula-content">
-    <div class="formula-box">
-      <h4>📋 Template Format</h4>
-      <pre class="formula-text">{% if template_formula %}{{ template_formula }}{% else %}TEMPLATE FORMAT FOR {{ goal.replace('_', ' ').upper() }}:
-
-"[STRONG OPENER] + [CLEAR PROMISE] + [ENGAGING BUILD] + [SATISFYING PAYOFF] + [ENGAGEMENT HOOK]"
-
-Example Structure:
-"[Controversial statement] + [Promise to explain why] + [Build case with examples] + [Deliver the insight] + [Question to drive comments]"
-
-Fill in your content:
-- Strong Opener: ________________
-- Clear Promise: ________________  
-- Engaging Build: ________________
-- Satisfying Payoff: ________________
-- Engagement Hook: ________________{% endif %}</pre>
-      <button class="copy-btn" data-target="template-formula-content">Copy Template</button>
-    </div>
-  </div>
-
-  <!-- Psychology Framework -->
-  <div id="psychology-formula-content" class="formula-content">
-    <div class="formula-box">
-      <h4>🧠 Psychology Framework</h4>
-      <pre class="formula-text">{% if psychology_formula %}{{ psychology_formula }}{% else %}PSYCHOLOGY-BASED RETENTION FRAMEWORK:
-
-1. CURIOSITY GAP CREATION
-   → Create a question they MUST know the answer to
-   → Example: "Why your [expertise area] isn't working"
-
-2. PROMISE ESTABLISHMENT  
-   → What will they learn/gain by watching?
-   → Time-bound commitment: "in the next 30 seconds"
-
-3. DELAYED GRATIFICATION TACTICS
-   → Mini-reveals that build anticipation
-   → "But first, let me tell you about..."
-   → Progressive disclosure of information
-
-4. SATISFYING PAYOFF DELIVERY
-   → Answer the curiosity gap completely
-   → Add bonus insight they didn't expect
-   → Emotional + practical satisfaction
-
-5. ENGAGEMENT AMPLIFICATION
-   → Question that drives comments
-   → Challenge that encourages shares  
-   → Hook for follow-up content
-
-PSYCHOLOGICAL TRIGGERS:
-✓ Social proof ("Most people don't know...")
-✓ Authority ("As someone who...")  
-✓ Scarcity ("This only works if...")
-✓ Reciprocity ("I'm sharing this because...")
-✓ Curiosity ("The real reason is..."){% endif %}</pre>
-      <button class="copy-btn" data-target="psychology-formula-content">Copy Framework</button>
-    </div>
-  </div>
-</div>
-
-<style>
-.formula-selector {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid rgba(102, 126, 234, 0.2);
-  padding-bottom: 12px;
-}
-
-.formula-tab {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-  border: 1px solid rgba(102, 126, 234, 0.2);
-  padding: 8px 16px;
-  border-radius: 20px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.formula-tab:hover {
-  background: rgba(102, 126, 234, 0.2);
-  transform: translateY(-1px);
-}
-
-.formula-tab.active {
-  background: #667eea;
-  color: white;
-  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
-}
-
-.formula-content {
-  display: none;
-}
-
-.formula-content.active {
-  display: block;
-  animation: fadeIn 0.3s ease-in;
-}
-
-.formula-content h4 {
-  margin: 0 0 12px 0;
-  color: #4a5568;
-  font-size: 1.1rem;
-}
-
-.formula-text {
-  white-space: pre-wrap;
-  font-family: inherit;
-  margin: 0;
-  line-height: 1.6;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 16px;
-  border-radius: 8px;
-}
-
-.copy-btn {
-  background: #667eea;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  margin-top: 10px;
-  transition: background 0.3s;
-}
-
-.copy-btn:hover {
-  background: #5a67d8;
-}
-
-.copy-btn.copied {
-  background: #10b981;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 768px) {
-  .formula-selector {
-    justify-content: center;
-  }
-  
-  .formula-tab {
-    font-size: 12px;
-    padding: 6px 12px;
-  }
-}
-</style>
-{% endif %}
-
-// Replace the copy button functionality in your results.html template with this:
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Formula tab switching
-  const formulaTabs = document.querySelectorAll('.formula-tab');
-  const formulaContents = document.querySelectorAll('.formula-content');
-  
-  formulaTabs.forEach(tab => {
-    tab.addEventListener('click', function() {
-      const targetFormula = this.getAttribute('data-formula');
-      
-      // Remove active class from all tabs and contents
-      formulaTabs.forEach(t => t.classList.remove('active'));
-      formulaContents.forEach(c => c.classList.remove('active'));
-      
-      // Add active class to clicked tab
-      this.classList.add('active');
-      
-      // Show corresponding content
-      const targetContent = document.getElementById(targetFormula + '-formula-content');
-      if (targetContent) {
-        targetContent.classList.add('active');
-      }
-    });
-  });
-  
-  // Copy functionality - improved version
-  document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('copy-btn')) {
-      let textToCopy = '';
-      
-      // Check if it's the "Copy All Hooks" button
-      if (e.target.textContent.includes('Copy All Hooks')) {
-        const hooks = [];
-        document.querySelectorAll('.hook-item').forEach(item => {
-          hooks.push(item.textContent.replace(/"/g, '').trim());
-        });
-        textToCopy = hooks.join('\n');
-      }
-      // Check if it has a data-target attribute
-      else if (e.target.hasAttribute('data-target')) {
-        const targetId = e.target.getAttribute('data-target');
-        const targetElement = document.getElementById(targetId);
-        if (targetElement) {
-          const textElement = targetElement.querySelector('.formula-text') || targetElement.querySelector('pre');
-          if (textElement) {
-            textToCopy = textElement.textContent;
-          }
-        }
-      }
-      // Otherwise, look for nearby content to copy
-      else {
-        const nearbyContent = e.target.parentElement.querySelector('pre') || 
-                             e.target.parentElement.querySelector('.formula-text');
-        if (nearbyContent) {
-          textToCopy = nearbyContent.textContent;
-        }
-      }
-      
-      if (textToCopy) {
-        copyToClipboard(textToCopy, e.target);
-      }
-    }
-  });
-  
-  function copyToClipboard(text, button) {
-    // Try modern clipboard API first
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(() => {
-        showCopySuccess(button);
-      }).catch(() => {
-        fallbackCopy(text, button);
-      });
-    } else {
-      fallbackCopy(text, button);
-    }
-  }
-  
-  function showCopySuccess(button) {
-    const originalText = button.textContent;
-    button.textContent = 'Copied!';
-    button.classList.add('copied');
-    
-    setTimeout(() => {
-      button.textContent = originalText;
-      button.classList.remove('copied');
-    }, 2000);
-  }
-  
-  function fallbackCopy(text, button) {
-    // Fallback for older browsers
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    
-    try {
-      document.execCommand('copy');
-      showCopySuccess(button);
-    } catch (err) {
-      console.error('Copy failed:', err);
-      alert('Copy failed. Please try selecting and copying the text manually.');
-    }
-    
-    document.body.removeChild(textArea);
-  }
-});
-
-// Legacy function for backwards compatibility
-function copyToClipboard(text) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => {
-      alert("Copied to clipboard!");
-    }).catch(() => {
-      fallbackLegacyCopy(text);
-    });
-  } else {
-    fallbackLegacyCopy(text);
-  }
-}
-
-function fallbackLegacyCopy(text) {
-  const textArea = document.createElement('textarea');
-  textArea.value = text;
-  document.body.appendChild(textArea);
-  textArea.select();
-  document.execCommand('copy');
-  document.body.removeChild(textArea);
-  alert("Copied to clipboard!");
-}
-</script>
-      
+    {% endif %}
 
     <div class="card">
       <h2>📜 Full Transcript</h2>
@@ -626,12 +383,12 @@ function fallbackLegacyCopy(text) {
         {% endfor %}
       </div>
       
-      <!-- Collapsible Frame Details (optional) -->
-      <details style="margin-top: var(--space-md);">
-        <summary style="cursor: pointer; color: var(--lunar-blush); font-weight: 600;">
-          View Frame-by-Frame Analysis (Used for AI Context)
+      <!-- Collapsible Frame Details -->
+      <details style="margin-top: 20px;">
+        <summary style="cursor: pointer; color: #667eea; font-weight: 600;">
+          ▶ View Frame-by-Frame Analysis (Used for AI Context)
         </summary>
-        <div style="max-height: 300px; overflow-y: auto; background: rgba(255,255,255,0.05); padding: var(--space-md); border-radius: var(--radius-md); margin-top: var(--space-sm);">
+        <div style="max-height: 300px; overflow-y: auto; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; margin-top: 10px;">
           {% if frame_summaries and frame_summaries | length > 1 %}
             {% for block in frame_summaries %}
               <div style="background: rgba(255,255,255,0.1); padding: 12px; border-radius: 6px; margin: 8px 0; font-size: 0.9rem;">
@@ -639,7 +396,7 @@ function fallbackLegacyCopy(text) {
               </div>
             {% endfor %}
           {% else %}
-            <pre style="white-space: pre-wrap; margin: 0; font-family: inherit; font-size: 0.9rem;">{{ frame_summary | default(frames_summaries_text, true) }}</pre>
+            <pre style="white-space: pre-wrap; margin: 0; font-family: inherit; font-size: 0.9rem;">{{ frame_summary | default("No frame analysis available", true) }}</pre>
           {% endif %}
         </div>
       </details>
@@ -647,5 +404,92 @@ function fallbackLegacyCopy(text) {
 
     <a href="/" class="back-link">← Analyze Another Video</a>
   </div>
+
+  <script>
+    // Formula tab switching
+    function showFormula(formulaType) {
+      // Hide all formula contents
+      const contents = document.querySelectorAll('.formula-content');
+      contents.forEach(content => content.classList.remove('active'));
+      
+      // Remove active class from all tabs
+      const tabs = document.querySelectorAll('.formula-tab');
+      tabs.forEach(tab => tab.classList.remove('active'));
+      
+      // Show selected formula
+      const targetContent = document.getElementById(formulaType + '-formula');
+      if (targetContent) {
+        targetContent.classList.add('active');
+      }
+      
+      // Activate clicked tab
+      event.target.classList.add('active');
+    }
+
+    // Copy formula function
+    function copyFormula(formulaId) {
+      const element = document.getElementById(formulaId);
+      const textElement = element.querySelector('.formula-text');
+      if (textElement) {
+        copyToClipboard(textElement.textContent, event.target);
+      }
+    }
+
+    // Copy all hooks function
+    function copyAllHooks() {
+      const hooks = [];
+      document.querySelectorAll('.hook-item').forEach(item => {
+        hooks.push(item.textContent.replace(/"/g, '').trim());
+      });
+      copyToClipboard(hooks.join('\n'), event.target);
+    }
+
+    // Main copy function
+    function copyToClipboard(text, button) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showCopySuccess(button);
+        }).catch(() => {
+          fallbackCopy(text, button);
+        });
+      } else {
+        fallbackCopy(text, button);
+      }
+    }
+
+    // Show copy success
+    function showCopySuccess(button) {
+      const originalText = button.textContent;
+      button.textContent = 'Copied!';
+      button.classList.add('copied');
+      
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.classList.remove('copied');
+      }, 2000);
+    }
+
+    // Fallback copy method
+    function fallbackCopy(text, button) {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      try {
+        document.execCommand('copy');
+        showCopySuccess(button);
+      } catch (err) {
+        console.error('Copy failed:', err);
+        alert('Copy failed. Please try selecting and copying the text manually.');
+      }
+      
+      document.body.removeChild(textArea);
+    }
+  </script>
 </body>
 </html>
