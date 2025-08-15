@@ -1,6 +1,5 @@
-FROM python:3.11-slim
+FROM python:3.11-bullseye
 
-# Install base dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     xfonts-75dpi \
@@ -10,16 +9,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fontconfig \
     ca-certificates \
     curl \
-    tar \
-    xz-utils \
+ && curl -sSL https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bullseye_amd64.deb -o wkhtmltox.deb \
+ && apt-get install -y ./wkhtmltox.deb \
+ && rm wkhtmltox.deb \
  && rm -rf /var/lib/apt/lists/*
-
-# Install wkhtmltopdf from official tar.xz (works across distros)
-RUN curl -sSL https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox-0.12.6-1.amd64.tar.xz \
-    -o wkhtmltox.tar.xz \
- && tar -xJf wkhtmltox.tar.xz \
- && cp wkhtmltox/bin/wkhtmlto* /usr/local/bin/ \
- && rm -rf wkhtmltox wkhtmltox.tar.xz
 
 ENV KMP_DUPLICATE_LIB_OK=TRUE \
     PYTHONDONTWRITEBYTECODE=1 \
