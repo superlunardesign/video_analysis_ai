@@ -1,8 +1,11 @@
 # app.py — lean version: always uses local RAG + gpt-4o (no custom GPT)
 import uuid
 import threading
-from flask import jsonify, redirect, url_for
-from progress import start as prog_start, set_progress, set_error, set_result, get as prog_get, pop_result
+from flask import jsonify, redirect, url_for, render_template
+from progress import (
+    start as prog_start, set_progress, set_error, set_result,
+    get as prog_get, pop_result
+)
 
 import os
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")  # avoid OpenMP dup warnings on macOS
@@ -260,6 +263,26 @@ def analyze():
     tiktok_url = request.form.get("tiktok_url", "").strip()
     if not tiktok_url:
         return "Please provide a TikTok/Reels/Shorts URL.", 400
+    
+    # add this route in app.py (anywhere after your other @app.route defs)
+@app.route("/results_async/<job_id>")
+def results_async(job_id):
+    data = prog_get(job_id)
+    if not data:
+        return "Unknown job", 404
+    if data.get("error"):
+        return f"Job failed: {data['error']}", 500
+    if not data.get("done"):
+        # Not finished yet -> send user back to the progress page
+        return redirect(url_for("progress_page", job_id=job_id))
+
+    # Get the saved result payload (what results.html expects)
+    result = pop_result(job_id) or data.get("result")
+    if not result:
+        return "No result found for this job.", 500
+
+    return render_template("results.html", **result)
+
 
     # Optional UI parameters
     creator_note     = request.form.get("creator_note", "").strip()
