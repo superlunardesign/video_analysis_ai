@@ -85,7 +85,6 @@ def process():
     goal = form.get("goal", "follows").strip()
     tone = form.get("tone", "confident, friendly").strip()
     audience = form.get("audience", "creators and small business owners").strip()
-    video_title = analysis_data.get("video_title", "Untitled Video")
 
     # --- Video Processing ---
     audio_path, frames_dir, frame_paths = extract_audio_and_frames(
@@ -104,7 +103,18 @@ def process():
     if not knowledge_context:
         knowledge_context, knowledge_citations = retrieve_context(rag_query, top_k=12, max_chars=4000)
 
-    gpt_response = run_gpt_analysis(transcript, frames_summaries_text, creator_note, knowledge_context)
+    # --- AI Analysis ---
+    analysis_data = run_gpt_analysis(
+        transcript,
+        frames_summaries_text,
+        creator_note,
+        knowledge_context
+    )
+
+    # --- Safe defaults ---
+    video_title = analysis_data.get("video_title", "Untitled Video")
+    hooks = analysis_data.get("hooks", [])
+    analysis_text = analysis_data.get("analysis", "")
 
     return render_template(
         "results.html",
@@ -113,7 +123,7 @@ def process():
         transcript=transcript,
         frame_summary=frames_summaries_text,
         frame_gallery=gallery_data_urls,
-        gpt_response=gpt_response,
+        gpt_response=analysis_data,  # or analysis_text depending on your template
         strategy=strategy,
         frames_per_minute=frames_per_min,
         cap=cap,
@@ -128,9 +138,10 @@ def process():
         frames_dir=frames_dir,
         frame_paths=frame_paths,
         video_title=video_title,
-    analysis=analysis_data.get("analysis", ""),
-    hooks=analysis_data.get("hooks", []),  # ✅ Never None
+        analysis=analysis_text,
+        hooks=hooks
     )
+
 
 
 if __name__ == "__main__":
