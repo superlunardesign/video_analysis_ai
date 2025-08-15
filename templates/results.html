@@ -1,111 +1,171 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Analysis Results</title>
+  <title>Retention Analysis Results</title>
   <style>
     body { 
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; 
-      margin: 24px; 
-      background: #f5f5f5;
+      margin: 0; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
     }
-    .container { max-width: 1200px; margin: 0 auto; }
+    .container { 
+      max-width: 1200px; 
+      margin: 0 auto; 
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
     .meta { 
-      color: #555; 
-      margin-bottom: 12px; 
-      background: white;
-      padding: 16px;
+      background: rgba(255,255,255,0.95);
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .scores-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .score-card {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .score-value {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .score-label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+    .card { 
+      background: rgba(255,255,255,0.95);
+      border-radius: 12px; 
+      padding: 25px; 
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .card h2 {
+      margin-top: 0;
+      color: #4a5568;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 10px;
+    }
+    .hooks-grid {
+      display: grid;
+      gap: 12px;
+      margin: 15px 0;
+    }
+    .hook-item {
+      background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+      color: #2d3436;
+      padding: 15px;
       border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      font-style: italic;
+      font-weight: 500;
+      border-left: 4px solid #e17055;
     }
-    .grid { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
-      gap: 10px; 
+    .formula-box {
+      background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      border: 1px solid #81ecec;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
     }
-    img { 
-      width: 100%; 
-      height: auto; 
-      border-radius: 8px; 
+    .timing-box {
+      background: linear-gradient(135deg, #d1f2eb 0%, #a8e6cf 100%);
+      border: 1px solid #00b894;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+    .improvements-box {
+      background: linear-gradient(135deg, #ffe8cc 0%, #ffcc8f 100%);
+      border: 1px solid #fdcb6e;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
     }
     pre { 
       white-space: pre-wrap; 
-      background: #f7f7f8; 
-      padding: 12px; 
-      border-radius: 8px; 
-      overflow-x: auto;
-      font-size: 14px;
-      line-height: 1.4;
-    }
-    .card { 
-      border: 1px solid #eee; 
-      border-radius: 10px; 
-      padding: 16px; 
-      background: #fff; 
-      margin-bottom: 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .tag { 
-      display: inline-block; 
-      background: #eef2ff; 
-      color: #3730a3; 
-      padding: 4px 8px; 
-      border-radius: 999px; 
-      font-size: 12px; 
-      margin-right: 6px; 
-      margin-bottom: 4px;
+      font-family: inherit;
+      margin: 0;
+      line-height: 1.6;
     }
     .copy-btn {
-      background: #4f46e5;
+      background: #667eea;
       color: white;
       border: none;
-      padding: 8px 16px;
+      padding: 10px 20px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
-      margin-top: 8px;
+      margin-top: 10px;
+      transition: background 0.3s;
     }
     .copy-btn:hover {
-      background: #4338ca;
+      background: #5a67d8;
     }
-    h1, h2 {
-      color: #1f2937;
+    .grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+      gap: 15px; 
+      margin: 20px 0;
     }
-    h1 {
-      text-align: center;
-      margin-bottom: 32px;
-      color: #4f46e5;
+    .frame-card {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    h2 {
-      border-bottom: 2px solid #e5e7eb;
-      padding-bottom: 8px;
-      margin-top: 32px;
-      margin-bottom: 16px;
+    .frame-card img { 
+      width: 100%; 
+      height: auto; 
     }
     .back-link {
       display: inline-block;
-      background: #6b7280;
+      background: rgba(255,255,255,0.2);
       color: white;
       text-decoration: none;
-      padding: 12px 24px;
-      border-radius: 6px;
-      margin-top: 32px;
+      padding: 15px 30px;
+      border-radius: 30px;
+      margin-top: 30px;
+      font-weight: 500;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.3);
+      transition: all 0.3s;
     }
     .back-link:hover {
-      background: #4b5563;
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
     }
-    .hooks-list {
-      background: #f0f9ff;
-      border: 1px solid #0ea5e9;
-      border-radius: 8px;
-      padding: 16px;
-    }
-    .hook-item {
-      background: white;
-      border: 1px solid #e0e7ff;
-      border-radius: 6px;
-      padding: 12px;
-      margin-bottom: 8px;
-      font-style: italic;
+    .tag { 
+      display: inline-block; 
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea; 
+      padding: 6px 12px; 
+      border-radius: 20px; 
+      font-size: 12px; 
+      margin-right: 8px; 
+      margin-bottom: 6px;
+      border: 1px solid rgba(102, 126, 234, 0.2);
     }
   </style>
   <script>
@@ -113,8 +173,6 @@
       navigator.clipboard.writeText(text).then(() => {
         alert("Copied to clipboard!");
       }).catch(err => {
-        console.error('Failed to copy: ', err);
-        // Fallback for older browsers
         const textArea = document.createElement('textarea');
         textArea.value = text;
         document.body.appendChild(textArea);
@@ -128,81 +186,131 @@
 </head>
 <body>
   <div class="container">
-    <h1>Analysis Results (Goal: {{ goal }})</h1>
+    <div class="header">
+      <h1>🎯 Retention Analysis</h1>
+      <p>Goal: {{ goal.replace('_', ' ').title() }}</p>
+    </div>
 
     <div class="meta">
-      <div><strong>URL:</strong> {{ tiktok_url }}</div>
-      {% if creator_note %}<div><strong>Your note:</strong> {{ creator_note }}</div>{% endif %}
-      <div style="margin-top: 8px;">
-        <span class="tag">Strategy: {{ strategy }}</span>
-        <span class="tag">Cap: {{ cap }}</span>
-        {% if strategy == 'uniform' %}
-          <span class="tag">Frames/min: {{ frames_per_minute }}</span>
-        {% else %}
-          <span class="tag">Scene threshold: {{ scene_threshold }}</span>
-        {% endif %}
-        <span class="tag">Frames kept: {{ frames_count | default(frame_paths | length, true) }}</span>
-        <span class="tag">Platform: {{ platform }}</span>
-        <span class="tag">Duration: {{ target_duration }}s</span>
+      <div><strong>📹 URL:</strong> {{ tiktok_url }}</div>
+      {% if creator_note %}<div><strong>📝 Your note:</strong> {{ creator_note }}</div>{% endif %}
+      <div style="margin-top: 12px;">
+        <span class="tag">{{ platform.title() }}</span>
+        <span class="tag">{{ target_duration }}s target</span>
+        <span class="tag">{{ frames_count | default(0) }} frames analyzed</span>
+        <span class="tag">{{ strategy.title() }} sampling</span>
       </div>
     </div>
 
-    <h2>🎯 Alternative Hooks</h2>
-    <div class="card hooks-list">
+    {% if scores %}
+    <div class="card">
+      <h2>📊 Performance Scores</h2>
+      <div class="scores-grid">
+        {% if scores.hook_strength %}
+        <div class="score-card">
+          <div class="score-value">{{ scores.hook_strength }}/10</div>
+          <div class="score-label">Hook Strength</div>
+        </div>
+        {% endif %}
+        {% if scores.promise_clarity %}
+        <div class="score-card">
+          <div class="score-value">{{ scores.promise_clarity }}/10</div>
+          <div class="score-label">Promise Clarity</div>
+        </div>
+        {% endif %}
+        {% if scores.retention_design %}
+        <div class="score-card">
+          <div class="score-value">{{ scores.retention_design }}/10</div>
+          <div class="score-label">Retention Design</div>
+        </div>
+        {% endif %}
+        {% if scores.engagement_potential %}
+        <div class="score-card">
+          <div class="score-value">{{ scores.engagement_potential }}/10</div>
+          <div class="score-label">Engagement Potential</div>
+        </div>
+        {% endif %}
+        {% if scores.goal_alignment %}
+        <div class="score-card">
+          <div class="score-value">{{ scores.goal_alignment }}/10</div>
+          <div class="score-label">Goal Alignment</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h2>🎣 Hook Analysis & Breakdown</h2>
+      <pre>{{ analysis }}</pre>
+    </div>
+
+    {% if timing_breakdown %}
+    <div class="card">
+      <h2>⏱️ Timing Breakdown</h2>
+      <div class="timing-box">
+        <pre>{{ timing_breakdown }}</pre>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if improvements %}
+    <div class="card">
+      <h2>🚀 Specific Improvements</h2>
+      <div class="improvements-box">
+        <pre>{{ improvements }}</pre>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h2>💡 Alternative Hooks to Test</h2>
       {% if hooks and hooks | length > 0 %}
-        {% for hook in hooks %}
-          <div class="hook-item">{{ hook }}</div>
-        {% endfor %}
+        <div class="hooks-grid">
+          {% for hook in hooks %}
+            <div class="hook-item">"{{ hook }}"</div>
+          {% endfor %}
+        </div>
         <button class="copy-btn" onclick="copyToClipboard(`{{ hooks | join('\n') }}`)">Copy All Hooks</button>
       {% else %}
         <p>No alternative hooks generated.</p>
       {% endif %}
     </div>
 
-    <h2>📝 Analysis</h2>
-    <div class="card">
-      <pre>{{ analysis | default(gpt_response, true) }}</pre>
-    </div>
-
     {% if formula %}
-    <h2>📋 Reusable Formula</h2>
     <div class="card">
-      <pre>{{ formula }}</pre>
+      <h2>📋 Your Reusable Formula</h2>
+      <div class="formula-box">
+        <pre>{{ formula }}</pre>
+      </div>
       <button class="copy-btn" onclick="copyToClipboard(`{{ formula }}`)">Copy Formula</button>
     </div>
     {% endif %}
 
-    <h2>🎬 Transcript</h2>
     <div class="card">
+      <h2>📜 Full Transcript</h2>
       <pre>{{ transcript }}</pre>
     </div>
 
-    <h2>🖼️ Frames (sampled)</h2>
-    <div class="grid">
-      {% for img in frame_gallery %}
-        <div class="card"><img src="{{ img }}" alt="Frame"></div>
-      {% endfor %}
-    </div>
-
-    <h2>👁️ Frame-by-frame Visual Notes</h2>
-    {% if frame_summaries and frame_summaries | length > 1 %}
-      {% for block in frame_summaries %}
-        <div class="card">
-          <pre>{{ block }}</pre>
-        </div>
-      {% endfor %}
-    {% else %}
-      <div class="card">
-        <pre>{{ frame_summary | default(frames_summaries_text, true) }}</pre>
-      </div>
-    {% endif %}
-
-    {% if knowledge_context %}
-    <h2>📚 Knowledge Base Context Used</h2>
     <div class="card">
-      <pre>{{ knowledge_context }}</pre>
+      <h2>🖼️ Frame Analysis</h2>
+      <div class="grid">
+        {% for img in frame_gallery %}
+          <div class="frame-card"><img src="{{ img }}" alt="Video frame"></div>
+        {% endfor %}
+      </div>
+      {% if frame_summaries and frame_summaries | length > 1 %}
+        {% for block in frame_summaries %}
+          <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
+            <pre>{{ block }}</pre>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
+          <pre>{{ frame_summary | default(frames_summaries_text, true) }}</pre>
+        </div>
+      {% endif %}
     </div>
-    {% endif %}
 
     <a href="/" class="back-link">← Analyze Another Video</a>
   </div>

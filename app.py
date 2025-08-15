@@ -34,63 +34,129 @@ def _api_retry(callable_fn, *args, **kwargs):
 
 def run_gpt_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context=""):
     """
-    Sends transcript_text and visuals to GPT and returns a dict with:
-      - "analysis": full analysis text from GPT
-      - "hooks": list of extracted hooks
+    Analyze video using retention psychology framework focusing on hooks, promises, and payoff timing.
     """
 
     prompt = f"""
-You are analyzing a social media video for performance improvement.
+You are an expert TikTok/short-form content strategist analyzing videos for retention psychology and engagement mechanics.
 
-Transcript:
+TRANSCRIPT:
 {transcript_text}
 
-Frame-by-frame visual notes:
+VISUAL FRAMES:
 {frames_summaries_text}
 
-Creator note: {creator_note}
-Platform: {platform}
-Target duration: {target_duration}
-Goal: {goal}
-Tone: {tone}
-Audience: {audience}
+CREATOR NOTE: {creator_note}
+PLATFORM: {platform} | GOAL: {goal} | DURATION: {target_duration}s
 
-Knowledge context for reference:
-{knowledge_context}
+ANALYSIS FRAMEWORK:
+Use this retention psychology framework to analyze the video:
 
-Provide a detailed analysis including:
-- Strengths in hook, delivery, structure
-- Weaknesses and missed opportunities
-- Suggestions for improvement
-- Timing notes for pacing/retention
-- Any examples of how to reword/improve specific lines
+1. HOOK ANALYSIS (0-3 seconds):
+   - Text hooks (on-screen text, captions)
+   - Verbal hooks (opening words/statements)  
+   - Visual hooks (eye contact, unusual actions, pattern interrupts)
+   - Rate hook strength: Does it create curiosity/intrigue?
 
-Then separately provide 5 strong alternative hooks for the same content.
+2. PROMISE IDENTIFICATION (3-7 seconds):
+   - What does the video promise to deliver?
+   - How quickly does it reinforce the hook?
+   - Does it create expectation for a payoff?
 
-Respond in **valid JSON** with exactly two keys:
-- "analysis": string
-- "hooks": array of strings
+3. RETENTION MECHANICS:
+   - Story structure: Does it delay gratification?
+   - Engagement bait: Eye contact, comments-driving elements
+   - Pacing: Are there mini-revelations to maintain interest?
+   - Pattern interrupts: Unexpected elements that reset attention
+
+4. PAYOFF TIMING:
+   - When is the main promise delivered?
+   - Does it save the best for last?
+   - Is there a satisfying conclusion?
+
+5. PSYCHOLOGICAL HOOKS EXAMPLES:
+   - Curiosity gaps ("how I accidentally became...")
+   - Social proof/status ("12yo scammer")
+   - Process reveal (sourdough making)
+   - Personal story openings
+   - Controversial/shocking statements
+
+SCORING (1-10 scale):
+- Hook Strength: How compelling is the opening?
+- Promise Clarity: How clear is the expected payoff?
+- Retention Design: How well structured for full watch-through?
+- Engagement Potential: Will it drive comments/shares?
+- Goal Alignment: How well does it serve the stated goal ({goal})?
+
+DELIVERABLES:
+1. Detailed breakdown of what makes this video work/not work
+2. Specific timing analysis (what happens when)
+3. 5 alternative hooks following the same psychological principles
+4. A reusable formula this creator can apply to future content
+5. Goal-specific improvements for {goal}
+
+Focus on actionable insights, not generic advice. Reference the sourdough creator example (promise → process → payoff) and phishing story structure (hook → story building → delayed revelation).
+
+Respond in valid JSON:
+{{
+  "analysis": "detailed analysis string",
+  "hooks": ["hook1", "hook2", "hook3", "hook4", "hook5"],
+  "scores": {{
+    "hook_strength": 0-10,
+    "promise_clarity": 0-10, 
+    "retention_design": 0-10,
+    "engagement_potential": 0-10,
+    "goal_alignment": 0-10
+  }},
+  "timing_breakdown": "when key moments happen",
+  "formula": "reusable step-by-step formula",
+  "improvements": "specific suggestions for this video"
+}}
     """
 
-    gpt_response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
-    )
-
     try:
-        parsed = json.loads(gpt_response.choices[0].message.content)
-        return {
-            "analysis": parsed.get("analysis", ""),
-            "hooks": parsed.get("hooks", [])
-        }
-    except (json.JSONDecodeError, KeyError):
-        gpt_text = gpt_response.choices[0].message.content
-        return {
-            "analysis": gpt_text,
-            "hooks": []
-        }
+        gpt_response = _api_retry(
+            client.chat.completions.create,
+            model="gpt-4o",  # Use GPT-4o for better analysis
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,  # Lower temperature for more consistent analysis
+            max_tokens=1500
+        )
 
+        response_text = gpt_response.choices[0].message.content
+        
+        # Try to parse JSON response
+        try:
+            parsed = json.loads(response_text)
+            return {
+                "analysis": parsed.get("analysis", ""),
+                "hooks": parsed.get("hooks", []),
+                "scores": parsed.get("scores", {}),
+                "timing_breakdown": parsed.get("timing_breakdown", ""),
+                "formula": parsed.get("formula", ""),
+                "improvements": parsed.get("improvements", "")
+            }
+        except json.JSONDecodeError:
+            # Fallback if JSON parsing fails
+            return {
+                "analysis": response_text,
+                "hooks": [],
+                "scores": {},
+                "timing_breakdown": "",
+                "formula": "",
+                "improvements": ""
+            }
+            
+    except Exception as e:
+        print(f"GPT analysis error: {e}")
+        return {
+            "analysis": f"Analysis failed: {str(e)}",
+            "hooks": [],
+            "scores": {},
+            "timing_breakdown": "",
+            "formula": "",
+            "improvements": ""
+        }
 
 @app.route("/", methods=["GET"])
 def index():
@@ -154,17 +220,12 @@ def process():
             frames_summaries_text = "(Frame analysis failed)"
             gallery_data_urls = []
 
-        # --- Retrieve knowledge base context ---
-        try:
-            rag_query = f"Short-form content strategy.\nTranscript:\n{transcript}\n\nVisual notes:\n{frames_summaries_text}"
-            knowledge_context, knowledge_citations = retrieve_all_context(max_chars=16000)
-            if not knowledge_context:
-                knowledge_context, knowledge_citations = retrieve_context(rag_query, top_k=12, max_chars=4000)
-        except Exception as e:
-            print(f"RAG retrieval error: {e}")
-            knowledge_context, knowledge_citations = "", []
+        # --- Skip RAG for now to focus on retention analysis ---
+        # We can add back knowledge context later if needed
+        knowledge_context = ""
+        knowledge_citations = []
 
-        # --- AI Analysis ---
+        # --- Retention-focused AI Analysis ---
         try:
             gpt_result = run_gpt_analysis(
                 transcript,
@@ -177,34 +238,35 @@ def process():
                 audience,
                 knowledge_context
             )
-            print("GPT analysis complete")
+            print("Retention analysis complete")
         except Exception as e:
             print(f"GPT analysis error: {e}")
-            gpt_result = {"analysis": f"Analysis failed: {str(e)}", "hooks": []}
+            gpt_result = {
+                "analysis": f"Analysis failed: {str(e)}", 
+                "hooks": [],
+                "scores": {},
+                "timing_breakdown": "",
+                "formula": "",
+                "improvements": ""
+            }
 
-        # --- Ensure safe types ---
+        # --- Extract results ---
         analysis_text = gpt_result.get("analysis", "Analysis not available")
         hooks_list = gpt_result.get("hooks", [])
+        scores = gpt_result.get("scores", {})
+        timing_breakdown = gpt_result.get("timing_breakdown", "")
+        formula = gpt_result.get("formula", "")
+        improvements = gpt_result.get("improvements", "")
+        
         if isinstance(hooks_list, str):
             hooks_list = [hooks_list]
-
-        # --- Generate formula using analyze_tiktok.py logic ---
-        try:
-            from analyze_tiktok import run_analysis
-            additional_analysis = run_analysis("", goal)
-            formula = additional_analysis.get("formula", "")
-        except Exception as e:
-            print(f"Formula generation error: {e}")
-            formula = "Formula generation failed"
 
         # --- Prepare frame summaries for template ---
         frame_summaries = []
         if frames_summaries_text:
-            # Split by double newlines or by numbered frames
             blocks = frames_summaries_text.split('\n\n')
             frame_summaries = [block.strip() for block in blocks if block.strip()]
         
-        # If no blocks found, try splitting by frame numbers
         if not frame_summaries and frames_summaries_text:
             frame_summaries = [frames_summaries_text]
 
@@ -233,8 +295,12 @@ def process():
             frame_paths=frame_paths,
             analysis=analysis_text,
             hooks=hooks_list,
-            gpt_response=analysis_text,
-            formula=formula
+            scores=scores,
+            timing_breakdown=timing_breakdown,
+            formula=formula,
+            improvements=improvements,
+            # Keep these for backward compatibility
+            gpt_response=analysis_text
         )
 
     except Exception as e:
@@ -242,6 +308,6 @@ def process():
         import traceback
         traceback.print_exc()
         return f"Unexpected error: {str(e)}", 500
-
+    
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000, debug=True)
