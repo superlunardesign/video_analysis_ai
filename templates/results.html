@@ -1,62 +1,105 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Analysis Results</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
-    .meta { color: #555; margin-bottom: 12px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
-    img { width: 100%; height: auto; border-radius: 8px; }
-    pre { white-space: pre-wrap; background: #f7f7f8; padding: 12px; border-radius: 8px; }
-    .card { border: 1px solid #eee; border-radius: 10px; padding: 12px; background: #fff; }
-    .tag { display: inline-block; background: #eef2ff; color: #3730a3; padding: 2px 8px; border-radius: 999px; font-size: 12px; margin-right: 6px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Video Analysis Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .score-bar {
+            height: 20px;
+            background-color: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .score-fill {
+            height: 100%;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            line-height: 20px;
+        }
+        .copy-btn {
+            margin-left: 10px;
+            padding: 5px 10px;
+            font-size: 0.8em;
+            cursor: pointer;
+            border: none;
+            background: #007bff;
+            color: white;
+            border-radius: 4px;
+        }
+    </style>
+    <script>
+        function copyText(id) {
+            var text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text);
+            alert("Copied to clipboard!");
+        }
+    </script>
 </head>
 <body>
-  <h1>Analysis Results</h1>
+    <div class="container">
+        <h1>Video Analysis Results</h1>
 
-  <div class="meta">
-    <div><strong>URL:</strong> {{ tiktok_url }}</div>
-    {% if creator_note %}<div><strong>Your note:</strong> {{ creator_note }}</div>{% endif %}
-    <div>
-      <span class="tag">Strategy: {{ strategy }}</span>
-      <span class="tag">Cap: {{ cap }}</span>
-      {% if strategy == 'uniform' %}
-        <span class="tag">Frames/min: {{ frames_per_minute }}</span>
-      {% else %}
-        <span class="tag">Scene threshold: {{ scene_threshold }}</span>
-      {% endif %}
-      <span class="tag">Frames kept: {{ frames_count }}</span>
+        {% if video_url %}
+            <p><strong>Video URL:</strong> <a href="{{ video_url }}" target="_blank">{{ video_url }}</a></p>
+        {% endif %}
+
+        {% if transcript %}
+            <h2>Transcript</h2>
+            <p>{{ transcript }}</p>
+        {% endif %}
+
+        {% if overall_score %}
+            <h2>Overall Video Score: {{ overall_score }}%</h2>
+            <div class="score-bar">
+                <div class="score-fill" style="width: {{ overall_score }}%; background-color: {% if overall_score >= 75 %}#28a745{% elif overall_score >= 50 %}#ffc107{% else %}#dc3545{% endif %};">
+                    {{ overall_score }}%
+                </div>
+            </div>
+        {% endif %}
+
+        {% if hooks %}
+            <h2>Detected Hooks</h2>
+            <ul>
+                {% for hook in hooks %}
+                    <li id="hook{{ loop.index }}">{{ hook }}
+                        <button class="copy-btn" onclick="copyText('hook{{ loop.index }}')">Copy</button>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if formulas %}
+            <h2>Identified Retention Patterns / Formulas</h2>
+            <ul>
+                {% for formula in formulas %}
+                    <li id="formula{{ loop.index }}">{{ formula }}
+                        <button class="copy-btn" onclick="copyText('formula{{ loop.index }}')">Copy</button>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if frames %}
+            <h2>Sampled Frames</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                {% for frame in frames %}
+                    <div>
+                        <img src="{{ frame }}" alt="Video frame" style="max-width: 200px; border: 1px solid #ccc;">
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if analysis %}
+            <h2>Detailed Analysis</h2>
+            <p>{{ analysis }}</p>
+        {% endif %}
+
+        <br>
+        <a href="{{ url_for('index') }}">Analyze Another Video</a>
     </div>
-  </div>
-
-  <h2>Transcript</h2>
-  <pre>{{ transcript }}</pre>
-
-  <h2>Frames (sampled)</h2>
-  <div class="grid">
-    {% for img in frame_gallery %}
-      <div class="card"><img src="{{ img }}" alt="Frame"></div>
-    {% endfor %}
-  </div>
-
-  <h2>Frame-by-frame Visual Notes</h2>
-  {% for block in frame_summaries %}
-    <div class="card">
-      <pre>{{ block }}</pre>
-    </div>
-  {% endfor %}
-
-  <h2>Custom GPT Synthesis</h2>
-  <div class="card">
-    <pre>{{ gpt_response }}</pre>
-  </div>
-
-  <h2>Improved Script</h2>
-  <div class="card">
-    <pre>{{ improved_script }}</pre>
-  </div>
-
-  <p><a href="/">Analyze another</a></p>
 </body>
 </html>
