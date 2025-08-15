@@ -1,80 +1,97 @@
-import os
+import sqlite3
 import json
-import redis
+import os
 
-# Configure Redis URL (Render provides REDIS_URL in environment if you add Redis service)
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-r = redis.Redis.from_url(REDIS_URL, decode_responses=True)
-
-# TTL for job keys in seconds (1 day = 86400 seconds)
-JOB_TTL = int(os.getenv("JOB_TTL", "86400"))
+DB_PATH = os.path.join(os.path.dirname(__file__), "jobs.db")
 
 
-def _job_key(job_id):
-    """Return the Redis key for a given job_id."""
-    return f"job:{job_id}"
+def _init_db():
+    """Initialize the jobs table if it doesn't exist."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS jobs (
+            job_id TEXT PRIMARY KEY,
+            stage TEXT,
+            percent INTEGER,
+            done INTEGER,
+            error TEXT,
+            result TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
 
 
 def start(job_id):
-    """Initialize a new job in Redis."""
-    data = {
-        "stage": "Starting…",
-        "percent": 0,
-        "done": False,
-        "error": None,
-        "result": None
-    }
-    r.set(_job_key(job_id), json.dumps(data), ex=JOB_TTL)
+    _init_db()
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("""
+        INSERT OR REPLACE INTO jobs (job_id, stage, percent, done, error, result)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (job_id, "Starting…", 0, 0, None, None))
+    conn.commit()
+    conn.close()
 
 
 def set_progress(job_id, stage, percent):
-    """Update the job progress."""
-    data = get(job_id) or {}
-    data.update({
-        "stage": stage,
-        "percent": percent,
-        "done": False
-    })
-    r.set(_job_key(job_id), json.dumps(data), ex=JOB_TTL)
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("""
+        UPDATE jobs SET stage=?, percent=?, done=0 WHERE job_id=?
+    """, (stage, percent, job_id))
+    conn.commit()
+    conn.close()
 
 
 def set_error(job_id, error_msg):
-    """Mark the job as failed."""
-    data = get(job_id) or {}
-    data.update({
-        "stage": "Error",
-        "error": error_msg,
-        "done": True
-    })
-    r.set(_job_key(job_id), json.dumps(data), ex=JOB_TTL)
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("""
+        UPDATE jobs SET stage=?, error=?, done=1 WHERE job_id=?
+    """, ("Error", error_msg, job_id))
+    conn.commit()
+    conn.close()
 
 
 def set_result(job_id, result_data):
-    """Save the job result and mark as done."""
-    data = get(job_id) or {}
-    data.update({
-        "stage": "Completed",
-        "percent": 100,
-        "done": True,
-        "result": result_data
-    })
-    r.set(_job_key(job_id), json.dumps(data), ex=JOB_TTL)
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("""
+        UPDATE jobs SET stage=?, percent=?, done=1, result=? WHERE job_id=?
+    """, ("Completed", 100, json.dumps(result_data), job_id))
+    conn.commit()
+    conn.close()
 
 
 def get(job_id):
-    """Retrieve the job data from Redis."""
-    raw = r.get(_job_key(job_id))
-    if not raw:
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT stage, percent, done, error, result FROM jobs WHERE job_id=?", (job_id,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
         return None
-    return json.loads(raw)
+    stage, percent, done, error, result = row
+    return {
+        "stage": stage,
+        "percent": percent,
+        "done": bool(done),
+        "error": error,
+        "result": json.loads(result) if result else None
+    }
 
 
 def pop_result(job_id):
-    """Get and remove the job result from Redis."""
-    data = get(job_id)
-    if not data:
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT result FROM jobs WHERE job_id=?", (job_id,))
+    row = c.fetchone()
+    c.execute("DELETE FROM jobs WHERE job_id=?", (job_id,))
+    conn.commit()
+    conn.close()
+    if not row:
         return None
-    result = data.get("result")
-    # Remove the job key entirely
-    r.delete(_job_key(job_id))
-    return result
+    result = row[0]
+    return json.loads(result) if result else None
