@@ -366,10 +366,3 @@ def results_async(job_id):
         frame_paths=frame_paths,              # optional debug
     )
 
-
-if __name__ == "__main__":
-<<<<<<< HEAD
-    app.run(host="0.0.0.0", port=10000, debug=True)
-=======
-    app.run(host="10.0.0.145", port=5000, debug=True)
->>>>>>> parent of 3d3c119 (Fake Progress Bar)
