@@ -1,7 +1,8 @@
 import os
 import random
 import time as _time
-from flask import Flask, request, render_template, jsonify
+import json
+from flask import Flask, request, render_template
 from openai import OpenAI
 
 from processing import (
@@ -31,33 +32,64 @@ def _api_retry(callable_fn, *args, **kwargs):
             _time.sleep(sleep_s)
 
 
-def run_gpt_analysis(transcript, frames_summaries_text, creator_note="", knowledge_context=""):
-    note = f"\n\nCreator’s Note:\n{creator_note}" if creator_note else ""
-    kc = f"\n\nKnowledge Context:\n{knowledge_context}" if knowledge_context else ""
+def run_gpt_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context=""):
+    """
+    Sends transcript_text and visuals to GPT and returns a dict with:
+      - "analysis": full analysis text from GPT
+      - "hooks": list of extracted hooks
+    """
 
     prompt = f"""
+You are analyzing a social media video for performance improvement.
+
 Transcript:
-{transcript}
+{transcript_text}
 
 Frame-by-frame visual notes:
 {frames_summaries_text}
-{note}{kc}
 
-Give an in-depth analysis of the video’s performance, sales psychology, retention, and a reusable formula.
-"""
+Creator note: {creator_note}
+Platform: {platform}
+Target duration: {target_duration}
+Goal: {goal}
+Tone: {tone}
+Audience: {audience}
 
-    def _call():
-        return client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are TikTok Analyzer, a GPT trained to analyze short-form video."},
-                {"role": "user", "content": prompt},
-            ],
-            max_tokens=900,
-        )
+Knowledge context for reference:
+{knowledge_context}
 
-    resp = _api_retry(_call)
-    return resp.choices[0].message.content
+Provide a detailed analysis including:
+- Strengths in hook, delivery, structure
+- Weaknesses and missed opportunities
+- Suggestions for improvement
+- Timing notes for pacing/retention
+- Any examples of how to reword/improve specific lines
+
+Then separately provide 5 strong alternative hooks for the same content.
+
+Respond in **valid JSON** with exactly two keys:
+- "analysis": string
+- "hooks": array of strings
+    """
+
+    gpt_response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7
+    )
+
+    try:
+        parsed = json.loads(gpt_response.choices[0].message.content)
+        return {
+            "analysis": parsed.get("analysis", ""),
+            "hooks": parsed.get("hooks", [])
+        }
+    except (json.JSONDecodeError, KeyError):
+        gpt_text = gpt_response.choices[0].message.content
+        return {
+            "analysis": gpt_text,
+            "hooks": []
+        }
 
 
 @app.route("/", methods=["GET"])
@@ -67,79 +99,88 @@ def index():
 
 @app.route("/analyze_async", methods=["POST"])
 def analyze_async():
-    # This now just shows the progress bar page
     return render_template("progress.html", form_data=request.form.to_dict())
 
 
 @app.route("/process", methods=["POST"])
 def process():
-    form = request.form
-    tiktok_url = form.get("tiktok_url", "").strip()
-    creator_note = form.get("creator_note", "").strip()
-    strategy = form.get("strategy", "smart").strip().lower()
-    frames_per_min = int(form.get("frames_per_minute", 24))
-    cap = int(form.get("cap", 60))
-    scene_threshold = float(form.get("scene_threshold", 0.24))
-    platform = form.get("platform", "tiktok").strip()
-    target_duration = int(form.get("target_duration", 30))
-    goal = form.get("goal", "follows").strip()
-    tone = form.get("tone", "confident, friendly").strip()
-    audience = form.get("audience", "creators and small business owners").strip()
+    try:
+        # --- Form data ---
+        tiktok_url = request.form.get("tiktok_url", "").strip()
+        creator_note = request.form.get("creator_note", "").strip()
+        strategy = request.form.get("strategy", "smart").strip()
+        frames_per_minute = int(request.form.get("frames_per_minute", 24))
+        cap = int(request.form.get("cap", 60))
+        scene_threshold = float(request.form.get("scene_threshold", 0.24))
+        platform = request.form.get("platform", "tiktok").strip()
+        target_duration = request.form.get("target_duration", "30").strip()
+        goal = request.form.get("goal", "follows").strip()
+        tone = request.form.get("tone", "confident, friendly").strip()
+        audience = request.form.get("audience", "creators and small business owners").strip()
 
-    # --- Video Processing ---
-    audio_path, frames_dir, frame_paths = extract_audio_and_frames(
-        tiktok_url,
-        strategy=strategy,
-        frames_per_minute=frames_per_min,
-        cap=cap,
-        scene_threshold=scene_threshold,
-    )
+        # --- Video processing ---
+        audio_path, frames_dir, frame_paths = extract_audio_and_frames(
+            tiktok_url,
+            strategy=strategy,
+            frames_per_minute=frames_per_minute,
+            cap=cap,
+            scene_threshold=scene_threshold,
+        )
 
-    transcript = transcribe_audio(audio_path)
-    frames_summaries_text, gallery_data_urls = analyze_frames_batch(frame_paths)
+        transcript = transcribe_audio(audio_path)
+        frames_summaries_text, gallery_data_urls = analyze_frames_batch(frame_paths)
 
-    rag_query = f"Short-form content strategy.\nTranscript:\n{transcript}\n\nVisual notes:\n{frames_summaries_text}"
-    knowledge_context, knowledge_citations = retrieve_all_context(max_chars=16000)
-    if not knowledge_context:
-        knowledge_context, knowledge_citations = retrieve_context(rag_query, top_k=12, max_chars=4000)
+        # --- Retrieve knowledge base context ---
+        rag_query = f"Short-form content strategy.\nTranscript:\n{transcript}\n\nVisual notes:\n{frames_summaries_text}"
+        knowledge_context, knowledge_citations = retrieve_all_context(max_chars=16000)
+        if not knowledge_context:
+            knowledge_context, knowledge_citations = retrieve_context(rag_query, top_k=12, max_chars=4000)
 
-    # --- AI Analysis ---
-    analysis_data = run_gpt_analysis(
-        transcript,
-        frames_summaries_text,
-        creator_note,
-        knowledge_context
-    )
+        # --- AI Analysis ---
+        gpt_result = run_gpt_analysis(
+            transcript,
+            frames_summaries_text,
+            creator_note,
+            platform,
+            target_duration,
+            goal,
+            tone,
+            audience,
+            knowledge_context
+        )
 
-    # --- Safe defaults ---
-    hooks = analysis_data.get("hooks", [])
-    analysis_text = analysis_data.get("analysis", "")
+        # --- Ensure safe types ---
+        analysis_text = gpt_result.get("analysis", "")
+        hooks_list = gpt_result.get("hooks", [])
+        if isinstance(hooks_list, str):
+            hooks_list = [hooks_list]
 
-    return render_template(
-        "results.html",
-        tiktok_url=tiktok_url,
-        creator_note=creator_note,
-        transcript=transcript,
-        frame_summary=frames_summaries_text,
-        frame_gallery=gallery_data_urls,
-        gpt_response=analysis_data,  # or analysis_text depending on your template
-        strategy=strategy,
-        frames_per_minute=frames_per_min,
-        cap=cap,
-        scene_threshold=scene_threshold,
-        platform=platform,
-        target_duration=target_duration,
-        goal=goal,
-        tone=tone,
-        audience=audience,
-        knowledge_citations=knowledge_citations,
-        knowledge_context=knowledge_context,
-        frames_dir=frames_dir,
-        frame_paths=frame_paths,
-        analysis=analysis_text,
-        hooks=hooks
-    )
+        return render_template(
+            "results.html",
+            tiktok_url=tiktok_url,
+            creator_note=creator_note,
+            transcript=transcript,
+            frame_summary=frames_summaries_text,
+            frame_gallery=gallery_data_urls,
+            strategy=strategy,
+            frames_per_minute=frames_per_minute,
+            cap=cap,
+            scene_threshold=scene_threshold,
+            platform=platform,
+            target_duration=target_duration,
+            goal=goal,
+            tone=tone,
+            audience=audience,
+            knowledge_citations=knowledge_citations,
+            knowledge_context=knowledge_context,
+            frames_dir=frames_dir,
+            frame_paths=frame_paths,
+            analysis=analysis_text,
+            hooks=hooks_list
+        )
 
+    except Exception as e:
+        return f"Error in process(): {str(e)}", 500
 
 
 if __name__ == "__main__":
