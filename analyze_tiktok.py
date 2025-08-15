@@ -11,6 +11,65 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 def encode_image(image_path):
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
+    
+    def run_analysis(filepath, goal):
+    # Pretend we read the transcript / visuals from the KB or ML model
+    sample_hooks = [
+        "how i accidentally became a 12yo scammer",
+        "good morning, we’re making sourdough",
+        "I quit my job with zero backup plan",
+    ]
+
+    chosen_hook = random.choice(sample_hooks)
+
+    hooks_output = {
+        "text_hooks": [chosen_hook],
+        "visual_hooks": ["Prolonged eye contact", "Unusual action (sliding sourdough into frame)"],
+        "verbal_hooks": ["Story-opening with curiosity ('I've been coding since I was 12')"]
+    }
+
+    # Why it worked / how it can improve
+    analysis_text = f"""
+    **Hook Analysis**
+    - **Text Hook:** "{chosen_hook}" — Captures curiosity by combining something unusual with a personal twist.
+    - **Promise:** The video sets up a clear expectation early — the viewer knows they'll hear the full story or see the end result.
+    - **Delivery:** The payoff is delayed until the end, keeping watch time high.
+    - **Retention Drivers:** Storytelling, escalating intrigue, and engagement bait (eye contact, humor).
+
+    **Improvement Suggestion:**
+    - For stronger {goal.lower()}, integrate micro-promises mid-video (small reveals) while still saving the final payoff for the end.
+    - Consider adding a visual/onscreen text cue halfway to re-hook skimmers.
+    """
+
+    # Goal-specific formula
+    if goal == "Views/Virality":
+        formula = """
+        1. Open with a curiosity-driven hook.
+        2. Set the "promise" in first 3 seconds.
+        3. Deliver story/visuals with mini-escalations.
+        4. Save final reveal/payoff for last 10%.
+        5. End with share/comment trigger.
+        """
+    elif goal == "Follower Growth":
+        formula = """
+        1. Hook with something your niche audience instantly relates to.
+        2. State the promise of value they'll get from following you.
+        3. Deliver a short, engaging story or tip.
+        4. End with clear call-to-follow for more content like this.
+        """
+    else:  # Sales/Leads
+        formula = """
+        1. Hook with a problem your product/service solves.
+        2. Promise the solution or transformation.
+        3. Show proof/results.
+        4. End with call-to-action to DM/click/buy.
+        """
+
+    return {
+        "hooks": hooks_output,
+        "analysis": analysis_text.strip(),
+        "formula": formula.strip()
+    }
 
 def run_full_analysis(tiktok_url, video_id):
     # Create paths

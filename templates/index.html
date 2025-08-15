@@ -395,14 +395,15 @@
                         </div>
 
                         <div class="field-group">
-                            <label for="goal">Primary Goal</label>
-                            <select id="goal" name="goal">
-                                <option value="follows" selected>Follows</option>
-                                <option value="comments">Comments</option>
-                                <option value="website_visits">Website visits</option>
-                                <option value="inquiries">Project inquiries</option>
-                                <option value="shares">Shares</option>
-                            </select>
+                        <!-- ▼ Add just this block inside your existing form -->
+<label for="goal"><strong>Goal</strong></label>
+<select id="goal" name="goal" required>
+  <option value="viral_reach">Viral Reach</option>
+  <option value="follower_growth">Follower Growth</option>
+  <option value="sales_conversions">Sales / Conversions</option>
+</select>
+<!-- ▲ -->
+
                         </div>
 
                         <div class="field-group">
