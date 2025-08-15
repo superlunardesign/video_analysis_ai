@@ -112,7 +112,7 @@ def process():
     )
 
     # --- Safe defaults ---
-    video_title = analysis_data.get("video_title", "Untitled Video")
+    video_title = metadata.get("title") or ""
     hooks = analysis_data.get("hooks", [])
     analysis_text = analysis_data.get("analysis", "")
 
