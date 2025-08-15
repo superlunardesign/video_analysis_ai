@@ -389,14 +389,70 @@ def transcribe_audio(audio_path: str) -> str:
 # Batch frame analysis (vision) — always gpt-4o
 # ------------------------------------------------------------------------------
 
+# REPLACE the analyze_frames_batch function in your processing.py with this:
+
 def analyze_frames_batch(image_paths: List[str]) -> Tuple[str, List[str]]:
     """
-    Send a batch of frames to gpt-4o and get a combined description.
-    Returns (description_text, [data:image/jpeg;base64,...]) for gallery.
+    Enhanced frame analysis that identifies satisfying background processes and retention drivers.
     """
+    
+    analysis_prompt = """Analyze these video frames for TikTok retention psychology. Focus on identifying DUAL ENGAGEMENT MECHANISMS:
+
+PRIMARY CONTENT ANALYSIS:
+- What is the main message/topic being delivered?
+- Is this educational, controversial, storytelling, or opinion-based?
+- What verbal hooks or claims are being made?
+
+SATISFYING BACKGROUND PROCESSES:
+Look for activities that provide visual satisfaction while the main message is delivered:
+
+REPETITIVE/RHYTHMIC ACTIONS:
+- Folding, organizing, sorting items
+- Makeup application (blending, brushing, precise movements)
+- Food preparation (chopping, mixing, plating)
+- Art creation (painting, drawing, crafting)
+- Cleaning/tidying (wiping, arranging, decluttering)
+- Hair styling/braiding
+- Gaming/typing with satisfying precision
+
+PROCESS SATISFACTION ELEMENTS:
+- Transformation moments (before/after states)
+- Completion satisfaction (finishing a task)
+- Precision movements (careful, skilled actions)
+- Texture interactions (smooth, satisfying materials)
+- Organization/symmetry creation
+- Problem-solving in real-time
+
+MULTITASKING APPEAL:
+- Productive activities (cleaning while teaching)
+- Self-care routines (skincare while storytelling)
+- Creative processes (art while explaining)
+- Skill demonstrations (cooking while sharing tips)
+
+RETENTION PSYCHOLOGY:
+- Does the visual process keep eyes engaged during slower verbal moments?
+- Are there satisfying completion moments throughout?
+- Does the background activity create a meditative, watchable quality?
+- Is there anticipation for the finished result?
+
+ENGAGEMENT AMPLIFIERS:
+- Skilled/expert-level execution that's impressive to watch
+- Relatable daily activities viewers connect with
+- Aspirational lifestyle elements (organized spaces, skills)
+- ASMR-like visual satisfaction
+
+For each frame, describe:
+1. What background process/activity is happening
+2. How satisfying/engaging this process appears
+3. How it supports or distracts from the main message
+4. What completion/transformation moments are visible
+5. Why this combination would retain viewer attention
+
+Focus on the DUAL ENGAGEMENT: eyes watching satisfying process + ears processing valuable content."""
+
     contents = [{
-        "type": "text",
-        "text": "Describe each frame for TikTok performance analysis—hook cues, any on-screen text, subject, mood, pacing hints, composition, and pattern interrupts."
+        "type": "text", 
+        "text": analysis_prompt
     }]
 
     gallery = []
@@ -410,7 +466,7 @@ def analyze_frames_batch(image_paths: List[str]) -> Tuple[str, List[str]]:
         return client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": contents}],
-            max_tokens=900,
+            max_tokens=1500,  # Increased for detailed process analysis
         )
 
     resp = _api_retry(_call)

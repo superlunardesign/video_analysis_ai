@@ -277,61 +277,213 @@
       {% endif %}
     </div>
 
-    {% if formula %}
+{% if formula or basic_formula %}
 <div class="card">
   <h2>📋 Your Reusable Formulas</h2>
   
   <!-- Formula Type Selector -->
   <div class="formula-selector">
-    <button class="formula-tab active" onclick="showFormula('basic')">Basic Structure</button>
-    <button class="formula-tab" onclick="showFormula('timing')">With Timing</button>
-    <button class="formula-tab" onclick="showFormula('template')">Template Format</button>
-    <button class="formula-tab" onclick="showFormula('madlibs')">Mad Libs Style</button>
-    <button class="formula-tab" onclick="showFormula('psychology')">Psychology Framework</button>
+    <button class="formula-tab active" data-formula="basic">Basic Structure</button>
+    <button class="formula-tab" data-formula="timing">With Timing</button>
+    <button class="formula-tab" data-formula="template">Template Format</button>
+    <button class="formula-tab" data-formula="psychology">Psychology Framework</button>
   </div>
 
   <!-- Basic Structure -->
-  <div id="basic-formula" class="formula-content active">
+  <div id="basic-formula-content" class="formula-content active">
     <div class="formula-box">
       <h4>📝 Basic Structure</h4>
-      <pre id="basic-text">{{ formula }}</pre>
-      <button class="copy-btn" onclick="copyFormula('basic-text')">Copy Basic Formula</button>
+      <pre class="formula-text">{{ basic_formula or formula }}</pre>
+      <button class="copy-btn" data-target="basic-formula-content">Copy Basic Formula</button>
     </div>
   </div>
 
   <!-- Timing-Based Formula -->
-  <div id="timing-formula" class="formula-content">
+  <div id="timing-formula-content" class="formula-content">
     <div class="formula-box">
       <h4>⏱️ Step-by-Step with Timing</h4>
-      <pre id="timing-text">Loading timing-based formula...</pre>
-      <button class="copy-btn" onclick="copyFormula('timing-text')">Copy Timing Formula</button>
+      <pre class="formula-text">{% if timing_formula %}{{ timing_formula }}{% else %}TIMING-BASED FORMULA FOR {{ goal.upper() }}:
+
+0-3 seconds: Hook with strong opener that grabs attention immediately
+3-7 seconds: Set clear promise of what they'll learn/discover by the end
+Middle section: Build engagement with progressive reveals and retention tactics
+Final 10 seconds: Deliver satisfying payoff that fulfills the promise
+
+Key Timing Notes:
+- Hook must grab attention in first 1-2 seconds
+- Promise clarification by 5-second mark  
+- Save strongest revelation for final moments
+- End with engagement trigger (question/challenge){% endif %}</pre>
+      <button class="copy-btn" data-target="timing-formula-content">Copy Timing Formula</button>
     </div>
   </div>
 
   <!-- Template Format -->
-  <div id="template-formula" class="formula-content">
+  <div id="template-formula-content" class="formula-content">
     <div class="formula-box">
       <h4>📋 Template Format</h4>
-      <pre id="template-text">Loading template format...</pre>
-      <button class="copy-btn" onclick="copyFormula('template-text')">Copy Template</button>
-    </div>
-  </div>
+      <pre class="formula-text">{% if template_formula %}{{ template_formula }}{% else %}TEMPLATE FORMAT FOR {{ goal.replace('_', ' ').upper() }}:
 
-  <!-- Mad Libs Style -->
-  <div id="madlibs-formula" class="formula-content">
-    <div class="formula-box">
-      <h4>🎯 Mad Libs Style</h4>
-      <pre id="madlibs-text">Loading interactive format...</pre>
-      <button class="copy-btn" onclick="copyFormula('madlibs-text')">Copy Mad Libs</button>
+"[STRONG OPENER] + [CLEAR PROMISE] + [ENGAGING BUILD] + [SATISFYING PAYOFF] + [ENGAGEMENT HOOK]"
+
+Example Structure:
+"[Controversial statement] + [Promise to explain why] + [Build case with examples] + [Deliver the insight] + [Question to drive comments]"
+
+Fill in your content:
+- Strong Opener: ________________
+- Clear Promise: ________________  
+- Engaging Build: ________________
+- Satisfying Payoff: ________________
+- Engagement Hook: ________________{% endif %}</pre>
+      <button class="copy-btn" data-target="template-formula-content">Copy Template</button>
     </div>
   </div>
 
   <!-- Psychology Framework -->
-  <div id="psychology-formula" class="formula-content">
+  <div id="psychology-formula-content" class="formula-content">
     <div class="formula-box">
       <h4>🧠 Psychology Framework</h4>
-      <pre id="psychology-text">Loading psychology-based structure...</pre>
-      <button class="copy-btn" onclick="copyFormula('psychology-text')">Copy Framework</button>
+      <pre class="formula-text">{% if psychology_formula %}{{ psychology_formula }}{% else %}PSYCHOLOGY-BASED RETENTION FRAMEWORK:
+
+1. CURIOSITY GAP CREATION
+   → Create a question they MUST know the answer to
+   → Example: "Why your [expertise area] isn't working"
+
+2. PROMISE ESTABLISHMENT  
+   → What will they learn/gain by watching?
+   → Time-bound commitment: "in the next 30 seconds"
+
+3. DELAYED GRATIFICATION TACTICS
+   → Mini-reveals that build anticipation
+   → "But first, let me tell you about..."
+   → Progressive disclosure of information
+
+4. SATISFYING PAYOFF DELIVERY
+   → Answer the curiosity gap completely
+   → Add bonus insight they didn't expect
+   → Emotional + practical satisfaction
+
+5. ENGAGEMENT AMPLIFICATION
+   → Question that drives comments
+   → Challenge that encourages shares  
+   → Hook for follow-up content
+
+PSYCHOLOGICAL TRIGGERS:
+✓ Social proof ("Most people don't know...")
+✓ Authority ("As someone who...")  
+✓ Scarcity ("This only works if...")
+✓ Reciprocity ("I'm sharing this because...")
+✓ Curiosity ("The real reason is..."){% endif %}</pre>
+      <button class="copy-btn" data-target="psychology-formula-content">Copy Framework</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.formula-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+  padding-bottom: 12px;{% if formula or basic_formula %}
+<div class="card">
+  <h2>📋 Your Reusable Formulas</h2>
+  
+  <!-- Formula Type Selector -->
+  <div class="formula-selector">
+    <button class="formula-tab active" data-formula="basic">Basic Structure</button>
+    <button class="formula-tab" data-formula="timing">With Timing</button>
+    <button class="formula-tab" data-formula="template">Template Format</button>
+    <button class="formula-tab" data-formula="psychology">Psychology Framework</button>
+  </div>
+
+  <!-- Basic Structure -->
+  <div id="basic-formula-content" class="formula-content active">
+    <div class="formula-box">
+      <h4>📝 Basic Structure</h4>
+      <pre class="formula-text">{{ basic_formula or formula }}</pre>
+      <button class="copy-btn" data-target="basic-formula-content">Copy Basic Formula</button>
+    </div>
+  </div>
+
+  <!-- Timing-Based Formula -->
+  <div id="timing-formula-content" class="formula-content">
+    <div class="formula-box">
+      <h4>⏱️ Step-by-Step with Timing</h4>
+      <pre class="formula-text">{% if timing_formula %}{{ timing_formula }}{% else %}TIMING-BASED FORMULA FOR {{ goal.upper() }}:
+
+0-3 seconds: Hook with strong opener that grabs attention immediately
+3-7 seconds: Set clear promise of what they'll learn/discover by the end
+Middle section: Build engagement with progressive reveals and retention tactics
+Final 10 seconds: Deliver satisfying payoff that fulfills the promise
+
+Key Timing Notes:
+- Hook must grab attention in first 1-2 seconds
+- Promise clarification by 5-second mark  
+- Save strongest revelation for final moments
+- End with engagement trigger (question/challenge){% endif %}</pre>
+      <button class="copy-btn" data-target="timing-formula-content">Copy Timing Formula</button>
+    </div>
+  </div>
+
+  <!-- Template Format -->
+  <div id="template-formula-content" class="formula-content">
+    <div class="formula-box">
+      <h4>📋 Template Format</h4>
+      <pre class="formula-text">{% if template_formula %}{{ template_formula }}{% else %}TEMPLATE FORMAT FOR {{ goal.replace('_', ' ').upper() }}:
+
+"[STRONG OPENER] + [CLEAR PROMISE] + [ENGAGING BUILD] + [SATISFYING PAYOFF] + [ENGAGEMENT HOOK]"
+
+Example Structure:
+"[Controversial statement] + [Promise to explain why] + [Build case with examples] + [Deliver the insight] + [Question to drive comments]"
+
+Fill in your content:
+- Strong Opener: ________________
+- Clear Promise: ________________  
+- Engaging Build: ________________
+- Satisfying Payoff: ________________
+- Engagement Hook: ________________{% endif %}</pre>
+      <button class="copy-btn" data-target="template-formula-content">Copy Template</button>
+    </div>
+  </div>
+
+  <!-- Psychology Framework -->
+  <div id="psychology-formula-content" class="formula-content">
+    <div class="formula-box">
+      <h4>🧠 Psychology Framework</h4>
+      <pre class="formula-text">{% if psychology_formula %}{{ psychology_formula }}{% else %}PSYCHOLOGY-BASED RETENTION FRAMEWORK:
+
+1. CURIOSITY GAP CREATION
+   → Create a question they MUST know the answer to
+   → Example: "Why your [expertise area] isn't working"
+
+2. PROMISE ESTABLISHMENT  
+   → What will they learn/gain by watching?
+   → Time-bound commitment: "in the next 30 seconds"
+
+3. DELAYED GRATIFICATION TACTICS
+   → Mini-reveals that build anticipation
+   → "But first, let me tell you about..."
+   → Progressive disclosure of information
+
+4. SATISFYING PAYOFF DELIVERY
+   → Answer the curiosity gap completely
+   → Add bonus insight they didn't expect
+   → Emotional + practical satisfaction
+
+5. ENGAGEMENT AMPLIFICATION
+   → Question that drives comments
+   → Challenge that encourages shares  
+   → Hook for follow-up content
+
+PSYCHOLOGICAL TRIGGERS:
+✓ Social proof ("Most people don't know...")
+✓ Authority ("As someone who...")  
+✓ Scarcity ("This only works if...")
+✓ Reciprocity ("I'm sharing this because...")
+✓ Curiosity ("The real reason is..."){% endif %}</pre>
+      <button class="copy-btn" data-target="psychology-formula-content">Copy Framework</button>
     </div>
   </div>
 </div>
@@ -384,6 +536,36 @@
   font-size: 1.1rem;
 }
 
+.formula-text {
+  white-space: pre-wrap;
+  font-family: inherit;
+  margin: 0;
+  line-height: 1.6;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.copy-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 10px;
+  transition: background 0.3s;
+}
+
+.copy-btn:hover {
+  background: #5a67d8;
+}
+
+.copy-btn.copied {
+  background: #10b981;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -400,135 +582,94 @@
   }
 }
 </style>
+{% endif %}
 
 <script>
-// Formula data that would be generated by the backend
-const formulaData = {
-  basic: `{{ formula }}`,
-  timing: `TIMING-BASED FORMULA FOR {{ goal.upper() }}:
-
-0-3 seconds: {{ "Hook with curiosity gap + visual pattern interrupt" }}
-3-7 seconds: {{ "Set clear promise of what they'll learn/see" }}
-7-{{ target_duration|int - 10 }} seconds: {{ "Build tension with mini-reveals" }}
-Last 10 seconds: {{ "Deliver satisfying payoff + engagement trigger" }}
-
-Key Timing Notes:
-- Hook must grab in first 1-2 seconds
-- Promise clarification by 5-second mark  
-- Save best reveal for final moments
-- End with question to drive comments`,
-
-  template: `TEMPLATE FORMAT FOR YOUR NICHE:
-
-"[ATTENTION GRABBER] + [PROMISE STATEMENT] + [TENSION BUILDER] + [SATISFYING CONCLUSION] + [ENGAGEMENT HOOK]"
-
-Example Structure:
-"{{ "This sounds crazy but" }} + {{ "I'm about to show you why" }} + {{ "most people don't know that" }} + {{ "and that's exactly how I" }} + {{ "try this and tell me what happens" }}"
-
-Your Turn:
-- Attention Grabber: ________________
-- Promise Statement: ________________  
-- Tension Builder: ________________
-- Satisfying Conclusion: ________________
-- Engagement Hook: ________________`,
-
-  madlibs: `MAD LIBS FORMULA - FILL IN YOUR DETAILS:
-
-HOOK STRUCTURE:
-"[Shocking statement about ____________] but [unexpected twist about ____________] and [personal connection to ____________] which is why [valuable promise of ____________]"
-
-CONTENT STRUCTURE:
-1. Opening: "[Relatable problem your audience faces: ____________]"
-2. Promise: "I'm going to show you [specific outcome: ____________]"  
-3. Build-up: "[2-3 examples/steps: ____________, ____________, ____________]"
-4. Payoff: "[Main revelation/solution: ____________]"
-5. CTA: "Try [specific action: ____________] and tell me [question: ____________]"
-
-NICHE-SPECIFIC VARIABLES:
-- Your expertise area: ____________
-- Common audience pain point: ____________
-- Surprising insight you can share: ____________
-- Specific action they can take: ____________`,
-
-  psychology: `PSYCHOLOGY-BASED RETENTION FRAMEWORK:
-
-1. CURIOSITY GAP CREATION
-   → Create a question they MUST know the answer to
-   → Example: "Why your [expertise area] isn't working"
-
-2. PROMISE ESTABLISHMENT  
-   → What will they learn/gain by watching?
-   → Time-bound commitment: "in the next 30 seconds"
-
-3. DELAYED GRATIFICATION TACTICS
-   → Mini-reveals that build anticipation
-   → "But first, let me tell you about..."
-   → "The real secret is..."
-
-4. SATISFYING PAYOFF DELIVERY
-   → Answer the curiosity gap completely
-   → Add bonus insight they didn't expect
-   → Emotional satisfaction + practical value
-
-5. ENGAGEMENT AMPLIFICATION
-   → Question that drives comments
-   → Challenge that encourages shares  
-   → Hook for next video in series
-
-PSYCHOLOGICAL TRIGGERS:
-✓ Social proof ("Most people don't know...")
-✓ Authority ("As someone who...")  
-✓ Scarcity ("This only works if...")
-✓ Reciprocity ("I'm giving you...")
-✓ Curiosity ("You won't believe...")`
-};
-
-function showFormula(type) {
-  // Hide all formula contents
-  document.querySelectorAll('.formula-content').forEach(content => {
-    content.classList.remove('active');
+document.addEventListener('DOMContentLoaded', function() {
+  // Formula tab switching
+  const formulaTabs = document.querySelectorAll('.formula-tab');
+  const formulaContents = document.querySelectorAll('.formula-content');
+  
+  formulaTabs.forEach(tab => {
+    tab.addEventListener('click', function() {
+      const targetFormula = this.getAttribute('data-formula');
+      
+      // Remove active class from all tabs and contents
+      formulaTabs.forEach(t => t.classList.remove('active'));
+      formulaContents.forEach(c => c.classList.remove('active'));
+      
+      // Add active class to clicked tab
+      this.classList.add('active');
+      
+      // Show corresponding content
+      const targetContent = document.getElementById(targetFormula + '-formula-content');
+      if (targetContent) {
+        targetContent.classList.add('active');
+      }
+    });
   });
   
-  // Remove active class from all tabs
-  document.querySelectorAll('.formula-tab').forEach(tab => {
-    tab.classList.remove('active');
+  // Copy functionality
+  const copyButtons = document.querySelectorAll('.copy-btn');
+  
+  copyButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const targetId = this.getAttribute('data-target');
+      const targetElement = document.getElementById(targetId);
+      
+      if (targetElement) {
+        const textElement = targetElement.querySelector('.formula-text');
+        if (textElement) {
+          const textToCopy = textElement.textContent;
+          
+          // Try modern clipboard API first
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+              showCopySuccess(this);
+            }).catch(() => {
+              fallbackCopy(textToCopy, this);
+            });
+          } else {
+            fallbackCopy(textToCopy, this);
+          }
+        }
+      }
+    });
   });
   
-  // Show selected content
-  document.getElementById(type + '-formula').classList.add('active');
-  
-  // Activate clicked tab
-  event.target.classList.add('active');
-  
-  // Load content if not basic (basic is pre-loaded)
-  if (type !== 'basic') {
-    document.getElementById(type + '-text').textContent = formulaData[type];
-  }
-}
-
-function copyFormula(elementId) {
-  const text = document.getElementById(elementId).textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    // Visual feedback
-    const button = event.target;
+  function showCopySuccess(button) {
     const originalText = button.textContent;
     button.textContent = 'Copied!';
-    button.style.background = '#10b981';
+    button.classList.add('copied');
+    
     setTimeout(() => {
       button.textContent = originalText;
-      button.style.background = '#667eea';
+      button.classList.remove('copied');
     }, 2000);
-  }).catch(err => {
-    // Fallback
+  }
+  
+  function fallbackCopy(text, button) {
+    // Fallback for older browsers
     const textArea = document.createElement('textarea');
     textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
     document.body.appendChild(textArea);
+    textArea.focus();
     textArea.select();
-    document.execCommand('copy');
+    
+    try {
+      document.execCommand('copy');
+      showCopySuccess(button);
+    } catch (err) {
+      console.error('Copy failed:', err);
+      alert('Copy failed. Please try selecting and copying the text manually.');
+    }
+    
     document.body.removeChild(textArea);
-    alert("Formula copied!");
-  });
-}
+  }
+});
 </script>
 {% endif %}
     <div class="card">
