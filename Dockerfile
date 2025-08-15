@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     tar \
+    xz-utils \
  && rm -rf /var/lib/apt/lists/*
 
 # Install wkhtmltopdf from official tar.xz (works across distros)
@@ -31,5 +32,4 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
 
 COPY . /app
 
-# Use $PORT from Render, default 8080 locally
 CMD sh -c 'gunicorn -w 2 -k gthread -t 180 -b 0.0.0.0:${PORT:-8080} app:app'
