@@ -276,116 +276,8 @@
         <p>No alternative hooks generated.</p>
       {% endif %}
     </div>
+
 {% if formula or basic_formula %}
-<div class="card">
-  <h2>📋 Your Reusable Formulas</h2>
-  
-  <!-- Formula Type Selector -->
-  <div class="formula-selector">
-    <button class="formula-tab active" data-formula="basic">Basic Structure</button>
-    <button class="formula-tab" data-formula="timing">With Timing</button>
-    <button class="formula-tab" data-formula="template">Template Format</button>
-    <button class="formula-tab" data-formula="psychology">Psychology Framework</button>
-  </div>
-
-  <!-- Basic Structure -->
-  <div id="basic-formula-content" class="formula-content active">
-    <div class="formula-box">
-      <h4>📝 Basic Structure</h4>
-      <pre class="formula-text">{{ basic_formula or formula }}</pre>
-      <button class="copy-btn" data-target="basic-formula-content">Copy Basic Formula</button>
-    </div>
-  </div>
-
-  <!-- Timing-Based Formula -->
-  <div id="timing-formula-content" class="formula-content">
-    <div class="formula-box">
-      <h4>⏱️ Step-by-Step with Timing</h4>
-      <pre class="formula-text">{% if timing_formula %}{{ timing_formula }}{% else %}TIMING-BASED FORMULA FOR {{ goal.upper() }}:
-
-0-3 seconds: Hook with strong opener that grabs attention immediately
-3-7 seconds: Set clear promise of what they'll learn/discover by the end
-Middle section: Build engagement with progressive reveals and retention tactics
-Final 10 seconds: Deliver satisfying payoff that fulfills the promise
-
-Key Timing Notes:
-- Hook must grab attention in first 1-2 seconds
-- Promise clarification by 5-second mark  
-- Save strongest revelation for final moments
-- End with engagement trigger (question/challenge){% endif %}</pre>
-      <button class="copy-btn" data-target="timing-formula-content">Copy Timing Formula</button>
-    </div>
-  </div>
-
-  <!-- Template Format -->
-  <div id="template-formula-content" class="formula-content">
-    <div class="formula-box">
-      <h4>📋 Template Format</h4>
-      <pre class="formula-text">{% if template_formula %}{{ template_formula }}{% else %}TEMPLATE FORMAT FOR {{ goal.replace('_', ' ').upper() }}:
-
-"[STRONG OPENER] + [CLEAR PROMISE] + [ENGAGING BUILD] + [SATISFYING PAYOFF] + [ENGAGEMENT HOOK]"
-
-Example Structure:
-"[Controversial statement] + [Promise to explain why] + [Build case with examples] + [Deliver the insight] + [Question to drive comments]"
-
-Fill in your content:
-- Strong Opener: ________________
-- Clear Promise: ________________  
-- Engaging Build: ________________
-- Satisfying Payoff: ________________
-- Engagement Hook: ________________{% endif %}</pre>
-      <button class="copy-btn" data-target="template-formula-content">Copy Template</button>
-    </div>
-  </div>
-
-  <!-- Psychology Framework -->
-  <div id="psychology-formula-content" class="formula-content">
-    <div class="formula-box">
-      <h4>🧠 Psychology Framework</h4>
-      <pre class="formula-text">{% if psychology_formula %}{{ psychology_formula }}{% else %}PSYCHOLOGY-BASED RETENTION FRAMEWORK:
-
-1. CURIOSITY GAP CREATION
-   → Create a question they MUST know the answer to
-   → Example: "Why your [expertise area] isn't working"
-
-2. PROMISE ESTABLISHMENT  
-   → What will they learn/gain by watching?
-   → Time-bound commitment: "in the next 30 seconds"
-
-3. DELAYED GRATIFICATION TACTICS
-   → Mini-reveals that build anticipation
-   → "But first, let me tell you about..."
-   → Progressive disclosure of information
-
-4. SATISFYING PAYOFF DELIVERY
-   → Answer the curiosity gap completely
-   → Add bonus insight they didn't expect
-   → Emotional + practical satisfaction
-
-5. ENGAGEMENT AMPLIFICATION
-   → Question that drives comments
-   → Challenge that encourages shares  
-   → Hook for follow-up content
-
-PSYCHOLOGICAL TRIGGERS:
-✓ Social proof ("Most people don't know...")
-✓ Authority ("As someone who...")  
-✓ Scarcity ("This only works if...")
-✓ Reciprocity ("I'm sharing this because...")
-✓ Curiosity ("The real reason is..."){% endif %}</pre>
-      <button class="copy-btn" data-target="psychology-formula-content">Copy Framework</button>
-    </div>
-  </div>
-</div>
-
-<style>
-.formula-selector {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid rgba(102, 126, 234, 0.2);
-  padding-bottom: 12px;{% if formula or basic_formula %}
 <div class="card">
   <h2>📋 Your Reusable Formulas</h2>
   
@@ -670,7 +562,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 </script>
-
       
 {% endif %}
     <div class="card">
