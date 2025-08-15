@@ -299,17 +299,24 @@
           <div class="frame-card"><img src="{{ img }}" alt="Video frame"></div>
         {% endfor %}
       </div>
-      {% if frame_summaries and frame_summaries | length > 1 %}
-        {% for block in frame_summaries %}
-          <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
-            <pre>{{ block }}</pre>
-          </div>
-        {% endfor %}
-      {% else %}
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
-          <pre>{{ frame_summary | default(frames_summaries_text, true) }}</pre>
+      
+      <!-- Collapsible Frame Details (optional) -->
+      <details style="margin-top: var(--space-md);">
+        <summary style="cursor: pointer; color: var(--lunar-blush); font-weight: 600;">
+          View Frame-by-Frame Analysis (Used for AI Context)
+        </summary>
+        <div style="max-height: 300px; overflow-y: auto; background: rgba(255,255,255,0.05); padding: var(--space-md); border-radius: var(--radius-md); margin-top: var(--space-sm);">
+          {% if frame_summaries and frame_summaries | length > 1 %}
+            {% for block in frame_summaries %}
+              <div style="background: rgba(255,255,255,0.1); padding: 12px; border-radius: 6px; margin: 8px 0; font-size: 0.9rem;">
+                <pre style="white-space: pre-wrap; margin: 0; font-family: inherit;">{{ block }}</pre>
+              </div>
+            {% endfor %}
+          {% else %}
+            <pre style="white-space: pre-wrap; margin: 0; font-family: inherit; font-size: 0.9rem;">{{ frame_summary | default(frames_summaries_text, true) }}</pre>
+          {% endif %}
         </div>
-      {% endif %}
+      </details>
     </div>
 
     <a href="/" class="back-link">← Analyze Another Video</a>

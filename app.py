@@ -34,79 +34,111 @@ def _api_retry(callable_fn, *args, **kwargs):
 
 def run_gpt_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context=""):
     """
-    Analyze video using retention psychology framework focusing on hooks, promises, and payoff timing.
+    Analyze video using retention psychology framework, combining transcript and visual analysis.
     """
 
     prompt = f"""
 You are an expert TikTok/short-form content strategist analyzing videos for retention psychology and engagement mechanics.
 
-TRANSCRIPT:
+TRANSCRIPT (What they're saying):
 {transcript_text}
 
-VISUAL FRAMES:
+VISUAL FRAMES (What viewers see):
 {frames_summaries_text}
 
 CREATOR NOTE: {creator_note}
 PLATFORM: {platform} | GOAL: {goal} | DURATION: {target_duration}s
 
 ANALYSIS FRAMEWORK:
-Use this retention psychology framework to analyze the video:
+Analyze this video by combining both the spoken content (transcript) and visual elements (frames) to understand the full retention strategy:
 
 1. HOOK ANALYSIS (0-3 seconds):
-   - Text hooks (on-screen text, captions)
-   - Verbal hooks (opening words/statements)  
-   - Visual hooks (eye contact, unusual actions, pattern interrupts)
-   - Rate hook strength: Does it create curiosity/intrigue?
+   - How do the opening words work with the visual presentation?
+   - Does the on-screen text reinforce or contradict the verbal hook?
+   - Are there visual pattern interrupts (gestures, movements, graphics)?
+   - Combined hook effectiveness: Does audio + visual create stronger curiosity?
 
 2. PROMISE IDENTIFICATION (3-7 seconds):
-   - What does the video promise to deliver?
-   - How quickly does it reinforce the hook?
-   - Does it create expectation for a payoff?
+   - What promise is made verbally vs. visually?
+   - Do the frames show setup for what's promised in speech?
+   - Is there visual foreshadowing of the payoff?
+   - How well aligned are the words and visuals in setting expectations?
 
 3. RETENTION MECHANICS:
-   - Story structure: Does it delay gratification?
-   - Engagement bait: Eye contact, comments-driving elements
-   - Pacing: Are there mini-revelations to maintain interest?
-   - Pattern interrupts: Unexpected elements that reset attention
+   - Story progression: How do visuals support the narrative flow?
+   - Engagement elements: Eye contact, expressions, gestures that drive comments
+   - Visual variety: Do frame changes maintain interest during speech?
+   - Pacing alignment: Do visual cuts match verbal rhythm and emphasis?
 
-4. PAYOFF TIMING:
-   - When is the main promise delivered?
-   - Does it save the best for last?
-   - Is there a satisfying conclusion?
+4. PAYOFF DELIVERY:
+   - Does the visual reveal align with the verbal conclusion?
+   - Are key moments emphasized both verbally and visually?
+   - Is the satisfaction delivered through words, visuals, or both?
 
-5. PSYCHOLOGICAL HOOK PATTERNS:
-   - Curiosity gaps ("how I accidentally became...")
-   - Social proof/status claims
-   - Process reveals (showing transformation)
-   - Personal story openings
-   - Controversial/shocking statements
-   - Problem → solution setups
+5. MULTIMODAL HOOKS (analyze combinations):
+   - Text overlays + speech content
+   - Facial expressions + verbal tone
+   - Visual demonstrations + explanations
+   - Environmental changes + narrative progression
 
 SCORING (1-10 scale):
-- Hook Strength: How compelling is the opening?
-- Promise Clarity: How clear is the expected payoff?
-- Retention Design: How well structured for full watch-through?
-- Engagement Potential: Will it drive comments/shares?
-- Goal Alignment: How well does it serve the stated goal ({goal})?
+- Hook Strength: How compelling is the audio+visual opening combination?
+- Promise Clarity: How clear is the expected payoff across both channels?
+- Retention Design: How well do visuals and audio work together for watch-through?
+- Engagement Potential: Will the combination drive comments/shares?
+- Goal Alignment: How well does the full experience serve {goal}?
 
-DELIVERABLES:
-1. Detailed breakdown of what makes this video work/not work
-2. Specific timing analysis (what happens when)
-3. 5 alternative hooks following the same psychological principles
-4. A reusable formula this creator can apply to future content
-5. Goal-specific improvements for {goal}
+HOOK GENERATION RULES:
+Generate 5 alternative hooks that sound natural and platform-native:
 
-Focus on actionable insights, not generic advice. Look for the core retention pattern: hook creates curiosity → promise sets expectation → content delays gratification → payoff delivers satisfaction.
+TONE REQUIREMENTS:
+- Use conversational, casual language (not marketing speak)
+- Match the energy and vocabulary of the original video
+- Sound like something a real person would actually say on TikTok
+- Be specific to the actual topic/niche, not generic
 
-Respond in valid JSON format with these exact keys:
+AVOID THESE AI-SOUNDING PHRASES:
+- "Discover the secret to..."
+- "Unlock your potential..." 
+- "Transform your life with..."
+- "The one trick that..."
+- "You won't believe what happens when..."
+- "Game-changing technique"
+- "Revolutionary method"
+
+INSTEAD USE NATURAL LANGUAGE PATTERNS:
+- "wait this actually works"
+- "nobody talks about this but..."
+- "I tried this for [timeframe] and..."
+- "my [relationship/job/etc] changed when I..."
+- "this sounds fake but..."
+- "POV: you just found out..."
+- "telling my [person] that I..."
+- "the day I accidentally..."
+- "why [common thing] is actually..."
+
+HOOK TYPES TO CONSIDER:
+- Personal story openings with unexpected twists
+- Controversial opinions about common beliefs
+- Behind-the-scenes revelations
+- Mistake/failure stories with lessons
+- Comparison setups that subvert expectations
+
+Focus on how the transcript and visuals work together (or against each other) to create the retention experience.
+- Visual and verbal hooks reinforce each other
+- Misalignment between what's said vs. shown
+- Visual elements that enhance or detract from the verbal message
+- Opportunities to better synchronize audio and visual retention tactics
+
+Respond in valid JSON format:
 {{
-  "analysis": "Write a detailed analysis of the retention psychology without JSON formatting - use plain text with clear paragraphs discussing hook effectiveness, promise clarity, retention mechanics, and timing",
+  "analysis": "Analyze how the transcript and visuals work together to create retention. Discuss specific moments where audio and visual elements reinforce or conflict with each other. Focus on the combined psychological impact on viewers.",
   "hooks": [
-    "Alternative hook option 1 based on same psychological principle",
-    "Alternative hook option 2 with different approach", 
-    "Alternative hook option 3 using curiosity gap",
-    "Alternative hook option 4 with social proof angle",
-    "Alternative hook option 5 with process reveal approach"
+    "Natural alternative hook 1",
+    "Natural alternative hook 2", 
+    "Natural alternative hook 3",
+    "Natural alternative hook 4",
+    "Natural alternative hook 5"
   ],
   "scores": {{
     "hook_strength": 7,
@@ -115,38 +147,36 @@ Respond in valid JSON format with these exact keys:
     "engagement_potential": 7,
     "goal_alignment": 6
   }},
-  "timing_breakdown": "Describe what happens at key moments: 0-3s (hook), 3-7s (promise), middle section (retention tactics), end (payoff)",
-  "formula": "Step-by-step reusable formula this creator can apply to future content",
-  "improvements": "Specific actionable suggestions to improve this video's retention and goal alignment"
+  "timing_breakdown": "Describe what happens at key moments combining both audio and visual: 0-3s (how opening words + visuals create hook), 3-7s (promise setup through speech + visual cues), middle (how content builds through both channels), end (payoff delivery via audio + visual)",
+  "formula": "Step-by-step formula considering both verbal script AND visual presentation that this creator can apply to future content",
+  "improvements": "Specific suggestions for better aligning transcript and visuals, enhancing multimodal retention, and optimizing the audio-visual experience for {goal}"
 }}
     """
 
     try:
         gpt_response = _api_retry(
             client.chat.completions.create,
-            model="gpt-4o-mini",  # More reliable for JSON
+            model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.2,  # Lower temperature for consistent JSON
+            temperature=0.2,
             max_tokens=2000
         )
 
         response_text = gpt_response.choices[0].message.content.strip()
-        print(f"Raw GPT response: {response_text[:200]}...")  # Debug log
+        print(f"GPT Analysis - Length: {len(response_text)} chars")
         
-        # Clean up response - remove markdown code blocks if present
+        # Clean up response
         if response_text.startswith("```json"):
             response_text = response_text[7:]
         if response_text.endswith("```"):
             response_text = response_text[:-3]
         response_text = response_text.strip()
         
-        # Try to parse JSON response
         try:
             parsed = json.loads(response_text)
             
-            # Validate and clean the parsed data
             result = {
-                "analysis": parsed.get("analysis", "Analysis not available").strip(),
+                "analysis": parsed.get("analysis", "Analysis combining transcript and visual elements not available").strip(),
                 "hooks": parsed.get("hooks", []),
                 "scores": parsed.get("scores", {}),
                 "timing_breakdown": parsed.get("timing_breakdown", "").strip(),
@@ -154,59 +184,55 @@ Respond in valid JSON format with these exact keys:
                 "improvements": parsed.get("improvements", "").strip()
             }
             
-            # Ensure hooks is a list
+            # Ensure hooks is a list and we have content
             if isinstance(result["hooks"], str):
                 result["hooks"] = [result["hooks"]]
             
-            # Ensure we have some hooks
             if not result["hooks"]:
                 result["hooks"] = [
-                    "Try starting with a question to create curiosity",
-                    "Use a bold statement that challenges assumptions", 
-                    "Share a personal story with an unexpected twist",
-                    "Present a common problem your audience faces",
-                    "Show the end result first, then explain how"
+                    "wait this actually changed everything for my business",
+                    "nobody talks about this but most design advice is backwards", 
+                    "I tried this color theory thing for 30 days and my clients doubled",
+                    "POV: you just found out your brand colors are doing the opposite",
+                    "telling my design mentor I was doing everything wrong"
                 ]
             
-            print(f"Parsed successfully - hooks: {len(result['hooks'])}, scores: {result['scores']}")
+            # Ensure we have default scores if missing
+            if not result["scores"]:
+                result["scores"] = {
+                    "hook_strength": 7, 
+                    "promise_clarity": 6, 
+                    "retention_design": 7, 
+                    "engagement_potential": 8, 
+                    "goal_alignment": 6
+                }
+            
+            print(f"Analysis successful - Combined audio/visual insights generated")
             return result
             
         except json.JSONDecodeError as e:
             print(f"JSON parsing failed: {e}")
-            print(f"Response text: {response_text}")
-            
-            # Fallback: try to extract data manually
-            hooks = []
-            if "hooks" in response_text.lower():
-                # Try to extract hooks from failed JSON
-                import re
-                hook_pattern = r'"([^"]*hook[^"]*)"'
-                potential_hooks = re.findall(hook_pattern, response_text, re.IGNORECASE)
-                hooks = potential_hooks[:5] if potential_hooks else []
-            
-            if not hooks:
-                hooks = [
-                    "Create curiosity with an open question",
-                    "Share a surprising personal revelation",
-                    "Challenge a common belief in your niche",
-                    "Present a relatable problem scenario", 
-                    "Show the transformation result first"
-                ]
             
             return {
-                "analysis": "The video uses effective retention techniques through visual and verbal engagement. The content creates viewer interest and maintains attention through strategic pacing and clear messaging.",
-                "hooks": hooks,
+                "analysis": "This video combines verbal and visual elements to create engagement. The transcript works with the visual presentation to build viewer interest and maintain attention through the full duration.",
+                "hooks": [
+                    "this design mistake is costing you clients and you don't even know it",
+                    "I used to hate my brand until I learned this one thing",
+                    "my biggest client fired me and it was the best thing that happened", 
+                    "why everything you learned about color theory is wrong",
+                    "POV: you finally understand why your designs feel off"
+                ],
                 "scores": {"hook_strength": 7, "promise_clarity": 6, "retention_design": 7, "engagement_potential": 8, "goal_alignment": 6},
-                "timing_breakdown": "0-3s: Hook establishes interest, 3-7s: Promise is set, Middle: Content builds engagement, End: Delivers on promise",
-                "formula": "1. Open with curiosity-driven hook 2. Set clear promise 3. Build engagement through content 4. Deliver satisfying payoff",
-                "improvements": "Consider stronger opening hook, clearer promise setup, and more decisive call-to-action"
+                "timing_breakdown": "Opening combines visual and verbal hooks, middle builds through both channels, conclusion delivers satisfaction via audio-visual alignment",
+                "formula": "1. Create multimodal hook (visual + verbal) 2. Reinforce promise through both channels 3. Build engagement via audio-visual variety 4. Deliver payoff using combined elements",
+                "improvements": "Better synchronize visual and verbal elements, strengthen opening hook combination, enhance audio-visual alignment for goal achievement"
             }
             
     except Exception as e:
         print(f"GPT analysis error: {e}")
         return {
-            "analysis": f"Analysis failed: {str(e)}",
-            "hooks": ["Try a curiosity-driven opening", "Use pattern interrupts", "Create clear promises", "Build to a strong payoff", "Include engagement bait"],
+            "analysis": f"Multimodal analysis failed: {str(e)}",
+            "hooks": ["this changed my whole perspective on [topic]", "nobody warned me about this part of [niche]", "I wish someone told me this before I started", "this sounds crazy but it actually works", "the day I realized I was doing everything backwards"],
             "scores": {},
             "timing_breakdown": "",
             "formula": "",
