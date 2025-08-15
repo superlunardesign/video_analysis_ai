@@ -1,125 +1,68 @@
 import os
-import cv2
-import tempfile
-import uuid
-import openai
 import subprocess
-from pytube import YouTube
-from moviepy.editor import VideoFileClip
+import base64
+import ffmpeg
+import whisper
+from openai import OpenAI
+from config import OPENAI_API_KEY
 
-# Ensure frames output folder exists
-FRAMES_DIR = os.path.join("static", "frames")
-os.makedirs(FRAMES_DIR, exist_ok=True)
+client = OpenAI(api_key=OPENAI_API_KEY)
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+def encode_image(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
 
-def download_tiktok_or_youtube(url, output_path):
-    """Downloads TikTok/YouTube video to output_path."""
-    if "tiktok.com" in url or "youtube.com" in url or "youtu.be" in url:
-        yt = YouTube(url)
-        stream = yt.streams.filter(file_extension="mp4").order_by("resolution").desc().first()
-        stream.download(filename=output_path)
-    else:
-        raise ValueError("Unsupported URL provided.")
+def run_full_analysis(tiktok_url, video_id):
+    # Create paths
+    video_output = f"videos/{video_id}.mp4"
+    audio_output = f"audio/{video_id}.wav"
+    frame_output_dir = f"static/frames/{video_id}/"
+    os.makedirs(frame_output_dir, exist_ok=True)
 
-def extract_frames(video_path, frames_per_minute=6):
-    """Extract frames from video at a set interval."""
-    cap = cv2.VideoCapture(video_path)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    interval = int(fps * (60 / frames_per_minute))
+    # Step 1: Download video using yt-dlp
+    subprocess.run(["yt-dlp", "-o", video_output, tiktok_url])
 
-    frame_paths = []
-    frame_count = 0
-    saved_count = 0
+    # Step 2: Extract audio from video
+    ffmpeg.input(video_output).output(audio_output).run()
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        if frame_count % interval == 0:
-            frame_filename = f"{uuid.uuid4().hex}.jpg"
-            frame_path = os.path.join(FRAMES_DIR, frame_filename)
-            cv2.imwrite(frame_path, frame)
-            frame_paths.append(os.path.join("static", "frames", frame_filename))
-            saved_count += 1
-        frame_count += 1
+    # Step 3: Transcribe using Whisper
+    model = whisper.load_model("base")
+    transcript = model.transcribe(audio_output)["text"]
 
-    cap.release()
-    return frame_paths
+    # Step 4: Extract frames (1 every 2 seconds)
+    ffmpeg.input(video_output).output(f"{frame_output_dir}/frame_%03d.jpg", vf="fps=0.5").run()
+    frame_files = sorted(os.listdir(frame_output_dir))
+    frame_paths = [os.path.join(frame_output_dir, f) for f in frame_files if f.endswith(".jpg")]
 
-def extract_audio_transcript(video_path):
-    """Extract audio from video and get transcript from OpenAI."""
-    temp_audio = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False).name
-    subprocess.run([
-        "ffmpeg", "-y", "-i", video_path, "-q:a", "0", "-map", "a", temp_audio
-    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    with open(temp_audio, "rb") as audio_file:
-        transcript = openai.Audio.transcriptions.create(
-            model="gpt-4o-mini-transcribe",
-            file=audio_file
+    # Step 5: Analyze each frame with GPT-4o
+    descriptions = []
+    for f in frame_paths:
+        encoded = encode_image(f)
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Describe this video frame's visual hook, mood, or vibe."},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded}"}}
+                ]
+            }],
+            max_tokens=300
         )
-    os.remove(temp_audio)
-    return transcript.text.strip()
+        descriptions.append(response.choices[0].message.content)
 
-def analyze_content_with_gpt(transcript, goal):
-    """Analyze transcript + provide hooks, formulas, and holistic score."""
-    prompt = f"""
-You are an expert in TikTok/Reels/Shorts video performance.
-Analyze the following transcript and content for:
-1. Hooks detected
-2. Retention patterns/formulas
-3. Holistic performance score (0-100)
-4. Concise written analysis (max 200 words)
+    # Step 6: Generate full AI summary
+    frame_text = "\n\n".join([f"Frame {i+1}: {desc}" for i, desc in enumerate(descriptions)])
+    summary_prompt = f"Transcript:\n{transcript}\n\nVisuals:\n{frame_text}\n\nSummarize the video's hook, topic, structure, and what could improve engagement."
 
-Transcript:
-{transcript}
-
-Goal of video: {goal}
-
-    Please:
-    1. Describe clearly what happens in the video from start to finish.
-    2. Identify and categorize hooks: Text, Visual, Verbal.
-    3. Break down the content structure into a repeatable 'formula'.
-    4. Explain why this formula might work for {goal} (viral reach, follower growth, or sales).
-    5. Give actionable insights for someone adapting this style for their own niche.
-    6. Assign a score (0–100) based on hook strength, pacing, structure, and clarity.
-    7. Output in JSON with keys:
-       description, hooks, formula, success_reasoning, adaptation_tips, score
-"""
-    response = openai.Chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        response_format={ "type": "json_object" }
+    summary_response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": summary_prompt}],
+        max_tokens=800,
     )
 
-    data = response.choices[0].message.parsed
-    return data
-
-def analyze_tiktok_video(input_source, local_file=False, goal="General Analysis"):
-    """Main function to analyze TikTok/YouTube video or local file."""
-    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_video:
-        if local_file:
-            temp_video_path = input_source
-        else:
-            temp_video_path = temp_video.name
-            download_tiktok_or_youtube(input_source, temp_video_path)
-
-        # Extract transcript
-        transcript = extract_audio_transcript(temp_video_path)
-
-        # Extract frames
-        frames = extract_frames(temp_video_path, frames_per_minute=6)
-
-        # Run GPT analysis
-        gpt_results = analyze_content_with_gpt(transcript, goal)
-
-        return {
-            "video_url": None if local_file else input_source,
-            "transcript": transcript,
-            "overall_score": gpt_results.get("score"),
-            "hooks": gpt_results.get("hooks", []),
-            "formulas": gpt_results.get("formulas", []),
-            "frames": frames,
-            "analysis": gpt_results.get("analysis")
-        }
+    return {
+        "summary": summary_response.choices[0].message.content,
+        "transcript": transcript,
+        "frames": frame_paths
+    }
