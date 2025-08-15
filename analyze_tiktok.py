@@ -8,11 +8,7 @@ from config import OPENAI_API_KEY
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-def encode_image(image_path):
-    with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode()
-    
-    def run_analysis(filepath, goal):
+ def run_analysis(filepath, goal):
     # Pretend we read the transcript / visuals from the KB or ML model
     sample_hooks = [
         "how i accidentally became a 12yo scammer",
@@ -70,6 +66,11 @@ def encode_image(image_path):
         "analysis": analysis_text.strip(),
         "formula": formula.strip()
     }
+
+def encode_image(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
+    
 
 def run_full_analysis(tiktok_url, video_id):
     # Create paths

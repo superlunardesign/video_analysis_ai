@@ -63,7 +63,7 @@
     <h1>Analysis Results (Goal: {{ goal }})</h1>
 
     <h2>Hooks Found</h2>
-    <pre>{{ hooks | tojson(indent=2) }}</pre>
+    <pre>{{ hooks | default([]) | tojson(indent=2) }}</pre>
     <button onclick="copyToClipboard(`{{ hooks | tojson(indent=2) }}`)">Copy Hooks</button>
 
     <h2>Analysis</h2>
