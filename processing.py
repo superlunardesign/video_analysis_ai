@@ -17,9 +17,7 @@ from typing import List, Tuple
 from PIL import Image
 from yt_dlp import YoutubeDL
 from openai import OpenAI
-from config import OPENAI_API_KEY
-
-client = OpenAI(api_key=OPENAI_API_KEY, timeout=60.0)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # OPTIONAL local whisper fallback (pip install openai-whisper)
 try:
