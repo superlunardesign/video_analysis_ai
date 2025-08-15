@@ -81,13 +81,6 @@ Analyze this video by combining both the spoken content (transcript) and visual 
    - Visual demonstrations + explanations
    - Environmental changes + narrative progression
 
-SCORING (1-10 scale):
-- Hook Strength: How compelling is the audio+visual opening combination?
-- Promise Clarity: How clear is the expected payoff across both channels?
-- Retention Design: How well do visuals and audio work together for watch-through?
-- Engagement Potential: Will the combination drive comments/shares?
-- Goal Alignment: How well does the full experience serve {goal}?
-
 HOOK GENERATION RULES:
 Generate 5 alternative hooks that sound natural and platform-native:
 
@@ -124,21 +117,36 @@ HOOK TYPES TO CONSIDER:
 - Mistake/failure stories with lessons
 - Comparison setups that subvert expectations
 
-Focus on how the transcript and visuals work together (or against each other) to create the retention experience.
+FORMULA GENERATION:
+Create multiple formula formats that creators can choose from:
+
+1. BASIC STRUCTURE: Step-by-step process they can follow
+2. TIMING-BASED: Specific second markers (0-3s, 3-7s, middle, end)
+3. TEMPLATE FORMAT: Fill-in-the-blank structure with examples
+4. PSYCHOLOGY FRAMEWORK: WHY each step works psychologically
+
+SCORING (1-10 scale):
+- Hook Strength: How compelling is the audio+visual opening combination?
+- Promise Clarity: How clear is the expected payoff across both channels?
+- Retention Design: How well do visuals and audio work together for watch-through?
+- Engagement Potential: Will the combination drive comments/shares?
+- Goal Alignment: How well does the full experience serve {goal}?
+
+Focus on how the transcript and visuals work together (or against each other) to create the retention experience. Look for moments where:
 - Visual and verbal hooks reinforce each other
 - Misalignment between what's said vs. shown
 - Visual elements that enhance or detract from the verbal message
 - Opportunities to better synchronize audio and visual retention tactics
 
-Respond in valid JSON format:
+Respond in valid JSON format with these exact keys:
 {{
-  "analysis": "Analyze how the transcript and visuals work together to create retention. Discuss specific moments where audio and visual elements reinforce or conflict with each other. Focus on the combined psychological impact on viewers.",
+  "analysis": "Analyze how the transcript and visuals work together to create retention. Discuss specific moments where audio and visual elements reinforce or conflict with each other. Focus on the combined psychological impact on viewers. Write in clear paragraphs without JSON formatting.",
   "hooks": [
-    "Natural alternative hook 1",
-    "Natural alternative hook 2", 
-    "Natural alternative hook 3",
-    "Natural alternative hook 4",
-    "Natural alternative hook 5"
+    "Natural hook 1 that sounds like real TikTok content",
+    "Natural hook 2 using casual language", 
+    "Natural hook 3 with personal story angle",
+    "Natural hook 4 with controversial opinion",
+    "Natural hook 5 with behind-the-scenes reveal"
   ],
   "scores": {{
     "hook_strength": 7,
@@ -148,7 +156,10 @@ Respond in valid JSON format:
     "goal_alignment": 6
   }},
   "timing_breakdown": "Describe what happens at key moments combining both audio and visual: 0-3s (how opening words + visuals create hook), 3-7s (promise setup through speech + visual cues), middle (how content builds through both channels), end (payoff delivery via audio + visual)",
-  "formula": "Step-by-step formula considering both verbal script AND visual presentation that this creator can apply to future content",
+  "basic_formula": "Step-by-step process this creator can follow for future content",
+  "timing_formula": "Detailed timing breakdown with specific second markers (0-3s: hook, 3-7s: promise, etc.)",
+  "template_formula": "Fill-in-the-blank template format with examples they can customize",
+  "psychology_formula": "Framework explaining WHY each step works psychologically",
   "improvements": "Specific suggestions for better aligning transcript and visuals, enhancing multimodal retention, and optimizing the audio-visual experience for {goal}"
 }}
     """
@@ -159,7 +170,7 @@ Respond in valid JSON format:
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
-            max_tokens=2000
+            max_tokens=2500  # Increased for multiple formulas
         )
 
         response_text = gpt_response.choices[0].message.content.strip()
@@ -180,7 +191,11 @@ Respond in valid JSON format:
                 "hooks": parsed.get("hooks", []),
                 "scores": parsed.get("scores", {}),
                 "timing_breakdown": parsed.get("timing_breakdown", "").strip(),
-                "formula": parsed.get("formula", "").strip(),
+                "formula": parsed.get("basic_formula", "").strip(),  # Keep for backward compatibility
+                "basic_formula": parsed.get("basic_formula", "").strip(),
+                "timing_formula": parsed.get("timing_formula", "").strip(),
+                "template_formula": parsed.get("template_formula", "").strip(),
+                "psychology_formula": parsed.get("psychology_formula", "").strip(),
                 "improvements": parsed.get("improvements", "").strip()
             }
             
@@ -207,11 +222,12 @@ Respond in valid JSON format:
                     "goal_alignment": 6
                 }
             
-            print(f"Analysis successful - Combined audio/visual insights generated")
+            print(f"Analysis successful - {len(result['hooks'])} hooks generated")
             return result
             
         except json.JSONDecodeError as e:
             print(f"JSON parsing failed: {e}")
+            print(f"Response text: {response_text[:500]}...")
             
             return {
                 "analysis": "This video combines verbal and visual elements to create engagement. The transcript works with the visual presentation to build viewer interest and maintain attention through the full duration.",
@@ -225,6 +241,10 @@ Respond in valid JSON format:
                 "scores": {"hook_strength": 7, "promise_clarity": 6, "retention_design": 7, "engagement_potential": 8, "goal_alignment": 6},
                 "timing_breakdown": "Opening combines visual and verbal hooks, middle builds through both channels, conclusion delivers satisfaction via audio-visual alignment",
                 "formula": "1. Create multimodal hook (visual + verbal) 2. Reinforce promise through both channels 3. Build engagement via audio-visual variety 4. Deliver payoff using combined elements",
+                "basic_formula": "1. Create multimodal hook 2. Set clear promise 3. Build engagement 4. Deliver payoff",
+                "timing_formula": "0-3s: Hook, 3-7s: Promise, Middle: Build, End: Payoff",
+                "template_formula": "[Hook] + [Promise] + [Build] + [Payoff]",
+                "psychology_formula": "Curiosity → Expectation → Delayed Gratification → Satisfaction",
                 "improvements": "Better synchronize visual and verbal elements, strengthen opening hook combination, enhance audio-visual alignment for goal achievement"
             }
             
@@ -236,6 +256,10 @@ Respond in valid JSON format:
             "scores": {},
             "timing_breakdown": "",
             "formula": "",
+            "basic_formula": "",
+            "timing_formula": "",
+            "template_formula": "",
+            "psychology_formula": "",
             "improvements": ""
         }
     
