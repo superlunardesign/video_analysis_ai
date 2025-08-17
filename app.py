@@ -2,6 +2,7 @@ import os
 import random
 import time as _time
 import json
+import re
 from flask import Flask, request, render_template
 from openai import OpenAI
 
@@ -79,198 +80,260 @@ def detect_content_patterns(transcript_text, frames_summaries_text):
     
     return patterns
 
-def create_video_description(transcript_text, frames_summaries_text, patterns):
-    """Create a clear description of what's happening in the video."""
+def extract_content_themes(transcript_text):
+    """Extract actual themes from any transcript without hardcoded categories."""
     
-    # Extract main activity from frames and transcript
-    text_combined = f"{transcript_text} {frames_summaries_text}".lower()
+    # Look for common topic indicators in any niche
+    words = transcript_text.lower().split()
     
-    main_activity = "presenting content"
-    if 'folding' in text_combined:
-        main_activity = "folding laundry"
-    elif 'makeup' in text_combined:
-        main_activity = "applying makeup"
-    elif 'cooking' in text_combined or 'food' in text_combined:
-        main_activity = "cooking/food preparation"
-    elif 'cleaning' in text_combined:
-        main_activity = "cleaning/organizing"
-    elif 'drawing' in text_combined or 'painting' in text_combined:
-        main_activity = "creating art"
-    elif 'design' in text_combined and ('showing' in text_combined or 'examples' in text_combined):
-        main_activity = "showing design examples"
+    # Common patterns that indicate main topics
+    topic_indicators = []
     
-    # Extract main topic from transcript
-    topic = "sharing thoughts"
-    if len(transcript_text) > 50:
-        if 'logo' in transcript_text.lower() or 'design' in transcript_text.lower():
-            topic = "discussing design/branding practices"
-        elif 'business' in transcript_text.lower():
-            topic = "sharing business advice"
-        elif 'story' in transcript_text.lower():
-            topic = "telling a story"
-        elif 'shit' in transcript_text.lower() and 'designers' in transcript_text.lower():
-            topic = "critiquing common design practices"
+    # Look for repeated important nouns (likely main topics)
+    word_count = {}
+    important_words = []
     
-    if patterns['dual_engagement']:
-        return f"Subject is {main_activity} while {topic}"
-    else:
-        return f"Subject is {topic}"
+    # Filter for meaningful words (nouns, important concepts)
+    for word in words:
+        # Clean word
+        clean_word = word.strip('.,!?":;()[]{}')
+        if len(clean_word) > 3 and clean_word not in ['that', 'this', 'with', 'have', 'will', 'they', 'them', 'were', 'been', 'said', 'what', 'when', 'where', 'your', 'like', 'just', 'know', 'think', 'people', 'going', 'really', 'because']:
+            word_count[clean_word] = word_count.get(clean_word, 0) + 1
+    
+    # Get most frequently mentioned meaningful words
+    frequent_topics = [word for word, count in word_count.items() if count >= 2][:5]
+    
+    return frequent_topics if frequent_topics else ['general content']
 
-def run_gpt_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context=""):
-    """Enhanced analysis using the proven original prompt with dual engagement detection."""
+def create_universal_video_description(transcript_text, frames_summaries_text):
+    """Create description for any video content without hardcoded activities."""
     
-    # Detect content patterns
+    frames_lower = frames_summaries_text.lower()
+    transcript_lower = transcript_text.lower()
+    
+    # Detect any visual activity mentioned in frame analysis
+    visual_activities = []
+    
+    # Look for action words in frame descriptions
+    action_patterns = [
+        'applying', 'making', 'cooking', 'preparing', 'folding', 'organizing', 
+        'cleaning', 'sorting', 'building', 'creating', 'drawing', 'writing',
+        'demonstrating', 'showing', 'presenting', 'explaining', 'teaching',
+        'working', 'using', 'holding', 'moving', 'performing'
+    ]
+    
+    detected_activity = None
+    for action in action_patterns:
+        if action in frames_lower:
+            # Try to get the object of the action
+            if action == 'applying' and 'makeup' in frames_lower:
+                detected_activity = 'applying makeup'
+                break
+            elif action == 'cooking' or 'kitchen' in frames_lower:
+                detected_activity = 'cooking'
+                break
+            elif action == 'folding' and ('clothes' in frames_lower or 'laundry' in frames_lower):
+                detected_activity = 'folding laundry'
+                break
+            elif action in ['demonstrating', 'showing', 'presenting']:
+                detected_activity = 'presenting content'
+                break
+            elif action in ['explaining', 'teaching']:
+                detected_activity = 'teaching'
+                break
+    
+    # Determine main content topic from frequent words
+    content_themes = extract_content_themes(transcript_text)
+    main_topic = f"discussing {', '.join(content_themes[:2])}"
+    
+    # Create description
+    if detected_activity and detected_activity != 'presenting content':
+        return f"Subject is {detected_activity} while {main_topic}"
+    else:
+        return f"Subject is {main_topic}"
+
+def analyze_performance_indicators(creator_note, transcript_text, frames_summaries_text):
+    """Extract performance metrics and determine if video was successful."""
+    
+    performance_data = {
+        'views': None,
+        'engagement': None,
+        'followers_gained': None,
+        'watch_time': None,
+        'saves': None,
+        'shares': None,
+        'success_indicators': []
+    }
+    
+    if creator_note:
+        note_lower = creator_note.lower()
+        
+        # Extract numerical metrics
+        # Views (k, m patterns)
+        view_match = re.search(r'(\d+(?:\.\d+)?)\s*([km])?\s*views?', note_lower)
+        if view_match:
+            num, unit = view_match.groups()
+            multiplier = 1000 if unit == 'k' else 1000000 if unit == 'm' else 1
+            performance_data['views'] = int(float(num) * multiplier)
+        
+        # Followers gained
+        follower_match = re.search(r'(\d+)\s*(?:new\s+)?followers?', note_lower)
+        if follower_match:
+            performance_data['followers_gained'] = int(follower_match.group(1))
+        
+        # Watch time (hours)
+        watch_match = re.search(r'(\d+)\s*h.*?watch.*?time', note_lower)
+        if watch_match:
+            performance_data['watch_time'] = int(watch_match.group(1))
+        
+        # Saves
+        save_match = re.search(r'(\d+)\s*saves?', note_lower)
+        if save_match:
+            performance_data['saves'] = int(save_match.group(1))
+        
+        # Shares  
+        share_match = re.search(r'(\d+)\s*shares?', note_lower)
+        if share_match:
+            performance_data['shares'] = int(share_match.group(1))
+    
+    # Determine success level
+    success_level = "unknown"
+    success_reasons = []
+    
+    if performance_data['views']:
+        if performance_data['views'] >= 100000:
+            success_level = "highly_successful"
+            success_reasons.append(f"{performance_data['views']:,} views indicates viral reach")
+        elif performance_data['views'] >= 10000:
+            success_level = "successful"
+            success_reasons.append(f"{performance_data['views']:,} views shows good performance")
+        else:
+            success_level = "moderate"
+            success_reasons.append(f"{performance_data['views']:,} views is moderate performance")
+    
+    if performance_data['followers_gained'] and performance_data['followers_gained'] >= 100:
+        success_reasons.append(f"{performance_data['followers_gained']} new followers shows strong audience building")
+    
+    if performance_data['saves'] and performance_data['saves'] >= 100:
+        success_reasons.append(f"{performance_data['saves']} saves indicates valuable content")
+    
+    performance_data['success_level'] = success_level
+    performance_data['success_reasons'] = success_reasons
+    
+    return performance_data
+
+def run_universal_gpt_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context=""):
+    """Universal analysis that works for any content topic."""
+    
+    # Get patterns and description without hardcoded assumptions
     patterns = detect_content_patterns(transcript_text, frames_summaries_text)
-    video_description = create_video_description(transcript_text, frames_summaries_text, patterns)
+    video_description = create_universal_video_description(transcript_text, frames_summaries_text)
+    performance_data = analyze_performance_indicators(creator_note, transcript_text, frames_summaries_text)
+    content_themes = extract_content_themes(transcript_text)
     
-    print(f"Content patterns detected: {patterns}")
     print(f"Video description: {video_description}")
+    print(f"Content themes: {content_themes}")
+    print(f"Performance data: {performance_data}")
     
-    # Add dual engagement context to the proven original prompt
-    dual_engagement_note = ""
-    if patterns['dual_engagement']:
-        dual_engagement_note = f"""
-DUAL ENGAGEMENT DETECTED: {video_description}
-Focus attention on if the video has satisfying element, whether the whole video or the background process (visual retention) works with the verbal content delivery or text hook on the screen. Differentiate between the text on the frames and the script to determine if something is a text hook or captions. Explain how this combination increases retention and/or prevents drop-off by engaging both visual processing and auditory processing simultaneously.
+    # Build performance context
+    performance_context = ""
+    if performance_data['success_level'] != "unknown":
+        performance_context = f"""
+PERFORMANCE CONTEXT:
+This video achieved: {', '.join(performance_data['success_reasons'])}
+Success Level: {performance_data['success_level']}
+Use this performance data to validate your analysis - explain WHY this video achieved this level of success.
         """
     
-    # Use the proven original prompt structure
+    # Universal prompt that adapts to any content
     prompt = f"""
-You are an expert TikTok/short-form content strategist analyzing videos for retention psychology and engagement mechanics.
+You are a retention psychology expert analyzing short-form content. Provide deep, specific insights about what makes THIS video addictive.
 
-TRANSCRIPT (What they're saying):
-{transcript_text}
+TRANSCRIPT: {transcript_text}
 
-VISUAL FRAMES (What viewers see):
-{frames_summaries_text}
+VISUAL FRAMES: {frames_summaries_text}
 
 CREATOR NOTE: {creator_note}
-PLATFORM: {platform} | GOAL: {goal} | DURATION: {target_duration}s
+VIDEO DESCRIPTION: {video_description}
+MAIN TOPICS: {', '.join(content_themes)}
+GOAL: {goal}
 
-{dual_engagement_note}
+{performance_context}
 
-ANALYSIS FRAMEWORK:
-Analyze this video by combining both the spoken content (transcript) and visual elements (frames) to understand the full retention strategy:
+ANALYSIS REQUIREMENTS:
 
-1. HOOK ANALYSIS (0-3 seconds):
-   - How do the opening words work with the visual presentation?
-   - Does the on-screen text reinforce or contradict the verbal hook?
-   - Are there visual pattern interrupts (gestures, movements, graphics)?
-   - Combined hook effectiveness: Does audio + visual create stronger curiosity?
+1. CONTENT ANALYSIS:
+- What is specifically happening in this video?
+- What topics/themes are being discussed?
+- How does the creator position themselves?
+- What makes this content unique or valuable?
 
-2. PROMISE IDENTIFICATION (3-7 seconds):
-   - What promise is made verbally vs. visually?
-   - Do the frames show setup for what's promised in speech?
-   - Is there visual foreshadowing of the payoff?
-   - How well aligned are the words and visuals in setting expectations?
+2. RETENTION PSYCHOLOGY:
+- How does the opening create curiosity or pattern interrupt?
+- What authority signals or credibility markers are present?
+- How do visual and verbal elements work together?
+- What psychological triggers keep people watching?
 
-3. RETENTION MECHANICS:
-   - Story progression: How do visuals support the narrative flow?
-   - Engagement elements: Eye contact, expressions, gestures that drive comments
-   - Visual variety: Do frame changes maintain interest during speech?
-   - Pacing alignment: Do visual cuts match verbal rhythm and emphasis?
-   - Satisfying processes: Are there repetitive, satisfying activities that retain attention?
+3. ENGAGEMENT MECHANICS:
+- What would make someone comment on THIS specific content?
+- Why would someone share this particular message?
+- What emotions or reactions does this trigger?
+- How does it make viewers feel about the topic?
 
-4. PAYOFF DELIVERY:
-   - Does the visual reveal align with the verbal conclusion?
-   - Are key moments emphasized both verbally and visually?
-   - Is the satisfaction delivered through words, visuals, or both?
+4. HOOK GENERATION:
+Generate 5 hooks based on THIS video's actual content and approach. 
+- Use the same topic/niche as the original
+- Match the creator's energy, tone, and vocabulary  
+- Focus on the specific value or controversy presented
+- Sound natural and platform-native
 
-5. MULTIMODAL HOOKS (analyze combinations):
-   - Text overlays + speech content
-   - Facial expressions + verbal tone
-   - Visual demonstrations + explanations
-   - Environmental changes + narrative progression
+CRITICAL: Base everything on the actual content. Don't use generic templates.
 
-HOOK GENERATION RULES:
-Generate 5 alternative hooks that sound natural and platform-native:
+5. PERFORMANCE ANALYSIS:
+{f"Explain why this video achieved {performance_data['success_level']} results based on the retention mechanisms you identified." if performance_data['success_level'] != 'unknown' else "Predict likely performance based on retention psychology."}
 
-TONE REQUIREMENTS:
-- Use conversational, casual language (not marketing speak)
-- Match the energy and vocabulary of the original video
-- Sound like something a real person would actually say on TikTok
-- Be specific to the actual topic/niche, not generic
-
-AVOID THESE AI-SOUNDING PHRASES:
-- "Discover the secret to..."
-- "Unlock your potential..." 
-- "Transform your life with..."
-- "The one trick that..."
-- "You won't believe what happens when..."
-- "Game-changing technique"
-- "Revolutionary method"
-
-INSTEAD USE NATURAL LANGUAGE PATTERNS:
-- "wait this actually works"
-- "nobody talks about this but..."
-- "I tried this for [timeframe] and..."
-- "my [relationship/job/etc] changed when I..."
-- "this sounds fake but..."
-- "POV: you just found out..."
-- "telling my [person] that I..."
-- "the day I accidentally..."
-- "why [common thing] is actually..."
-
-HOOK TYPES TO CONSIDER:
-- Personal story openings with unexpected twists
-- Controversial opinions about common beliefs
-- Behind-the-scenes revelations
-- Mistake/failure stories with lessons
-- Comparison setups that subvert expectations
-
-SCORING (1-10 scale):
-- Hook Strength: How compelling is the audio+visual opening combination?
-- Promise Clarity: How clear is the expected payoff across both channels?
-- Retention Design: How well do visuals and audio work together for watch-through?
-- Engagement Potential: Will the combination drive comments/shares?
-- Goal Alignment: How well does the full experience serve {goal}?
-
-Focus on how the transcript and visuals work together (or against each other) to create the retention experience. Look for moments where:
-- Visual and verbal hooks reinforce each other
-- Misalignment between what's said vs. shown
-- Visual elements that enhance or detract from the verbal message
-- Opportunities to better synchronize audio and visual retention tactics
-
-Respond in valid JSON format with these exact keys:
+Respond in JSON format:
 {{
-  "analysis": "Analyze how the transcript and visuals work together to create retention. Discuss specific moments where audio and visual elements reinforce or conflict with each other. Focus on the combined psychological impact on viewers. If dual engagement is detected, explain how satisfying background processes work with verbal content. Write in clear paragraphs without JSON formatting.",
+  "analysis": "Detailed analysis of THIS specific video's retention psychology. Explain what's happening, the psychological mechanisms at work, how visual and verbal elements interact, and why this approach works for this topic. Minimum 200 words of specific insights.",
   "hooks": [
-    "Natural hook 1 that sounds like real TikTok content",
-    "Natural hook 2 using casual language", 
-    "Natural hook 3 with personal story angle",
-    "Natural hook 4 with controversial opinion",
-    "Natural hook 5 with behind-the-scenes reveal"
+    "Hook 1 specific to this video's topic and approach",
+    "Hook 2 matching the content and energy",
+    "Hook 3 using the same niche concepts and language", 
+    "Hook 4 based on the actual value or controversy",
+    "Hook 5 that captures the specific psychological trigger"
   ],
   "scores": {{
-    "hook_strength": 7,
-    "promise_clarity": 6,
-    "retention_design": 8,
-    "engagement_potential": 7,
-    "goal_alignment": 6
+    "hook_strength": 8,
+    "promise_clarity": 7,
+    "retention_design": 9,
+    "engagement_potential": 8,
+    "goal_alignment": 7
   }},
-  "timing_breakdown": "Describe what happens at key moments combining both audio and visual: 0-3s (how opening words + visuals create hook), 3-7s (promise setup through speech + visual cues), middle (how content builds through both channels), end (payoff delivery via audio + visual)",
-  "basic_formula": "Step-by-step process this creator can follow for future content",
-  "timing_formula": "Detailed timing breakdown with specific second markers (0-3s: hook, 3-7s: promise, etc.)",
-  "template_formula": "Fill-in-the-blank template format with examples they can customize",
-  "psychology_formula": "Framework explaining WHY each step works psychologically",
-  "improvements": "Specific suggestions for better aligning transcript and visuals, enhancing multimodal retention, and optimizing the audio-visual experience for {goal}"
+  "timing_breakdown": "Second-by-second analysis of how retention builds in THIS video",
+  "basic_formula": "Step-by-step process for creating similar content in this topic/approach",
+  "timing_formula": "Timing strategy specific to this content style",
+  "template_formula": "Template format for this type of content",
+  "psychology_formula": "Psychology framework explaining why this approach works",
+  "improvements": "Specific suggestions for optimizing THIS video for {goal}",
+  "performance_prediction": "Performance prediction based on retention analysis"
 }}
+
+Focus on the actual content and psychological mechanisms, not generic advice.
     """
 
     try:
-        print(f"Sending prompt to GPT-4o")
+        print(f"Sending universal analysis prompt to GPT-4o...")
         gpt_response = _api_retry(
             client.chat.completions.create,
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=2500
+            temperature=0.2,
+            max_tokens=3500
         )
 
         response_text = gpt_response.choices[0].message.content.strip()
-        print(f"Received response: {response_text[:200]}...")
         
-        # Clean and parse response
+        # Parse JSON
         if response_text.startswith("```json"):
             response_text = response_text[7:]
         if response_text.endswith("```"):
@@ -282,7 +345,7 @@ Respond in valid JSON format with these exact keys:
             print("Successfully parsed JSON response")
             
             result = {
-                "analysis": parsed.get("analysis", f"{video_description}. Analysis focuses on retention psychology and engagement mechanics.").strip(),
+                "analysis": parsed.get("analysis", "Analysis not available").strip(),
                 "hooks": parsed.get("hooks", []),
                 "scores": parsed.get("scores", {}),
                 "timing_breakdown": parsed.get("timing_breakdown", "").strip(),
@@ -292,111 +355,128 @@ Respond in valid JSON format with these exact keys:
                 "template_formula": parsed.get("template_formula", "").strip(),
                 "psychology_formula": parsed.get("psychology_formula", "").strip(),
                 "improvements": parsed.get("improvements", "").strip(),
+                "performance_prediction": parsed.get("performance_prediction", "").strip(),
                 "video_description": video_description,
-                "content_patterns": patterns
+                "content_patterns": patterns,
+                "performance_data": performance_data
             }
             
-            # Ensure we have good hooks
+            # Generic fallback hooks if needed (based on detected patterns)
             if not result["hooks"] or len(result["hooks"]) == 0:
-                print("No hooks found, using content-specific fallbacks")
-                if 'shit' in transcript_text.lower() and 'designers' in transcript_text.lower():
-                    result["hooks"] = [
-                        "designers hate when I say this but it's true",
-                        "I can spot amateur design work from a mile away",
-                        "why most designers are actually hurting your business",
-                        "the design advice everyone gives is completely wrong",
-                        "I refuse to do what other designers do and here's why"
-                    ]
-                elif patterns.get('is_controversial', False):
+                print("Generating content-adaptive fallback hooks")
+                
+                if patterns.get('is_controversial', False):
                     result["hooks"] = [
                         "this opinion is going to upset people but it's true",
                         "everyone's wrong about this and I can prove it",
-                        "this harsh truth will change how you see everything",
+                        "this harsh truth will change how you think",
                         "nobody wants to admit this but here's reality",
                         "this controversial take will make you rethink everything"
                     ]
+                elif patterns.get('is_educational', False):
+                    result["hooks"] = [
+                        "this changed everything I thought I knew",
+                        "nobody taught me this and I wish they had",
+                        "here's what I wish someone told me earlier",
+                        "this method actually works and here's why",
+                        "the mistake everyone makes that you can avoid"
+                    ]
                 else:
                     result["hooks"] = [
-                        "this changed everything I thought I knew about this",
-                        "nobody prepared me for this reality",
-                        "here's what I wish someone told me earlier",
-                        "this sounds controversial but you need to hear it",
-                        "the day I realized most people are completely wrong"
+                        "wait this actually works",
+                        "nobody talks about this but they should",
+                        "POV: you just found out the truth",
+                        "this sounds fake but I promise it's not",
+                        "the day I realized most people are wrong"
                     ]
             
-            # Ensure we have default scores
-            if not result["scores"]:
-                result["scores"] = {
-                    "hook_strength": 8 if patterns.get('is_controversial', False) else 7,
-                    "promise_clarity": 7,
-                    "retention_design": 9 if patterns.get('dual_engagement', False) else 7,
-                    "engagement_potential": 9 if patterns.get('is_controversial', False) else 7,
-                    "goal_alignment": 8
-                }
+            # Adjust scores based on performance
+            if performance_data['success_level'] == 'highly_successful':
+                for key in result["scores"]:
+                    result["scores"][key] = min(10, result["scores"][key] + 1)
             
-            print(f"Analysis complete - Controversial: {patterns.get('is_controversial', False)}, Dual engagement: {patterns.get('dual_engagement', False)}")
+            print(f"Universal analysis complete - Topics: {content_themes}")
             return result
             
         except json.JSONDecodeError as e:
             print(f"JSON parsing failed: {e}")
-            print(f"Raw response: {response_text}")
-            return create_fallback_result(video_description, patterns, transcript_text, goal)
+            return create_universal_fallback(video_description, patterns, content_themes, goal, performance_data)
             
     except Exception as e:
         print(f"GPT analysis error: {e}")
-        return create_fallback_result(video_description, patterns, transcript_text, goal)
+        return create_universal_fallback(video_description, patterns, content_themes, goal, performance_data)
 
-def create_fallback_result(video_description, patterns, transcript_text, goal):
-    """Create fallback result when GPT analysis fails."""
+def create_universal_fallback(video_description, patterns, content_themes, goal, performance_data):
+    """Create fallback result that adapts to any content topic."""
     
-    # Content-specific hooks based on actual transcript
-    if 'shit' in transcript_text.lower() and 'designers' in transcript_text.lower():
-        fallback_hooks = [
-            "designers hate when I say this but it's true",
-            "I can spot amateur design work from a mile away", 
-            "why most designers are actually hurting your business",
-            "the design advice everyone gives is completely wrong",
-            "I refuse to do what other designers do and here's why"
-        ]
-    elif patterns.get('is_controversial', False):
-        fallback_hooks = [
+    analysis = f"{video_description}. "
+    
+    if performance_data['success_level'] != 'unknown':
+        analysis += f"This video achieved {performance_data['success_level']} performance with {', '.join(performance_data['success_reasons'])}. "
+    
+    analysis += f"The content focuses on {', '.join(content_themes[:3]) if content_themes else 'the main topic'} using "
+    
+    if patterns.get('is_controversial', False):
+        analysis += "controversial positioning and expert authority to challenge common beliefs. "
+    elif patterns.get('is_educational', False):
+        analysis += "educational delivery and valuable insights to teach viewers. "
+    else:
+        analysis += "engaging storytelling and relatable content to connect with viewers. "
+    
+    analysis += "The retention strategy combines direct communication with specific insights to maintain viewer engagement throughout."
+    
+    # Adaptive hooks based on content patterns
+    if patterns.get('is_controversial', False):
+        hooks = [
             "this opinion is going to upset people but it's true",
             "everyone's wrong about this and I can prove it",
-            "this harsh truth will change how you see everything",
-            "nobody wants to admit this but here's reality", 
+            "this harsh truth will change how you think",
+            "nobody wants to admit this but here's reality",
             "this controversial take will make you rethink everything"
         ]
-    else:
-        fallback_hooks = [
-            "this changed everything I thought I knew about this",
-            "nobody prepared me for this reality",
+    elif patterns.get('is_educational', False):
+        hooks = [
+            "this changed everything I thought I knew",
+            "nobody taught me this and I wish they had", 
             "here's what I wish someone told me earlier",
-            "this sounds controversial but you need to hear it",
-            "the day I realized most people are completely wrong"
+            "this method actually works and here's why",
+            "the mistake everyone makes that you can avoid"
+        ]
+    else:
+        hooks = [
+            "wait this actually works",
+            "nobody talks about this but they should",
+            "POV: you just found out the truth",
+            "this sounds fake but I promise it's not",
+            "the day I realized most people are wrong"
         ]
     
-    dual_text = " The visual examples and design demonstrations provide engagement while the controversial opinions are delivered verbally, creating dual engagement that prevents drop-off." if patterns.get('dual_engagement', False) else ""
-    
     return {
-        "analysis": f"{video_description}. This content uses strong retention psychology through controversial opinions and expert authority positioning.{dual_text}",
-        "hooks": fallback_hooks,
+        "analysis": analysis,
+        "hooks": hooks,
         "scores": {
-            "hook_strength": 8 if patterns.get('is_controversial', False) else 7,
+            "hook_strength": 8 if performance_data['success_level'] == 'highly_successful' else 7,
             "promise_clarity": 7,
-            "retention_design": 9 if patterns.get('dual_engagement', False) else 7,
-            "engagement_potential": 9 if patterns.get('is_controversial', False) else 7,
-            "goal_alignment": 8
+            "retention_design": 8 if performance_data['success_level'] != 'unknown' else 7,
+            "engagement_potential": 8,
+            "goal_alignment": 7
         },
-        "timing_breakdown": "Content builds from controversial hook through expert explanations to authoritative conclusion with visual support throughout",
-        "formula": "Controversial hook → Expert authority → Supporting examples → Authoritative conclusion",
-        "basic_formula": "1. Open with controversial statement 2. Establish expertise 3. Provide supporting evidence 4. End with authority",
-        "timing_formula": "0-3s: Controversial hook, 3-7s: Authority establishment, Middle: Evidence delivery, End: Authoritative conclusion",
-        "template_formula": "[Controversial Statement] → [Authority Positioning] → [Supporting Evidence] → [Expert Conclusion]",
-        "psychology_formula": "Controversy → Authority → Evidence → Credibility",
-        "improvements": f"Strengthen controversial opening, enhance authority positioning, optimize visual-verbal alignment for {goal}",
+        "timing_breakdown": "Content builds from engaging opening through valuable insights to satisfying conclusion",
+        "formula": "Strong opener → Value delivery → Authority building → Clear conclusion",
+        "basic_formula": "1. Create immediate interest 2. Deliver specific value 3. Build credibility 4. End with clear takeaway",
+        "timing_formula": "0-3s: Hook creation, 3-7s: Value setup, Middle: Content delivery, End: Strong conclusion",
+        "template_formula": "[Engaging Hook] → [Value Promise] → [Content Delivery] → [Clear Conclusion]",
+        "psychology_formula": "Attention → Interest → Value → Satisfaction",
+        "improvements": f"Enhance opening hook, add more specific examples, optimize pacing for {goal}",
+        "performance_prediction": f"Based on content analysis: {performance_data['success_level'] if performance_data['success_level'] != 'unknown' else 'moderate to strong performance expected'}",
         "video_description": video_description,
-        "content_patterns": patterns
+        "content_patterns": patterns,
+        "performance_data": performance_data
     }
+
+def run_gpt_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context=""):
+    """Universal analysis that works for any content topic."""
+    return run_universal_gpt_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context)
 
 @app.route("/", methods=["GET"])
 def index():
@@ -481,11 +561,12 @@ def process():
             print("Enhanced retention analysis complete")
         except Exception as e:
             print(f"GPT analysis error: {e}")
-            gpt_result = create_fallback_result(
+            gpt_result = create_universal_fallback(
                 "Video analysis", 
                 {"is_controversial": False, "dual_engagement": False}, 
-                transcript, 
-                goal
+                ["general content"],
+                goal,
+                {"success_level": "unknown", "success_reasons": []}
             )
 
         # --- Extract ALL results ---
@@ -501,6 +582,7 @@ def process():
         improvements = gpt_result.get("improvements", "")
         video_description = gpt_result.get("video_description", "Video analysis")
         content_patterns = gpt_result.get("content_patterns", {})
+        performance_data = gpt_result.get("performance_data", {})
         
         if isinstance(hooks_list, str):
             hooks_list = [hooks_list]
@@ -549,6 +631,7 @@ def process():
             improvements=improvements,
             video_description=video_description,
             content_patterns=content_patterns,
+            performance_data=performance_data,
             # Keep these for backward compatibility
             gpt_response=analysis_text
         )
