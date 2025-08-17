@@ -109,23 +109,39 @@
       margin: 0;
       line-height: 1.6;
     }
+    
+    /* FIXED: Button styling to ensure visibility */
     .copy-btn {
-      background: #667eea;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      margin-top: 10px;
-      transition: background 0.3s;
+      background: #667eea !important;
+      color: white !important;
+      border: none !important;
+      padding: 12px 24px !important;
+      border-radius: 8px !important;
+      cursor: pointer !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      margin-top: 15px !important;
+      margin-right: 10px !important;
+      transition: all 0.3s ease !important;
+      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3) !important;
+      display: inline-block !important;
+      text-transform: none !important;
+      letter-spacing: normal !important;
+      min-height: 40px !important;
+      min-width: 120px !important;
     }
     .copy-btn:hover {
-      background: #5a67d8;
+      background: #5a67d8 !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4) !important;
+    }
+    .copy-btn:active {
+      transform: translateY(0) !important;
     }
     .copy-btn.copied {
-      background: #10b981;
+      background: #10b981 !important;
     }
+    
     .grid { 
       display: grid; 
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
@@ -171,59 +187,76 @@
       border: 1px solid rgba(102, 126, 234, 0.2);
     }
     
-    /* Formula tabs styling */
+    /* FIXED: Formula tab styling to ensure visibility */
     .formula-selector {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 20px;
-      border-bottom: 2px solid rgba(102, 126, 234, 0.2);
-      padding-bottom: 12px;
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 12px !important;
+      margin-bottom: 25px !important;
+      border-bottom: 2px solid rgba(102, 126, 234, 0.2) !important;
+      padding-bottom: 15px !important;
     }
     .formula-tab {
-      background: rgba(102, 126, 234, 0.1);
-      color: #667eea;
-      border: 1px solid rgba(102, 126, 234, 0.2);
-      padding: 8px 16px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      transition: all 0.3s ease;
+      background: rgba(102, 126, 234, 0.1) !important;
+      color: #667eea !important;
+      border: 2px solid rgba(102, 126, 234, 0.3) !important;
+      padding: 12px 20px !important;
+      border-radius: 25px !important;
+      cursor: pointer !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      transition: all 0.3s ease !important;
+      text-transform: none !important;
+      letter-spacing: normal !important;
+      min-height: 44px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      user-select: none !important;
     }
     .formula-tab:hover {
-      background: rgba(102, 126, 234, 0.2);
-      transform: translateY(-1px);
+      background: rgba(102, 126, 234, 0.2) !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2) !important;
     }
     .formula-tab.active {
-      background: #667eea;
-      color: white;
-      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+      background: #667eea !important;
+      color: white !important;
+      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4) !important;
+      border-color: #667eea !important;
     }
     .formula-content {
-      display: none;
+      display: none !important;
+      animation: fadeIn 0.4s ease-in !important;
     }
     .formula-content.active {
-      display: block;
-      animation: fadeIn 0.3s ease-in;
+      display: block !important;
     }
     .formula-content h4 {
-      margin: 0 0 12px 0;
-      color: #4a5568;
-      font-size: 1.1rem;
+      margin: 0 0 15px 0 !important;
+      color: #4a5568 !important;
+      font-size: 1.2rem !important;
+      font-weight: 700 !important;
     }
     .formula-text {
-      white-space: pre-wrap;
-      font-family: inherit;
-      margin: 0;
-      line-height: 1.6;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 16px;
-      border-radius: 8px;
+      white-space: pre-wrap !important;
+      font-family: inherit !important;
+      margin: 0 !important;
+      line-height: 1.6 !important;
+      background: rgba(255, 255, 255, 0.6) !important;
+      padding: 20px !important;
+      border-radius: 10px !important;
+      border: 1px solid rgba(102, 126, 234, 0.1) !important;
     }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Additional debugging styles */
+    .debug-visible {
+      outline: 2px solid red !important;
+      background: yellow !important;
     }
   </style>
 </head>
@@ -314,7 +347,7 @@
             <div class="hook-item">"{{ hook }}"</div>
           {% endfor %}
         </div>
-        <button class="copy-btn" onclick="copyAllHooks()">Copy All Hooks</button>
+        <button class="copy-btn" onclick="copyAllHooks()" type="button">Copy All Hooks</button>
       {% else %}
         <p>No alternative hooks generated.</p>
       {% endif %}
@@ -324,12 +357,12 @@
     <div class="card">
       <h2>📋 Your Reusable Formulas</h2>
       
-      <!-- Formula Type Selector -->
+      <!-- FIXED: Formula Type Selector with explicit event handlers -->
       <div class="formula-selector">
-        <button class="formula-tab active" onclick="showFormula('basic', event)">Basic Structure</button>
-<button class="formula-tab" onclick="showFormula('timing', event)">With Timing</button>
-<button class="formula-tab" onclick="showFormula('template', event)">Template Format</button>
-<button class="formula-tab" onclick="showFormula('psychology', event)">Psychology Framework</button>
+        <button class="formula-tab active" onclick="showFormula('basic', event)" type="button" id="basic-tab">Basic Structure</button>
+        <button class="formula-tab" onclick="showFormula('timing', event)" type="button" id="timing-tab">With Timing</button>
+        <button class="formula-tab" onclick="showFormula('template', event)" type="button" id="template-tab">Template Format</button>
+        <button class="formula-tab" onclick="showFormula('psychology', event)" type="button" id="psychology-tab">Psychology Framework</button>
       </div>
 
       <!-- Basic Structure -->
@@ -337,7 +370,7 @@
         <div class="formula-box">
           <h4>📝 Basic Structure</h4>
           <pre class="formula-text">{{ basic_formula or formula }}</pre>
-          <button class="copy-btn" onclick="copyFormula('basic-formula')">Copy Basic Formula</button>
+          <button class="copy-btn" onclick="copyFormula('basic-formula')" type="button">Copy Basic Formula</button>
         </div>
       </div>
 
@@ -346,7 +379,7 @@
         <div class="formula-box">
           <h4>⏱️ Step-by-Step with Timing</h4>
           <pre class="formula-text">{{ timing_formula or "TIMING-BASED FORMULA FOR " + goal.upper() + ":\n\n0-3 seconds: Hook with strong opener that grabs attention immediately\n3-7 seconds: Set clear promise of what they'll learn/discover by the end\nMiddle section: Build engagement with progressive reveals and retention tactics\nFinal 10 seconds: Deliver satisfying payoff that fulfills the promise\n\nKey Timing Notes:\n- Hook must grab attention in first 1-2 seconds\n- Promise clarification by 5-second mark\n- Save strongest revelation for final moments\n- End with engagement trigger (question/challenge)" }}</pre>
-          <button class="copy-btn" onclick="copyFormula('timing-formula')">Copy Timing Formula</button>
+          <button class="copy-btn" onclick="copyFormula('timing-formula')" type="button">Copy Timing Formula</button>
         </div>
       </div>
 
@@ -355,7 +388,7 @@
         <div class="formula-box">
           <h4>📋 Template Format</h4>
           <pre class="formula-text">{{ template_formula or "TEMPLATE FORMAT FOR " + goal.replace('_', ' ').upper() + ":\n\n\"[STRONG OPENER] + [CLEAR PROMISE] + [ENGAGING BUILD] + [SATISFYING PAYOFF] + [ENGAGEMENT HOOK]\"\n\nExample Structure:\n\"[Controversial statement] + [Promise to explain why] + [Build case with examples] + [Deliver the insight] + [Question to drive comments]\"\n\nFill in your content:\n- Strong Opener: ________________\n- Clear Promise: ________________\n- Engaging Build: ________________\n- Satisfying Payoff: ________________\n- Engagement Hook: ________________" }}</pre>
-          <button class="copy-btn" onclick="copyFormula('template-formula')">Copy Template</button>
+          <button class="copy-btn" onclick="copyFormula('template-formula')" type="button">Copy Template</button>
         </div>
       </div>
 
@@ -364,7 +397,7 @@
         <div class="formula-box">
           <h4>🧠 Psychology Framework</h4>
           <pre class="formula-text">{{ psychology_formula or "PSYCHOLOGY-BASED RETENTION FRAMEWORK:\n\n1. CURIOSITY GAP CREATION\n   → Create a question they MUST know the answer to\n   → Example: \"Why your [expertise area] isn't working\"\n\n2. PROMISE ESTABLISHMENT\n   → What will they learn/gain by watching?\n   → Time-bound commitment: \"in the next 30 seconds\"\n\n3. DELAYED GRATIFICATION TACTICS\n   → Mini-reveals that build anticipation\n   → \"But first, let me tell you about...\"\n   → Progressive disclosure of information\n\n4. SATISFYING PAYOFF DELIVERY\n   → Answer the curiosity gap completely\n   → Add bonus insight they didn't expect\n   → Emotional + practical satisfaction\n\n5. ENGAGEMENT AMPLIFICATION\n   → Question that drives comments\n   → Challenge that encourages shares\n   → Hook for follow-up content\n\nPSYCHOLOGICAL TRIGGERS:\n✓ Social proof (\"Most people don't know...\")\n✓ Authority (\"As someone who...\")\n✓ Scarcity (\"This only works if...\")\n✓ Reciprocity (\"I'm sharing this because...\")\n✓ Curiosity (\"The real reason is...\")" }}</pre>
-          <button class="copy-btn" onclick="copyFormula('psychology-formula')">Copy Framework</button>
+          <button class="copy-btn" onclick="copyFormula('psychology-formula')" type="button">Copy Framework</button>
         </div>
       </div>
     </div>
@@ -406,125 +439,241 @@
   </div>
 
   <script>
-// Make sure functions are globally available
-window.showFormula = function(formulaType, event) {
-  console.log('showFormula called with:', formulaType);
-  
-  // Hide all formula contents
-  const contents = document.querySelectorAll('.formula-content');
-  contents.forEach(content => content.classList.remove('active'));
-  
-  // Remove active class from all tabs
-  const tabs = document.querySelectorAll('.formula-tab');
-  tabs.forEach(tab => tab.classList.remove('active'));
-  
-  // Show selected formula - FIXED: using correct ID pattern
-  const targetContent = document.getElementById(formulaType + '-formula');
-  console.log('Looking for element:', formulaType + '-formula', 'Found:', targetContent);
-  
-  if (targetContent) {
-    targetContent.classList.add('active');
-    console.log('Activated formula:', formulaType);
-  } else {
-    console.error('Could not find element with ID:', formulaType + '-formula');
-  }
-  
-  // Activate clicked tab - FIXED: using event parameter
-  if (event && event.target) {
-    event.target.classList.add('active');
-  }
-};
+// FIXED: Ensure functions are defined immediately and globally accessible
+console.log('🔧 Initializing results page JavaScript...');
 
-// Copy formula function
-window.copyFormula = function(formulaId) {
-  console.log('copyFormula called with:', formulaId);
+// Function to show different formula tabs
+function showFormula(formulaType, event) {
+  console.log('🎯 showFormula called:', formulaType);
   
-  const element = document.getElementById(formulaId);
-  console.log('Found element:', element);
-  
-  if (element) {
-    const textElement = element.querySelector('.formula-text') || element.querySelector('pre');
-    console.log('Found text element:', textElement);
+  try {
+    // Hide all formula contents
+    const contents = document.querySelectorAll('.formula-content');
+    console.log('📋 Found formula contents:', contents.length);
+    contents.forEach(content => {
+      content.classList.remove('active');
+      console.log('❌ Hiding:', content.id);
+    });
     
-    if (textElement) {
-      copyToClipboard(textElement.textContent);
+    // Remove active class from all tabs
+    const tabs = document.querySelectorAll('.formula-tab');
+    console.log('🗂️ Found formula tabs:', tabs.length);
+    tabs.forEach(tab => {
+      tab.classList.remove('active');
+    });
+    
+    // Show selected formula
+    const targetId = formulaType + '-formula';
+    const targetContent = document.getElementById(targetId);
+    console.log('🎯 Looking for:', targetId, 'Found:', !!targetContent);
+    
+    if (targetContent) {
+      targetContent.classList.add('active');
+      console.log('✅ Activated formula:', formulaType);
     } else {
-      console.error('No text element found in:', formulaId);
+      console.error('❌ Could not find element:', targetId);
+      return;
     }
-  } else {
-    console.error('No element found with ID:', formulaId);
+    
+    // Activate clicked tab
+    if (event && event.target) {
+      event.target.classList.add('active');
+      console.log('✅ Activated tab:', event.target.textContent);
+    } else {
+      // Fallback: find and activate the correct tab
+      const targetTab = document.getElementById(formulaType + '-tab');
+      if (targetTab) {
+        targetTab.classList.add('active');
+        console.log('✅ Activated tab (fallback):', targetTab.textContent);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error in showFormula:', error);
   }
-};
+}
 
-// Copy all hooks function
-window.copyAllHooks = function() {
-  console.log('copyAllHooks called');
+// Function to copy formula content
+function copyFormula(formulaId) {
+  console.log('📋 copyFormula called:', formulaId);
   
-  const hooks = [];
-  const hookElements = document.querySelectorAll('.hook-item');
-  console.log('Found hook elements:', hookElements.length);
+  try {
+    const element = document.getElementById(formulaId);
+    console.log('🎯 Found element:', !!element);
+    
+    if (element) {
+      const textElement = element.querySelector('.formula-text') || element.querySelector('pre');
+      console.log('📝 Found text element:', !!textElement);
+      
+      if (textElement) {
+        const text = textElement.textContent || textElement.innerText;
+        copyToClipboard(text);
+        console.log('✅ Copied formula text');
+      } else {
+        console.error('❌ No text element found in:', formulaId);
+        alert('Error: Could not find text to copy');
+      }
+    } else {
+      console.error('❌ No element found with ID:', formulaId);
+      alert('Error: Could not find formula content');
+    }
+  } catch (error) {
+    console.error('❌ Error in copyFormula:', error);
+    alert('Error copying formula: ' + error.message);
+  }
+}
+
+// Function to copy all hooks
+function copyAllHooks() {
+  console.log('🎣 copyAllHooks called');
   
-  hookElements.forEach(item => {
-    hooks.push(item.textContent.replace(/"/g, '').trim());
+  try {
+    const hooks = [];
+    const hookElements = document.querySelectorAll('.hook-item');
+    console.log('🎯 Found hook elements:', hookElements.length);
+    
+    hookElements.forEach((item, index) => {
+      const text = item.textContent.replace(/"/g, '').trim();
+      hooks.push(text);
+      console.log(`📝 Hook ${index + 1}:`, text.substring(0, 50) + '...');
+    });
+    
+    if (hooks.length === 0) {
+      console.error('❌ No hooks found to copy');
+      alert('No hooks found to copy');
+      return;
+    }
+    
+    const allHooksText = hooks.join('\n');
+    copyToClipboard(allHooksText);
+    console.log('✅ Copied all hooks:', hooks.length);
+  } catch (error) {
+    console.error('❌ Error in copyAllHooks:', error);
+    alert('Error copying hooks: ' + error.message);
+  }
+}
+
+// Main clipboard copy function
+function copyToClipboard(text) {
+  console.log('📋 Copying to clipboard, length:', text.length);
+  
+  // Show visual feedback immediately
+  const buttons = document.querySelectorAll('.copy-btn');
+  buttons.forEach(btn => {
+    btn.classList.add('copied');
+    btn.textContent = btn.textContent.replace(/Copy/, 'Copied!');
+    
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.textContent = btn.textContent.replace(/Copied!/, 'Copy');
+    }, 2000);
   });
   
-  console.log('Hooks to copy:', hooks);
-  copyToClipboard(hooks.join('\n'));
-};
-
-// Main copy function
-function copyToClipboard(text) {
-  console.log('Copying text:', text.substring(0, 100) + '...');
-  
+  // Try modern clipboard API first
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(() => {
-      console.log('Copy successful via clipboard API');
-      alert('Copied to clipboard!');
+      console.log('✅ Copy successful via clipboard API');
+      showCopySuccess();
     }).catch((err) => {
-      console.error('Clipboard API failed:', err);
+      console.error('❌ Clipboard API failed:', err);
       fallbackCopy(text);
     });
   } else {
-    console.log('Clipboard API not available, using fallback');
+    console.log('📋 Clipboard API not available, using fallback');
     fallbackCopy(text);
   }
 }
 
-// Fallback copy method
+// Fallback copy method for older browsers
 function fallbackCopy(text) {
-  const textArea = document.createElement('textarea');
-  textArea.value = text;
-  textArea.style.position = 'fixed';
-  textArea.style.left = '-999999px';
-  textArea.style.top = '-999999px';
-  document.body.appendChild(textArea);
-  textArea.focus();
-  textArea.select();
+  console.log('📋 Using fallback copy method');
   
   try {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
     const successful = document.execCommand('copy');
+    document.body.removeChild(textArea);
+    
     if (successful) {
-      console.log('Copy successful via execCommand');
-      alert('Copied to clipboard!');
+      console.log('✅ Copy successful via execCommand');
+      showCopySuccess();
     } else {
-      console.error('execCommand copy failed');
-      alert('Copy failed. Please try selecting and copying the text manually.');
+      console.error('❌ execCommand copy failed');
+      showCopyError();
     }
   } catch (err) {
-    console.error('execCommand failed:', err);
-    alert('Copy failed. Please try selecting and copying the text manually.');
+    console.error('❌ Fallback copy failed:', err);
+    showCopyError();
   }
-  
-  document.body.removeChild(textArea);
 }
 
-// Wait for DOM to load
+// Show success message
+function showCopySuccess() {
+  // Create temporary success message
+  const successMsg = document.createElement('div');
+  successMsg.textContent = '✅ Copied to clipboard!';
+  successMsg.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #10b981;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  `;
+  document.body.appendChild(successMsg);
+  
+  setTimeout(() => {
+    if (successMsg.parentNode) {
+      successMsg.parentNode.removeChild(successMsg);
+    }
+  }, 3000);
+}
+
+// Show error message
+function showCopyError() {
+  alert('❌ Copy failed. Please try selecting and copying the text manually.');
+}
+
+// Make functions globally available
+window.showFormula = showFormula;
+window.copyFormula = copyFormula;
+window.copyAllHooks = copyAllHooks;
+
+// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Results page loaded, functions available');
-  console.log('Available formula tabs:', document.querySelectorAll('.formula-tab').length);
-  console.log('Available formula contents:', document.querySelectorAll('.formula-content').length);
-  console.log('Available hook items:', document.querySelectorAll('.hook-item').length);
+  console.log('🎉 Results page DOM loaded');
+  console.log('📊 Available formula tabs:', document.querySelectorAll('.formula-tab').length);
+  console.log('📋 Available formula contents:', document.querySelectorAll('.formula-content').length);
+  console.log('🎣 Available hook items:', document.querySelectorAll('.hook-item').length);
+  console.log('🔘 Available copy buttons:', document.querySelectorAll('.copy-btn').length);
+  
+  // Verify all elements are properly initialized
+  const formulaTabs = document.querySelectorAll('.formula-tab');
+  formulaTabs.forEach((tab, index) => {
+    console.log(`🗂️ Tab ${index + 1}:`, tab.textContent, 'ID:', tab.id);
+  });
+  
+  const formulaContents = document.querySelectorAll('.formula-content');
+  formulaContents.forEach((content, index) => {
+    console.log(`📋 Content ${index + 1}:`, content.id, 'Active:', content.classList.contains('active'));
+  });
+  
+  console.log('✅ All functions are available and ready');
 });
+
+// Additional debugging
+console.log('🔧 JavaScript loaded successfully');
 </script>
 </body>
 </html>
