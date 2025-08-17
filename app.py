@@ -132,6 +132,8 @@ def analyze_text_synchronization(frames_summaries_text, transcript_text, frame_t
 # ENHANCED PSYCHOLOGICAL ANALYSIS FUNCTIONS
 # ==============================
 
+# Replace the broken detect_specific_niche function with this corrected version:
+
 def detect_specific_niche(transcript_text, frames_summaries_text):
     """Detect specific niche and content type for targeted analysis."""
     
@@ -171,87 +173,29 @@ def detect_specific_niche(transcript_text, frames_summaries_text):
     primary_niche = max(niche_scores, key=niche_scores.get) if niche_scores else 'general'
     
     # Specialized analysis focus based on niche
-    analysis += f"The content focuses on {', '.join(content_themes[:3]) if content_themes else 'the main topic'} using "
-    
-    if patterns.get('is_controversial', False):
-        analysis += "controversial positioning and expert authority to challenge common beliefs. The creator builds credibility through confident delivery and specific examples, creating engagement through disagreement and validation."
-        engagement_triggers = "Controversial positioning triggers strong reactions - agreement from those who relate, disagreement from those who don't. The specific examples make it feel personal and authentic."
-        authority_signals = "Direct, confident language and specific examples establish expertise. The willingness to take a controversial stance signals authority and authenticity."
-    elif patterns.get('is_educational', False):
-        analysis += "educational delivery and valuable insights to teach viewers. The creator positions themselves as a helpful expert, building trust through clear explanations and actionable advice."
-        engagement_triggers = "Educational value drives saves and shares. Viewers comment with questions, their own experiences, and gratitude for the insights shared."
-        authority_signals = "Clear, structured explanations and specific techniques demonstrate expertise. The teaching approach builds trust and positions the creator as knowledgeable."
-    else:
-        analysis += "engaging storytelling and relatable content to connect with viewers. Personal anecdotes and relatable situations create emotional connection and authenticity."
-        engagement_triggers = "Relatability drives comments as viewers share their own similar experiences. Personal storytelling creates emotional connection leading to shares."
-        authority_signals = "Authentic personal experience and honest vulnerability establish trust. Real stories and genuine emotion signal credibility."
-    
-    analysis += " The retention strategy combines direct communication with specific insights to maintain viewer engagement throughout."
-    
-    # Generate natural hooks based on patterns
-    if patterns.get('is_controversial', False):
-        hooks = [
-            "nobody wants to admit this but it's true",
-            "this opinion is going to upset people",
-            "I don't care if this is unpopular but...",
-            "everyone's doing this wrong and here's why",
-            "this harsh truth changed everything for me"
-        ]
-    elif patterns.get('is_educational', False):
-        hooks = [
-            "I wish someone told me this sooner",
-            "this method actually works and here's proof", 
-            "the mistake I was making for years",
-            "nobody teaches you this but they should",
-            "this changed my entire approach"
-        ]
-    else:
-        hooks = [
-            "this happened to me and I learned...",
-            "the day I realized I was doing it wrong",
-            "my biggest mistake was thinking...",
-            "POV: you finally understand why...",
-            "telling my story because maybe it helps"
-        ]
+    analysis_focuses = {
+        'beauty_skincare': """
+BEAUTY/SKINCARE PSYCHOLOGY FOCUS:
+- Transformation aspiration: How does this tap into desires for change/improvement?
+- Routine psychology: What makes routines psychologically satisfying?
+- Before/after anticipation: How is transformation tension built and resolved?
+- Product authority: How does the creator establish skincare credibility?
+- Aspirational identity: What version of themselves does this help viewers imagine?
+""",
+        'general': """
+GENERAL CONTENT PSYCHOLOGY FOCUS:
+- Universal appeal mechanisms
+- Cross-demographic engagement triggers
+- Broad psychological satisfaction elements
+"""
+    }
     
     return {
-        "analysis": analysis,
-        "hooks": hooks,
-        "scores": {
-            "hook_strength": 8 if performance_data['success_level'] == 'highly_successful' else 7,
-            "promise_clarity": 7,
-            "retention_design": 8 if performance_data['success_level'] != 'unknown' else 7,
-            "engagement_potential": 8,
-            "goal_alignment": 7
-        },
-        "timing_breakdown": "Content builds from engaging opening through valuable insights to satisfying conclusion",
-        "formula": "Strong opener → Value delivery → Authority building → Clear conclusion",
-        "basic_formula": "1. Create immediate interest 2. Deliver specific value 3. Build credibility 4. End with clear takeaway",
-        "timing_formula": "0-3s: Hook creation, 3-7s: Value setup, Middle: Content delivery, End: Strong conclusion",
-        "template_formula": "[Engaging Hook] → [Value Promise] → [Content Delivery] → [Clear Conclusion]",
-        "psychology_formula": "Attention → Interest → Value → Satisfaction",
-        "improvements": f"Enhance opening hook, add more specific examples, optimize pacing for {goal}",
-        "performance_prediction": f"Based on content analysis: {performance_data['success_level'] if performance_data['success_level'] != 'unknown' else 'moderate to strong performance expected'}",
-        "video_description": video_description,
-        "content_patterns": patterns,
-        "performance_data": performance_data,
-        "text_sync_analysis": text_sync_analysis,
-        
-        # Rich analysis fields
-        "multimodal_insights": multimodal_analysis,
-        "engagement_triggers": engagement_triggers,
-        "authority_signals": authority_signals,
-        "improvement_opportunities": f"Strengthen visual-verbal synchronization, enhance credibility signals, optimize for {goal} with more specific calls-to-action",
-        "viral_potential_factors": "Authentic delivery, relatable content, and specific insights create shareability. The natural conversational tone makes it feel genuine rather than promotional.",
-        
-        # Enhanced fields (empty in fallback but structure preserved)
-        "psychological_breakdown": "",
-        "hook_mechanics": "",
-        "emotional_journey": "",
-        "engagement_psychology": "",
-        "viral_mechanisms": "",
-        "audience_psychology": ""
+        'primary_niche': primary_niche,
+        'content_type': 'routine' if 'routine' in combined_text else 'transformation',
+        'analysis_focus': analysis_focuses.get(primary_niche, analysis_focuses['general'])
     }
+
 
 
 def create_visual_enhanced_fallback(frames_summaries_text, transcript_data, goal):
@@ -328,6 +272,235 @@ def create_visual_enhanced_fallback(frames_summaries_text, transcript_data, goal
         "text_sync_analysis": text_sync_analysis
     }
 
+# Add these missing functions to your app.py:
+
+def create_enhanced_analysis_prompt(transcript_text, frames_summaries_text, creator_note, video_description, content_themes, goal, performance_data, performance_context, dual_engagement_note, text_sync_analysis):
+    """Create a much more sophisticated analysis prompt that delivers richer insights."""
+    
+    # Detect specific niche and content type for targeted analysis
+    niche_context = detect_specific_niche(transcript_text, frames_summaries_text)
+    
+    # Add text synchronization context
+    text_context = ""
+    if text_sync_analysis['has_graphics'] or text_sync_analysis['has_captions']:
+        text_context = f"""
+TEXT ANALYSIS:
+{text_sync_analysis['text_analysis_summary']}
+On-screen Graphics: {[g['text'] for g in text_sync_analysis['onscreen_graphics']]}
+Synchronized Captions: {[c['text'] for c in text_sync_analysis['synchronized_captions']]}
+This affects retention through visual-verbal coordination and information layering.
+"""
+    
+    prompt = f"""
+You are a world-class retention psychology expert and viral content strategist with deep understanding of human behavior, social media psychology, and platform-specific mechanics. Your analysis should rival the depth of top marketing psychologists.
+
+VIDEO CONTENT ANALYSIS:
+TRANSCRIPT (What they say): {transcript_text}
+VISUAL FRAMES (What viewers see): {frames_summaries_text}
+CREATOR NOTE: {creator_note}
+VIDEO DESCRIPTION: {video_description}
+NICHE: {niche_context['primary_niche']} | CONTENT TYPE: {niche_context['content_type']}
+GOAL: {goal} | PERFORMANCE: {performance_data.get('success_level', 'unknown')}
+{text_context}
+{dual_engagement_note}
+{performance_context}
+
+FRAMEWORK FOR DEEP PSYCHOLOGICAL ANALYSIS:
+
+1. HOOK PSYCHOLOGY DECONSTRUCTION:
+- What SPECIFIC psychological trigger does the opening use? (Curiosity gap, pattern interrupt, social proof, controversy, transformation promise)
+- How does the opening work psychologically? Break down each word's impact
+- What deeper emotional need does this tap into? (confidence, control, transformation, belonging)
+- Why is this particular phrasing effective for this audience vs generic alternatives?
+
+2. PROMISE STRUCTURE ANALYSIS:
+- What's the explicit promise vs the implicit emotional payoff?
+- How does the promise create "must-watch" psychology?
+- What anticipation loops are created and how are they resolved?
+- How does the promise align with the audience's deepest desires?
+
+3. RETENTION MECHANISM DEEP DIVE:
+- VISUAL SATISFACTION: What makes the process visually addictive? (completion, precision, transformation)
+- DUAL ENGAGEMENT: How do satisfying visuals work WITH verbal content?
+- TEXT COORDINATION: How do on-screen graphics enhance or compete with spoken content?
+- PACING PSYCHOLOGY: How does information release create dopamine hits?
+- SOCIAL PROOF SIGNALS: What authority/credibility markers are embedded?
+
+4. EMOTIONAL ARCHITECTURE:
+- What emotional journey does the viewer experience? (Map second by second)
+- How does the creator make viewers feel about THEMSELVES?
+- What aspirational identity is triggered?
+- How does this content make viewers feel seen/understood?
+
+5. PLATFORM-NATIVE COMMUNICATION:
+- Why does this sound authentically TikTok vs scripted?
+- What vocabulary/energy choices create trust?
+- How does casualness enhance rather than diminish authority?
+- What makes this shareable in authentic peer-to-peer conversations?
+
+6. REPLICATION BLUEPRINT:
+- What are the EXACT structural elements that must be preserved?
+- Which surface elements can be varied while keeping psychology intact?
+- How do timing, energy, and delivery impact effectiveness?
+- What would break the formula if changed?
+
+7. ADVANCED ENGAGEMENT PSYCHOLOGY:
+- Comment triggers: What specific elements make people want to engage?
+- Save psychology: What makes this feel valuable enough to return to?
+- Share motivation: Why would someone send this to a friend?
+- Follow logic: What convinces viewers this creator has more value?
+
+HOOK GENERATION REQUIREMENTS:
+Generate 5 hooks that capture the SAME psychological mechanics but for different angles:
+
+PSYCHOLOGICAL FIDELITY RULES:
+- Maintain the EXACT emotional trigger (confidence/transformation)
+- Preserve the specificity that creates curiosity
+- Keep the personal stakes and transformation promise
+- Sound like authentic peer communication, NOT marketing copy
+
+AVOID THESE MARKETING-SPEAK PATTERNS:
+❌ "Discover the secret..." ❌ "Transform your life..." ❌ "Unlock the power..."
+❌ "Revolutionary method..." ❌ "Game-changing technique..." ❌ "You won't believe..."
+
+INSTEAD USE AUTHENTIC PATTERNS:
+✓ "3 things I started doing that..." ✓ "I changed these habits and..."
+✓ "Nobody talks about how..." ✓ "The night routine that actually..."
+✓ "I added this to my routine and..." ✓ "POV: you find out why..."
+
+NICHE-SPECIFIC ANALYSIS:
+{niche_context['analysis_focus']}
+
+PERFORMANCE VALIDATION:
+{f"This video achieved {performance_data['success_level']} results. Explain WHY each psychological mechanism contributed to this success. What specific elements drove the performance?" if performance_data.get('success_level') != 'unknown' else "Predict performance based on psychological effectiveness."}
+
+OUTPUT REQUIREMENTS:
+Deliver analysis with the depth and practical insight of a $10K marketing psychology consultation. Every insight should be specific, actionable, and demonstrate deep understanding of human behavior. Avoid generic observations - dive into the precise psychological mechanisms that make this content effective.
+
+Respond in JSON format with comprehensive, psychologically sophisticated insights:
+
+{{
+  "psychological_breakdown": "Deep analysis of the specific psychological mechanisms at work. Explain WHY this works on a human brain level, not just WHAT works. Minimum 400 words of sophisticated insight.",
+  "hook_mechanics": "Detailed breakdown of why the opening is psychologically compelling. Analyze each component.",
+  "emotional_journey": "Second-by-second emotional experience the viewer has watching this content",
+  "authority_signals": "How the creator builds trust and credibility without explicit credentials",
+  "engagement_psychology": "Deep dive into why people comment, save, share, and follow based on this content",
+  "replication_blueprint": "Exact structural elements needed to recreate this psychological impact",
+  "hooks": [
+    "Hook maintaining exact psychological trigger pattern",
+    "Alternative angle preserving core emotional mechanism", 
+    "Variation that keeps transformation promise structure",
+    "Different context but same confidence-building appeal",
+    "Creative angle preserving the personal stakes element"
+  ],
+  "timing_psychology": "How the pacing and information release creates psychological retention",
+  "platform_psychology": "Why this content feels native to TikTok and builds authentic connection",
+  "viral_mechanisms": "Specific elements that drive sharing and algorithmic amplification",
+  "audience_psychology": "How this content makes the target audience feel seen and understood",
+  "performance_analysis": "Psychological explanation for why this achieved {performance_data.get('success_level', 'strong')} results",
+  "advanced_insights": "Expert-level observations about human psychology and content effectiveness"
+}}
+
+Focus on psychological sophistication over surface-level observations. Every insight should demonstrate deep understanding of human behavior and viral content psychology.
+"""
+    
+    return prompt
+
+
+def run_enhanced_psychological_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context=""):
+    """Run the enhanced psychological analysis as an additional layer."""
+    
+    # Get all the existing analysis components
+    patterns = detect_content_patterns(transcript_text, frames_summaries_text)
+    video_description = create_universal_video_description(transcript_text, frames_summaries_text)
+    performance_data = analyze_performance_indicators(creator_note, transcript_text, frames_summaries_text)
+    content_themes = extract_content_themes(transcript_text)
+    text_sync_analysis = analyze_text_synchronization(frames_summaries_text, transcript_text)
+    
+    # Build performance context
+    performance_context = ""
+    if performance_data['success_level'] != "unknown":
+        performance_context = f"""
+PERFORMANCE CONTEXT:
+This video achieved: {', '.join(performance_data['success_reasons'])}
+Success Level: {performance_data['success_level']}
+Use this performance data to validate your analysis - explain WHY this video achieved this level of success based on psychological mechanisms.
+        """
+    
+    # Build dual engagement note
+    dual_engagement_note = ""
+    if patterns.get('dual_engagement', False):
+        dual_engagement_note = "\n🎯 DUAL ENGAGEMENT DETECTED: This video combines satisfying visual processes with verbal content delivery - analyze how both channels work together for retention."
+    
+    # Create the enhanced prompt
+    prompt = create_enhanced_analysis_prompt(
+        transcript_text, frames_summaries_text, creator_note, 
+        video_description, content_themes, goal, performance_data, 
+        performance_context, dual_engagement_note, text_sync_analysis
+    )
+    
+    try:
+        print(f"Sending enhanced psychological analysis prompt to GPT-4o...")
+        gpt_response = _api_retry(
+            client.chat.completions.create,
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,  # Lower temperature for more focused analysis
+            max_tokens=4000   # More tokens for richer analysis
+        )
+
+        response_text = gpt_response.choices[0].message.content.strip()
+        
+        # Parse JSON response
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
+        
+        parsed = json.loads(response_text)
+        
+        # Return enhanced analysis structure
+        return {
+            "analysis": parsed.get("psychological_breakdown", "Analysis not available").strip(),
+            "hooks": parsed.get("hooks", []),
+            "scores": {
+                "hook_strength": 9,  # Higher default for successful content
+                "promise_clarity": 8,
+                "retention_design": 9,
+                "engagement_potential": 9,
+                "goal_alignment": 8
+            },
+            "timing_breakdown": parsed.get("timing_psychology", "").strip(),
+            "formula": parsed.get("replication_blueprint", "").strip(),
+            "basic_formula": parsed.get("replication_blueprint", "").strip(),
+            "timing_formula": parsed.get("timing_psychology", "").strip(),
+            "template_formula": parsed.get("replication_blueprint", "").strip(),
+            "psychology_formula": parsed.get("platform_psychology", "").strip(),
+            "improvements": parsed.get("advanced_insights", "").strip(),
+            "performance_prediction": parsed.get("performance_analysis", "").strip(),
+            "video_description": video_description,
+            "content_patterns": patterns,
+            "performance_data": performance_data,
+            "text_sync_analysis": text_sync_analysis,
+            
+            # Enhanced analysis fields
+            "psychological_breakdown": parsed.get("psychological_breakdown", "").strip(),
+            "hook_mechanics": parsed.get("hook_mechanics", "").strip(),
+            "emotional_journey": parsed.get("emotional_journey", "").strip(),
+            "authority_signals": parsed.get("authority_signals", "").strip(),
+            "engagement_psychology": parsed.get("engagement_psychology", "").strip(),
+            "viral_mechanisms": parsed.get("viral_mechanisms", "").strip(),
+            "audience_psychology": parsed.get("audience_psychology", "").strip(),
+            "multimodal_insights": parsed.get("platform_psychology", "").strip(),
+            "engagement_triggers": parsed.get("engagement_psychology", "").strip(),
+            "improvement_opportunities": parsed.get("advanced_insights", "").strip(),
+            "viral_potential_factors": parsed.get("viral_mechanisms", "").strip()
+        }
+        
+    except Exception as e:
+        print(f"Enhanced analysis error: {e}")
+        return None  # Return None so original analysis can be used
 
 # ==============================
 # FLASK ROUTES

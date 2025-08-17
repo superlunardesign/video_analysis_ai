@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Retention Analysis Results</title>
+  <title>Enhanced Retention Analysis Results</title>
   <style>
     body { 
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; 
@@ -68,6 +68,39 @@
       border-bottom: 3px solid #667eea;
       padding-bottom: 10px;
     }
+    
+    /* Enhanced styling for psychological analysis sections */
+    .psychology-card {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+      border: 2px solid rgba(102, 126, 234, 0.2);
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 25px;
+      position: relative;
+      overflow: hidden;
+    }
+    .psychology-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 5px;
+      height: 100%;
+      background: linear-gradient(to bottom, #667eea, #764ba2);
+    }
+    .psychology-card h2 {
+      color: #667eea;
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .psychology-card h2::before {
+      content: '🧠';
+      font-size: 1.2rem;
+    }
+    
     .hooks-grid {
       display: grid;
       gap: 12px;
@@ -103,6 +136,30 @@
       padding: 20px;
       margin: 15px 0;
     }
+    
+    /* New enhanced analysis boxes */
+    .psychology-box {
+      background: linear-gradient(135deg, #e8d5ff 0%, #d4b9ff 100%);
+      border: 1px solid #a855f7;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+    .engagement-box {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border: 1px solid #f59e0b;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+    .viral-box {
+      background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+      border: 1px solid #10b981;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+    
     pre { 
       white-space: pre-wrap; 
       font-family: inherit;
@@ -226,7 +283,7 @@
       animation: fadeIn 0.4s ease-in;
     }
     .formula-content.active {
-      display: block !important;
+      display: block;
     }
     .formula-content h4 {
       margin: 0 0 15px 0;
@@ -269,13 +326,50 @@
       opacity: 1;
       transform: translateX(0);
     }
+    
+    /* Analysis section tabs */
+    .analysis-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+      padding-bottom: 15px;
+    }
+    .analysis-tab {
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+      border: 2px solid rgba(102, 126, 234, 0.3);
+      padding: 10px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      user-select: none;
+    }
+    .analysis-tab:hover {
+      background: rgba(102, 126, 234, 0.2);
+    }
+    .analysis-tab.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+    .analysis-content {
+      display: none;
+    }
+    .analysis-content.active {
+      display: block;
+      animation: fadeIn 0.4s ease-in;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>🎯 Retention Analysis</h1>
-      <p>Goal: {{ goal.replace('_', ' ').title() }}</p>
+      <h1>🧠 Enhanced Psychological Analysis</h1>
+      <p>Goal: {{ goal.replace('_', ' ').title() }} | Deep retention psychology insights</p>
     </div>
 
     <div class="meta">
@@ -286,6 +380,9 @@
         <span class="tag">{{ target_duration }}s target</span>
         <span class="tag">{{ frames_count | default(0) }} frames analyzed</span>
         <span class="tag">{{ strategy.title() }} sampling</span>
+        {% if psychological_breakdown %}
+        <span class="tag" style="background: rgba(168, 85, 247, 0.2); color: #8b5cf6; border-color: rgba(168, 85, 247, 0.3);">🧠 Enhanced Analysis</span>
+        {% endif %}
       </div>
     </div>
 
@@ -327,6 +424,113 @@
     </div>
     {% endif %}
 
+    <!-- Enhanced Psychological Analysis Section -->
+    {% if psychological_breakdown or hook_mechanics or emotional_journey %}
+    <div class="psychology-card">
+      <h2>🧠 Deep Psychological Analysis</h2>
+      
+      <!-- Analysis Type Tabs -->
+      <div class="analysis-tabs">
+        {% if psychological_breakdown %}
+        <button class="analysis-tab active" data-analysis="psychological">Core Psychology</button>
+        {% endif %}
+        {% if hook_mechanics %}
+        <button class="analysis-tab" data-analysis="hook">Hook Mechanics</button>
+        {% endif %}
+        {% if emotional_journey %}
+        <button class="analysis-tab" data-analysis="emotional">Emotional Journey</button>
+        {% endif %}
+        {% if authority_signals %}
+        <button class="analysis-tab" data-analysis="authority">Authority Signals</button>
+        {% endif %}
+        {% if engagement_psychology %}
+        <button class="analysis-tab" data-analysis="engagement">Engagement Psychology</button>
+        {% endif %}
+        {% if audience_psychology %}
+        <button class="analysis-tab" data-analysis="audience">Audience Psychology</button>
+        {% endif %}
+      </div>
+
+      <!-- Psychological Breakdown -->
+      {% if psychological_breakdown %}
+      <div id="psychological-analysis" class="analysis-content active">
+        <div class="psychology-box">
+          <h4>🎯 Core Psychological Mechanisms</h4>
+          <pre class="formula-text">{{ psychological_breakdown }}</pre>
+          <button class="copy-btn" data-action="copy-analysis" data-target="psychological-breakdown">Copy Analysis</button>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Hook Mechanics -->
+      {% if hook_mechanics %}
+      <div id="hook-analysis" class="analysis-content">
+        <div class="psychology-box">
+          <h4>🎣 Hook Psychology Breakdown</h4>
+          <pre class="formula-text">{{ hook_mechanics }}</pre>
+          <button class="copy-btn" data-action="copy-analysis" data-target="hook-mechanics">Copy Hook Analysis</button>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Emotional Journey -->
+      {% if emotional_journey %}
+      <div id="emotional-analysis" class="analysis-content">
+        <div class="psychology-box">
+          <h4>❤️ Viewer Emotional Journey</h4>
+          <pre class="formula-text">{{ emotional_journey }}</pre>
+          <button class="copy-btn" data-action="copy-analysis" data-target="emotional-journey">Copy Emotional Analysis</button>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Authority Signals -->
+      {% if authority_signals %}
+      <div id="authority-analysis" class="analysis-content">
+        <div class="psychology-box">
+          <h4>👑 Authority & Credibility Building</h4>
+          <pre class="formula-text">{{ authority_signals }}</pre>
+          <button class="copy-btn" data-action="copy-analysis" data-target="authority-signals">Copy Authority Analysis</button>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Engagement Psychology -->
+      {% if engagement_psychology %}
+      <div id="engagement-analysis" class="analysis-content">
+        <div class="engagement-box">
+          <h4>💬 Why People Engage</h4>
+          <pre class="formula-text">{{ engagement_psychology }}</pre>
+          <button class="copy-btn" data-action="copy-analysis" data-target="engagement-psychology">Copy Engagement Analysis</button>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Audience Psychology -->
+      {% if audience_psychology %}
+      <div id="audience-analysis" class="analysis-content">
+        <div class="psychology-box">
+          <h4>👥 Audience Psychology</h4>
+          <pre class="formula-text">{{ audience_psychology }}</pre>
+          <button class="copy-btn" data-action="copy-analysis" data-target="audience-psychology">Copy Audience Analysis</button>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Viral Mechanisms -->
+    {% if viral_mechanisms %}
+    <div class="card">
+      <h2>🚀 Viral Potential Analysis</h2>
+      <div class="viral-box">
+        <pre>{{ viral_mechanisms }}</pre>
+        <button class="copy-btn" data-action="copy-text" data-target="viral-mechanisms">Copy Viral Analysis</button>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Standard Hook Analysis -->
     <div class="card">
       <h2>🎣 Hook Analysis & Breakdown</h2>
       <pre>{{ analysis }}</pre>
@@ -341,11 +545,11 @@
     </div>
     {% endif %}
 
-    {% if improvements %}
+    {% if improvement_opportunities or improvements %}
     <div class="card">
       <h2>🚀 Specific Improvements</h2>
       <div class="improvements-box">
-        <pre>{{ improvements }}</pre>
+        <pre>{{ improvement_opportunities or improvements }}</pre>
       </div>
     </div>
     {% endif %}
@@ -363,6 +567,17 @@
         <p>No alternative hooks generated.</p>
       {% endif %}
     </div>
+
+    {% if replication_blueprint %}
+    <div class="card">
+      <h2>📋 Replication Blueprint</h2>
+      <div class="formula-box">
+        <h4>🔄 Exact Elements to Preserve</h4>
+        <pre class="formula-text">{{ replication_blueprint }}</pre>
+        <button class="copy-btn" data-action="copy-text" data-target="replication-blueprint">Copy Blueprint</button>
+      </div>
+    </div>
+    {% endif %}
 
     {% if formula or basic_formula %}
     <div class="card">
@@ -450,12 +665,19 @@
   </div>
 
   <script>
-// BULLETPROOF SOLUTION: Using event delegation and data attributes
-console.log('🚀 Initializing bulletproof JavaScript...');
+// Enhanced JavaScript with analysis tab functionality
+console.log('🚀 Initializing enhanced psychological analysis interface...');
 
 // Main event handler using event delegation
 document.addEventListener('click', function(event) {
   const target = event.target;
+  
+  // Handle analysis tab switching
+  if (target.classList.contains('analysis-tab')) {
+    console.log('🧠 Analysis tab clicked:', target.dataset.analysis);
+    handleAnalysisTab(target);
+    return;
+  }
   
   // Handle formula tab switching
   if (target.classList.contains('formula-tab')) {
@@ -474,10 +696,47 @@ document.addEventListener('click', function(event) {
     } else if (action === 'copy-formula') {
       const targetId = target.dataset.target;
       handleCopyFormula(targetId);
+    } else if (action === 'copy-analysis') {
+      const targetField = target.dataset.target;
+      handleCopyAnalysis(targetField);
+    } else if (action === 'copy-text') {
+      const targetField = target.dataset.target;
+      handleCopyText(targetField);
     }
     return;
   }
 });
+
+// Handle analysis tab switching
+function handleAnalysisTab(clickedTab) {
+  const analysisType = clickedTab.dataset.analysis;
+  
+  try {
+    // Remove active class from all analysis tabs
+    document.querySelectorAll('.analysis-tab').forEach(tab => {
+      tab.classList.remove('active');
+    });
+    
+    // Hide all analysis contents
+    document.querySelectorAll('.analysis-content').forEach(content => {
+      content.classList.remove('active');
+    });
+    
+    // Activate clicked tab
+    clickedTab.classList.add('active');
+    
+    // Show corresponding content
+    const targetContent = document.getElementById(analysisType + '-analysis');
+    if (targetContent) {
+      targetContent.classList.add('active');
+      console.log('✅ Activated analysis:', analysisType);
+    } else {
+      console.error('❌ Could not find content for:', analysisType);
+    }
+  } catch (error) {
+    console.error('❌ Error switching analysis tab:', error);
+  }
+}
 
 // Handle formula tab switching
 function handleFormulaTab(clickedTab) {
@@ -507,6 +766,53 @@ function handleFormulaTab(clickedTab) {
     }
   } catch (error) {
     console.error('❌ Error switching formula tab:', error);
+  }
+}
+
+// Handle copying analysis content
+function handleCopyAnalysis(targetField) {
+  try {
+    // Get the analysis content from template variables
+    const analysisContent = {
+      'psychological-breakdown': `{{ psychological_breakdown | replace('"', '\\"') | replace('\n', '\\n') }}`,
+      'hook-mechanics': `{{ hook_mechanics | replace('"', '\\"') | replace('\n', '\\n') }}`,
+      'emotional-journey': `{{ emotional_journey | replace('"', '\\"') | replace('\n', '\\n') }}`,
+      'authority-signals': `{{ authority_signals | replace('"', '\\"') | replace('\n', '\\n') }}`,
+      'engagement-psychology': `{{ engagement_psychology | replace('"', '\\"') | replace('\n', '\\n') }}`,
+      'audience-psychology': `{{ audience_psychology | replace('"', '\\"') | replace('\n', '\\n') }}`
+    };
+    
+    const text = analysisContent[targetField];
+    if (text && text.trim()) {
+      copyToClipboard(text);
+      console.log('✅ Copied analysis:', targetField);
+    } else {
+      showMessage('No content found to copy', 'error');
+    }
+  } catch (error) {
+    console.error('❌ Error copying analysis:', error);
+    showMessage('Error copying analysis', 'error');
+  }
+}
+
+// Handle copying text content
+function handleCopyText(targetField) {
+  try {
+    const textContent = {
+      'viral-mechanisms': `{{ viral_mechanisms | replace('"', '\\"') | replace('\n', '\\n') }}`,
+      'replication-blueprint': `{{ replication_blueprint | replace('"', '\\"') | replace('\n', '\\n') }}`
+    };
+    
+    const text = textContent[targetField];
+    if (text && text.trim()) {
+      copyToClipboard(text);
+      console.log('✅ Copied text:', targetField);
+    } else {
+      showMessage('No content found to copy', 'error');
+    }
+  } catch (error) {
+    console.error('❌ Error copying text:', error);
+    showMessage('Error copying text', 'error');
   }
 }
 
@@ -636,13 +942,14 @@ function showMessage(text, type) {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🎉 DOM loaded - all functionality ready');
+  console.log('🎉 Enhanced analysis interface loaded');
+  console.log('🧠 Analysis tabs found:', document.querySelectorAll('.analysis-tab').length);
   console.log('📊 Formula tabs found:', document.querySelectorAll('.formula-tab').length);
   console.log('📋 Copy buttons found:', document.querySelectorAll('.copy-btn').length);
   console.log('🎣 Hook items found:', document.querySelectorAll('.hook-item').length);
 });
 
-console.log('✅ Bulletproof JavaScript loaded successfully');
+console.log('✅ Enhanced psychological analysis JavaScript loaded successfully');
 </script>
 </body>
 </html>
