@@ -724,80 +724,140 @@ Success Level: {performance_data['success_level']}
 Use this performance data to validate your analysis - explain WHY this video achieved this level of success.
         """
     
-    # Enhanced prompt that adapts to any content
+    # Enhanced prompt with rich multimodal analysis framework
+    dual_engagement_note = ""
+    if patterns.get('dual_engagement', False):
+        dual_engagement_note = "\n🎯 DUAL ENGAGEMENT DETECTED: This video combines satisfying visual processes with verbal content delivery - analyze how both channels work together for retention."
+
     prompt = f"""
-You are a retention psychology expert analyzing short-form content. Provide deep, specific insights about what makes THIS video addictive.
+You are an expert TikTok/short-form content strategist analyzing videos for retention psychology and engagement mechanics.
 
-TRANSCRIPT: {transcript_text}
+TRANSCRIPT (What they're saying): {transcript_text}
 
-VISUAL FRAMES: {frames_summaries_text}
+VISUAL FRAMES (What viewers see): {frames_summaries_text}
 
 CREATOR NOTE: {creator_note}
 VIDEO DESCRIPTION: {video_description}
 MAIN TOPICS: {', '.join(content_themes)}
-GOAL: {goal}
+PLATFORM: {platform} | GOAL: {goal} | DURATION: {target_duration}s
+{dual_engagement_note}
 
 {performance_context}
 
-ANALYSIS REQUIREMENTS:
+COMPREHENSIVE MULTIMODAL ANALYSIS FRAMEWORK:
 
-1. CONTENT ANALYSIS:
-- What is specifically happening in this video?
-- What topics/themes are being discussed?
-- How does the creator position themselves?
-- What makes this content unique or valuable?
+Analyze this video by combining both the spoken content (transcript) and visual elements (frames) to understand the full retention strategy:
 
-2. RETENTION PSYCHOLOGY:
-- How does the opening create curiosity or pattern interrupt?
-- What authority signals or credibility markers are present?
-- How do visual and verbal elements work together?
-- What psychological triggers keep people watching?
+1. HOOK ANALYSIS (0-3 seconds):
+- How do the opening words work with the visual presentation?
+- Does the on-screen text reinforce or contradict the verbal hook?
+- Are there visual pattern interrupts (gestures, movements, graphics)?
+- Combined hook effectiveness: Does audio + visual create stronger curiosity?
+- What specific psychological trigger is used in the opening moment?
 
-3. ENGAGEMENT MECHANICS:
-- What would make someone comment on THIS specific content?
-- Why would someone share this particular message?
-- What emotions or reactions does this trigger?
-- How does it make viewers feel about the topic?
+2. PROMISE IDENTIFICATION (3-7 seconds):
+- What promise is made verbally vs. visually?
+- Do the frames show setup for what's promised in speech?
+- Is there visual foreshadowing of the payoff?
+- How well aligned are the words and visuals in setting expectations?
+- Is the promise specific and compelling enough to retain viewers?
 
-4. HOOK GENERATION:
-Generate 5 hooks based on THIS video's actual content and approach. 
-- Use the same topic/niche as the original
-- Match the creator's energy, tone, and vocabulary  
-- Focus on the specific value or controversy presented
-- Sound natural and platform-native
+3. RETENTION MECHANICS (Mid-content):
+- Story progression: How do visuals support the narrative flow?
+- Engagement elements: Eye contact, expressions, gestures that drive comments
+- Visual variety: Do frame changes maintain interest during speech?
+- Pacing alignment: Do visual cuts match verbal rhythm and emphasis?
+- Satisfying processes: Are there repetitive, satisfying activities that retain attention?
+- Authority building: How does the creator establish credibility through words and actions?
 
-CRITICAL: Base everything on the actual content. Don't use generic templates.
+4. PAYOFF DELIVERY (Final moments):
+- Does the visual reveal align with the verbal conclusion?
+- Are key moments emphasized both verbally and visually?
+- Is the satisfaction delivered through words, visuals, or both?
+- How well does the ending fulfill the opening promise?
+- Is there a strong engagement trigger at the end?
 
-5. PERFORMANCE ANALYSIS:
-{f"Explain why this video achieved {performance_data['success_level']} results based on the retention mechanisms you identified." if performance_data['success_level'] != 'unknown' else "Predict likely performance based on retention psychology."}
+5. MULTIMODAL SYNCHRONIZATION:
+- Text overlays + speech content alignment
+- Facial expressions + verbal tone consistency
+- Visual demonstrations + explanations coordination
+- Environmental changes + narrative progression harmony
+- Moments where audio and visual elements reinforce vs. conflict
+
+6. ENGAGEMENT PSYCHOLOGY:
+- What specific emotions does this content trigger?
+- Why would someone comment on THIS particular approach?
+- What makes this shareable beyond just the topic?
+- How does the creator's positioning affect viewer perception?
+- What social triggers are embedded in the content?
+
+HOOK GENERATION REQUIREMENTS:
+Generate 5 alternative hooks that sound natural and platform-native:
+
+TONE REQUIREMENTS:
+- Use conversational, casual language (not marketing speak)
+- Match the energy and vocabulary of the original video
+- Sound like something a real person would actually say on TikTok
+- Be specific to the actual topic/niche, not generic
+
+AVOID THESE AI-SOUNDING PHRASES:
+- "Discover the secret to..."
+- "Unlock your potential..."
+- "Transform your life with..."
+- "The one trick that..."
+- "You won't believe what happens when..."
+- "Game-changing technique"
+- "Revolutionary method"
+
+INSTEAD USE NATURAL LANGUAGE PATTERNS:
+- "wait this actually works"
+- "nobody talks about this but..."
+- "I tried this for [timeframe] and..."
+- "my [relationship/job/etc] changed when I..."
+- "this sounds fake but..."
+- "POV: you just found out..."
+- "telling my [person] that I..."
+- "the day I accidentally..."
+- "why [common thing] is actually..."
+
+HOOK TYPES TO CONSIDER:
+- Personal story openings with unexpected twists
+- Controversial opinions about common beliefs
+- Behind-the-scenes revelations
+- Mistake/failure stories with lessons
+- Comparison setups that subvert expectations
 
 Respond in JSON format:
 {{
-  "analysis": "Detailed analysis of THIS specific video's retention psychology. Explain what's happening, the psychological mechanisms at work, how visual and verbal elements interact, and why this approach works for this topic. Minimum 200 words of specific insights.",
+  "analysis": "Comprehensive multimodal analysis explaining how visual and verbal elements work together (or against each other) to create retention. Include specific moments where synchronization enhances or detracts from the experience. Minimum 300 words covering hook mechanics, promise delivery, retention tactics, and engagement psychology.",
   "hooks": [
-    "Hook 1 specific to this video's topic and approach",
-    "Hook 2 matching the content and energy",
-    "Hook 3 using the same niche concepts and language", 
-    "Hook 4 based on the actual value or controversy",
-    "Hook 5 that captures the specific psychological trigger"
+    "Natural-sounding hook 1 using personal story pattern",
+    "Conversational hook 2 with controversial opinion setup", 
+    "Relatable hook 3 using mistake/learning angle",
+    "Behind-scenes hook 4 revealing unexpected insight",
+    "POV-style hook 5 creating immediate relatability"
   ],
   "scores": {{
-    "hook_strength": 8,
-    "promise_clarity": 7,
-    "retention_design": 9,
-    "engagement_potential": 8,
-    "goal_alignment": 7
+    "hook_strength": "Rate 1-10: How compelling is the audio+visual opening combination?",
+    "promise_clarity": "Rate 1-10: How clear is the expected payoff across both channels?",
+    "retention_design": "Rate 1-10: How well do visuals and audio work together for watch-through?",
+    "engagement_potential": "Rate 1-10: Will the combination drive comments/shares?",
+    "goal_alignment": "Rate 1-10: How well does the full experience serve {goal}?"
   }},
-  "timing_breakdown": "Second-by-second analysis of how retention builds in THIS video",
-  "basic_formula": "Step-by-step process for creating similar content in this topic/approach",
-  "timing_formula": "Timing strategy specific to this content style",
-  "template_formula": "Template format for this type of content",
-  "psychology_formula": "Psychology framework explaining why this approach works",
-  "improvements": "Specific suggestions for optimizing THIS video for {goal}",
-  "performance_prediction": "Performance prediction based on retention analysis"
+  "timing_breakdown": "Second-by-second breakdown of how audio and visual elements build retention throughout the video",
+  "multimodal_insights": "Specific analysis of how visual and verbal elements reinforce or conflict with each other",
+  "engagement_triggers": "Detailed breakdown of psychological triggers that drive comments, shares, and rewatches",
+  "authority_signals": "How the creator builds credibility and trust through both words and visual presentation",
+  "improvement_opportunities": "Specific ways to better synchronize audio and visual retention tactics",
+  "viral_potential_factors": "What elements make this content likely to spread beyond the initial audience",
+  "basic_formula": "Step-by-step process for creating similar multimodal content",
+  "timing_formula": "Timing strategy for coordinating visual and verbal elements",
+  "template_formula": "Template format showing how to structure audio-visual retention",
+  "psychology_formula": "Psychology framework explaining why this multimodal approach works",
+  "performance_prediction": "Detailed prediction based on retention analysis and engagement mechanics"
 }}
 
-Focus on the actual content and psychological mechanisms, not generic advice.
+Focus on the interplay between what viewers see and hear, identifying moments of synchronization and missed opportunities for enhanced retention.
     """
 
     try:
@@ -833,11 +893,18 @@ Focus on the actual content and psychological mechanisms, not generic advice.
                 "timing_formula": parsed.get("timing_formula", "").strip(),
                 "template_formula": parsed.get("template_formula", "").strip(),
                 "psychology_formula": parsed.get("psychology_formula", "").strip(),
-                "improvements": parsed.get("improvements", "").strip(),
+                "improvements": parsed.get("improvement_opportunities", "").strip(),
                 "performance_prediction": parsed.get("performance_prediction", "").strip(),
                 "video_description": video_description,
                 "content_patterns": patterns,
-                "performance_data": performance_data
+                "performance_data": performance_data,
+                
+                # New rich analysis fields
+                "multimodal_insights": parsed.get("multimodal_insights", "").strip(),
+                "engagement_triggers": parsed.get("engagement_triggers", "").strip(),
+                "authority_signals": parsed.get("authority_signals", "").strip(),
+                "improvement_opportunities": parsed.get("improvement_opportunities", "").strip(),
+                "viral_potential_factors": parsed.get("viral_potential_factors", "").strip()
             }
             
             # Generic fallback hooks if needed (based on detected patterns)
@@ -887,48 +954,60 @@ Focus on the actual content and psychological mechanisms, not generic advice.
 
 
 def create_enhanced_fallback(video_description, patterns, content_themes, goal, performance_data):
-    """Enhanced fallback that adapts to any content topic."""
+    """Enhanced fallback with richer analysis framework."""
     
+    # Build comprehensive analysis
     analysis = f"{video_description}. "
     
     if performance_data['success_level'] != 'unknown':
         analysis += f"This video achieved {performance_data['success_level']} performance with {', '.join(performance_data['success_reasons'])}. "
     
+    # Multimodal insights
+    multimodal_analysis = "The content uses a combination of verbal delivery and visual presentation to maintain viewer attention. "
+    if patterns.get('dual_engagement', False):
+        multimodal_analysis += "Visual and auditory elements work together to create dual engagement, with satisfying processes complementing the spoken content. "
+    
     analysis += f"The content focuses on {', '.join(content_themes[:3]) if content_themes else 'the main topic'} using "
     
     if patterns.get('is_controversial', False):
-        analysis += "controversial positioning and expert authority to challenge common beliefs. "
+        analysis += "controversial positioning and expert authority to challenge common beliefs. The creator builds credibility through confident delivery and specific examples, creating engagement through disagreement and validation."
+        engagement_triggers = "Controversial positioning triggers strong reactions - agreement from those who relate, disagreement from those who don't. The specific examples make it feel personal and authentic."
+        authority_signals = "Direct, confident language and specific examples establish expertise. The willingness to take a controversial stance signals authority and authenticity."
     elif patterns.get('is_educational', False):
-        analysis += "educational delivery and valuable insights to teach viewers. "
+        analysis += "educational delivery and valuable insights to teach viewers. The creator positions themselves as a helpful expert, building trust through clear explanations and actionable advice."
+        engagement_triggers = "Educational value drives saves and shares. Viewers comment with questions, their own experiences, and gratitude for the insights shared."
+        authority_signals = "Clear, structured explanations and specific techniques demonstrate expertise. The teaching approach builds trust and positions the creator as knowledgeable."
     else:
-        analysis += "engaging storytelling and relatable content to connect with viewers. "
+        analysis += "engaging storytelling and relatable content to connect with viewers. Personal anecdotes and relatable situations create emotional connection and authenticity."
+        engagement_triggers = "Relatability drives comments as viewers share their own similar experiences. Personal storytelling creates emotional connection leading to shares."
+        authority_signals = "Authentic personal experience and honest vulnerability establish trust. Real stories and genuine emotion signal credibility."
     
-    analysis += "The retention strategy combines direct communication with specific insights to maintain viewer engagement throughout."
+    analysis += " The retention strategy combines direct communication with specific insights to maintain viewer engagement throughout."
     
-    # Adaptive hooks based on content patterns
+    # Generate natural hooks based on patterns
     if patterns.get('is_controversial', False):
         hooks = [
-            "this opinion is going to upset people but it's true",
-            "everyone's wrong about this and I can prove it",
-            "this harsh truth will change how you think",
-            "nobody wants to admit this but here's reality",
-            "this controversial take will make you rethink everything"
+            "nobody wants to admit this but it's true",
+            "this opinion is going to upset people",
+            "I don't care if this is unpopular but...",
+            "everyone's doing this wrong and here's why",
+            "this harsh truth changed everything for me"
         ]
     elif patterns.get('is_educational', False):
         hooks = [
-            "this changed everything I thought I knew",
-            "nobody taught me this and I wish they had", 
-            "here's what I wish someone told me earlier",
-            "this method actually works and here's why",
-            "the mistake everyone makes that you can avoid"
+            "I wish someone told me this sooner",
+            "this method actually works and here's proof", 
+            "the mistake I was making for years",
+            "nobody teaches you this but they should",
+            "this changed my entire approach"
         ]
     else:
         hooks = [
-            "wait this actually works",
-            "nobody talks about this but they should",
-            "POV: you just found out the truth",
-            "this sounds fake but I promise it's not",
-            "the day I realized most people are wrong"
+            "this happened to me and I learned...",
+            "the day I realized I was doing it wrong",
+            "my biggest mistake was thinking...",
+            "POV: you finally understand why...",
+            "telling my story because maybe it helps"
         ]
     
     return {
@@ -951,7 +1030,14 @@ def create_enhanced_fallback(video_description, patterns, content_themes, goal, 
         "performance_prediction": f"Based on content analysis: {performance_data['success_level'] if performance_data['success_level'] != 'unknown' else 'moderate to strong performance expected'}",
         "video_description": video_description,
         "content_patterns": patterns,
-        "performance_data": performance_data
+        "performance_data": performance_data,
+        
+        # Rich analysis fields
+        "multimodal_insights": multimodal_analysis,
+        "engagement_triggers": engagement_triggers,
+        "authority_signals": authority_signals,
+        "improvement_opportunities": f"Strengthen visual-verbal synchronization, enhance credibility signals, optimize for {goal} with more specific calls-to-action",
+        "viral_potential_factors": "Authentic delivery, relatable content, and specific insights create shareability. The natural conversational tone makes it feel genuine rather than promotional."
     }
 
 
@@ -1168,6 +1254,13 @@ def process():
         transcript_quality = gpt_result.get("transcript_quality", {})
         audio_description = gpt_result.get("audio_description", "")
         
+        # New rich analysis fields
+        multimodal_insights = gpt_result.get("multimodal_insights", "")
+        engagement_triggers = gpt_result.get("engagement_triggers", "")
+        authority_signals = gpt_result.get("authority_signals", "")
+        improvement_opportunities = gpt_result.get("improvement_opportunities", "")
+        viral_potential_factors = gpt_result.get("viral_potential_factors", "")
+        
         # Update video description with enhanced analysis
         if visual_content_analysis and visual_content_analysis.get('description'):
             video_description = visual_content_analysis.get('description', video_description)
@@ -1224,12 +1317,19 @@ def process():
             content_patterns=content_patterns,
             performance_data=performance_data,
             
-            # New enhanced fields
+            # Enhanced fields
             visual_content_analysis=visual_content_analysis,
             transcript_quality=transcript_quality,
             audio_description=audio_description,
             transcript_original=transcript_data.get('transcript', ''),
             transcript_for_analysis=transcript_for_analysis,
+            
+            # New rich analysis fields
+            multimodal_insights=multimodal_insights,
+            engagement_triggers=engagement_triggers,
+            authority_signals=authority_signals,
+            improvement_opportunities=improvement_opportunities,
+            viral_potential_factors=viral_potential_factors,
             
             # Keep these for backward compatibility
             gpt_response=analysis_text
