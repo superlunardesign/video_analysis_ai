@@ -131,7 +131,7 @@ def run_gpt_analysis(transcript_text, frames_summaries_text, creator_note, platf
     if patterns['dual_engagement']:
         dual_engagement_note = f"""
 DUAL ENGAGEMENT DETECTED: {video_description}
-Focus extra attention on how the satisfying background process (visual retention) works with the verbal content delivery. Explain how this combination prevents drop-off by engaging both visual processing and auditory processing simultaneously.
+Focus attention on if the video has satisfying element, whether the whole video or the background process (visual retention) works with the verbal content delivery or text hook on the screen. Differentiate between the text on the frames and the script to determine if something is a text hook or captions. Explain how this combination increases retention and/or prevents drop-off by engaging both visual processing and auditory processing simultaneously.
         """
     
     # Use the proven original prompt structure
