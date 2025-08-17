@@ -326,10 +326,10 @@
       
       <!-- Formula Type Selector -->
       <div class="formula-selector">
-        <button class="formula-tab active" onclick="showFormula('basic')">Basic Structure</button>
-        <button class="formula-tab" onclick="showFormula('timing')">With Timing</button>
-        <button class="formula-tab" onclick="showFormula('template')">Template Format</button>
-        <button class="formula-tab" onclick="showFormula('psychology')">Psychology Framework</button>
+        <button class="formula-tab active" onclick="showFormula('basic', event)">Basic Structure</button>
+<button class="formula-tab" onclick="showFormula('timing', event)">With Timing</button>
+<button class="formula-tab" onclick="showFormula('template', event)">Template Format</button>
+<button class="formula-tab" onclick="showFormula('psychology', event)">Psychology Framework</button>
       </div>
 
       <!-- Basic Structure -->
@@ -407,7 +407,9 @@
 
   <script>
 // Make sure functions are globally available
-window.showFormula = function(formulaType) {
+window.showFormula = function(formulaType, event) {
+  console.log('showFormula called with:', formulaType);
+  
   // Hide all formula contents
   const contents = document.querySelectorAll('.formula-content');
   contents.forEach(content => content.classList.remove('active'));
@@ -416,61 +418,80 @@ window.showFormula = function(formulaType) {
   const tabs = document.querySelectorAll('.formula-tab');
   tabs.forEach(tab => tab.classList.remove('active'));
   
-  // Show selected formula
-  const targetContent = document.getElementById(formulaType + '-formula-content');
+  // Show selected formula - FIXED: using correct ID pattern
+  const targetContent = document.getElementById(formulaType + '-formula');
+  console.log('Looking for element:', formulaType + '-formula', 'Found:', targetContent);
+  
   if (targetContent) {
     targetContent.classList.add('active');
+    console.log('Activated formula:', formulaType);
+  } else {
+    console.error('Could not find element with ID:', formulaType + '-formula');
   }
   
-  // Activate clicked tab
-  event.target.classList.add('active');
+  // Activate clicked tab - FIXED: using event parameter
+  if (event && event.target) {
+    event.target.classList.add('active');
+  }
 };
 
 // Copy formula function
 window.copyFormula = function(formulaId) {
+  console.log('copyFormula called with:', formulaId);
+  
   const element = document.getElementById(formulaId);
-  const textElement = element.querySelector('.formula-text') || element.querySelector('pre');
-  if (textElement) {
-    copyToClipboard(textElement.textContent, event.target);
+  console.log('Found element:', element);
+  
+  if (element) {
+    const textElement = element.querySelector('.formula-text') || element.querySelector('pre');
+    console.log('Found text element:', textElement);
+    
+    if (textElement) {
+      copyToClipboard(textElement.textContent);
+    } else {
+      console.error('No text element found in:', formulaId);
+    }
+  } else {
+    console.error('No element found with ID:', formulaId);
   }
 };
 
 // Copy all hooks function
 window.copyAllHooks = function() {
+  console.log('copyAllHooks called');
+  
   const hooks = [];
-  document.querySelectorAll('.hook-item').forEach(item => {
+  const hookElements = document.querySelectorAll('.hook-item');
+  console.log('Found hook elements:', hookElements.length);
+  
+  hookElements.forEach(item => {
     hooks.push(item.textContent.replace(/"/g, '').trim());
   });
-  copyToClipboard(hooks.join('\n'), event.target);
+  
+  console.log('Hooks to copy:', hooks);
+  copyToClipboard(hooks.join('\n'));
 };
 
-// Main copy function (keep your existing copyToClipboard if you have it)
-function copyToClipboard(text, button) {
+// Main copy function
+function copyToClipboard(text) {
+  console.log('Copying text:', text.substring(0, 100) + '...');
+  
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(() => {
-      showCopySuccess(button);
-    }).catch(() => {
-      fallbackCopy(text, button);
+      console.log('Copy successful via clipboard API');
+      alert('Copied to clipboard!');
+    }).catch((err) => {
+      console.error('Clipboard API failed:', err);
+      fallbackCopy(text);
     });
   } else {
-    fallbackCopy(text, button);
+    console.log('Clipboard API not available, using fallback');
+    fallbackCopy(text);
   }
 }
 
-// Show copy success
-function showCopySuccess(button) {
-  const originalText = button.textContent;
-  button.textContent = 'Copied!';
-  button.classList.add('copied');
-  
-  setTimeout(() => {
-    button.textContent = originalText;
-    button.classList.remove('copied');
-  }, 2000);
-}
-
 // Fallback copy method
-function fallbackCopy(text, button) {
+function fallbackCopy(text) {
   const textArea = document.createElement('textarea');
   textArea.value = text;
   textArea.style.position = 'fixed';
@@ -481,10 +502,16 @@ function fallbackCopy(text, button) {
   textArea.select();
   
   try {
-    document.execCommand('copy');
-    showCopySuccess(button);
+    const successful = document.execCommand('copy');
+    if (successful) {
+      console.log('Copy successful via execCommand');
+      alert('Copied to clipboard!');
+    } else {
+      console.error('execCommand copy failed');
+      alert('Copy failed. Please try selecting and copying the text manually.');
+    }
   } catch (err) {
-    console.error('Copy failed:', err);
+    console.error('execCommand failed:', err);
     alert('Copy failed. Please try selecting and copying the text manually.');
   }
   
@@ -494,29 +521,9 @@ function fallbackCopy(text, button) {
 // Wait for DOM to load
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Results page loaded, functions available');
-  
-  // Set up any existing formula tab functionality
-  const formulaTabs = document.querySelectorAll('.formula-tab');
-  const formulaContents = document.querySelectorAll('.formula-content');
-  
-  formulaTabs.forEach(tab => {
-    tab.addEventListener('click', function() {
-      const targetFormula = this.getAttribute('data-formula');
-      
-      // Remove active class from all tabs and contents
-      formulaTabs.forEach(t => t.classList.remove('active'));
-      formulaContents.forEach(c => c.classList.remove('active'));
-      
-      // Add active class to clicked tab
-      this.classList.add('active');
-      
-      // Show corresponding content
-      const targetContent = document.getElementById(targetFormula + '-formula-content');
-      if (targetContent) {
-        targetContent.classList.add('active');
-      }
-    });
-  });
+  console.log('Available formula tabs:', document.querySelectorAll('.formula-tab').length);
+  console.log('Available formula contents:', document.querySelectorAll('.formula-content').length);
+  console.log('Available hook items:', document.querySelectorAll('.hook-item').length);
 });
 </script>
 </body>
