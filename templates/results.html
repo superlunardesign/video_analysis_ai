@@ -530,6 +530,18 @@
     </div>
     {% endif %}
 
+    <!-- Replication Blueprint -->
+    {% if replication_blueprint %}
+    <div class="card">
+      <h2>📋 Replication Blueprint</h2>
+      <div class="formula-box">
+        <h4>🔄 Exact Elements to Preserve</h4>
+        <pre class="formula-text">{{ replication_blueprint }}</pre>
+        <button class="copy-btn" data-action="copy-text" data-target="replication-blueprint">Copy Blueprint</button>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Standard Hook Analysis -->
     <div class="card">
       <h2>🎣 Hook Analysis & Breakdown</h2>
@@ -567,17 +579,6 @@
         <p>No alternative hooks generated.</p>
       {% endif %}
     </div>
-
-    {% if replication_blueprint %}
-    <div class="card">
-      <h2>📋 Replication Blueprint</h2>
-      <div class="formula-box">
-        <h4>🔄 Exact Elements to Preserve</h4>
-        <pre class="formula-text">{{ replication_blueprint }}</pre>
-        <button class="copy-btn" data-action="copy-text" data-target="replication-blueprint">Copy Blueprint</button>
-      </div>
-    </div>
-    {% endif %}
 
     {% if formula or basic_formula %}
     <div class="card">
@@ -665,8 +666,20 @@
   </div>
 
   <script>
-// Enhanced JavaScript with analysis tab functionality
+// Enhanced JavaScript with proper error handling and safe variable access
 console.log('🚀 Initializing enhanced psychological analysis interface...');
+
+// Safely get template variables with fallbacks
+const templateVars = {
+  psychological_breakdown: `{{ psychological_breakdown | replace('"', '\\"') | replace('\n', '\\n') | replace('\r', '') | default('', true) }}`,
+  hook_mechanics: `{{ hook_mechanics | replace('"', '\\"') | replace('\n', '\\n') | replace('\r', '') | default('', true) }}`,
+  emotional_journey: `{{ emotional_journey | replace('"', '\\"') | replace('\n', '\\n') | replace('\r', '') | default('', true) }}`,
+  authority_signals: `{{ authority_signals | replace('"', '\\"') | replace('\n', '\\n') | replace('\r', '') | default('', true) }}`,
+  engagement_psychology: `{{ engagement_psychology | replace('"', '\\"') | replace('\n', '\\n') | replace('\r', '') | default('', true) }}`,
+  audience_psychology: `{{ audience_psychology | replace('"', '\\"') | replace('\n', '\\n') | replace('\r', '') | default('', true) }}`,
+  viral_mechanisms: `{{ viral_mechanisms | replace('"', '\\"') | replace('\n', '\\n') | replace('\r', '') | default('', true) }}`,
+  replication_blueprint: `{{ replication_blueprint | replace('"', '\\"') | replace('\n', '\\n') | replace('\r', '') | default('', true) }}`
+};
 
 // Main event handler using event delegation
 document.addEventListener('click', function(event) {
@@ -772,18 +785,8 @@ function handleFormulaTab(clickedTab) {
 // Handle copying analysis content
 function handleCopyAnalysis(targetField) {
   try {
-    // Get the analysis content from template variables
-    const analysisContent = {
-      'psychological-breakdown': `{{ psychological_breakdown | replace('"', '\\"') | replace('\n', '\\n') }}`,
-      'hook-mechanics': `{{ hook_mechanics | replace('"', '\\"') | replace('\n', '\\n') }}`,
-      'emotional-journey': `{{ emotional_journey | replace('"', '\\"') | replace('\n', '\\n') }}`,
-      'authority-signals': `{{ authority_signals | replace('"', '\\"') | replace('\n', '\\n') }}`,
-      'engagement-psychology': `{{ engagement_psychology | replace('"', '\\"') | replace('\n', '\\n') }}`,
-      'audience-psychology': `{{ audience_psychology | replace('"', '\\"') | replace('\n', '\\n') }}`
-    };
-    
-    const text = analysisContent[targetField];
-    if (text && text.trim()) {
+    const text = templateVars[targetField.replace('-', '_')];
+    if (text && text.trim() && text !== '') {
       copyToClipboard(text);
       console.log('✅ Copied analysis:', targetField);
     } else {
@@ -798,13 +801,8 @@ function handleCopyAnalysis(targetField) {
 // Handle copying text content
 function handleCopyText(targetField) {
   try {
-    const textContent = {
-      'viral-mechanisms': `{{ viral_mechanisms | replace('"', '\\"') | replace('\n', '\\n') }}`,
-      'replication-blueprint': `{{ replication_blueprint | replace('"', '\\"') | replace('\n', '\\n') }}`
-    };
-    
-    const text = textContent[targetField];
-    if (text && text.trim()) {
+    const text = templateVars[targetField.replace('-', '_')];
+    if (text && text.trim() && text !== '') {
       copyToClipboard(text);
       console.log('✅ Copied text:', targetField);
     } else {
@@ -822,7 +820,9 @@ function handleCopyHooks() {
     const hooks = [];
     document.querySelectorAll('.hook-item').forEach(item => {
       const text = item.textContent.replace(/"/g, '').trim();
-      hooks.push(text);
+      if (text) {
+        hooks.push(text);
+      }
     });
     
     if (hooks.length === 0) {
@@ -857,8 +857,12 @@ function handleCopyFormula(targetId) {
     }
     
     const text = textElement.textContent || textElement.innerText;
-    copyToClipboard(text);
-    console.log('✅ Copied formula:', targetId);
+    if (text && text.trim()) {
+      copyToClipboard(text);
+      console.log('✅ Copied formula:', targetId);
+    } else {
+      showMessage('No content found to copy', 'error');
+    }
   } catch (error) {
     console.error('❌ Error copying formula:', error);
     showMessage('Error copying formula', 'error');
@@ -947,6 +951,9 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('📊 Formula tabs found:', document.querySelectorAll('.formula-tab').length);
   console.log('📋 Copy buttons found:', document.querySelectorAll('.copy-btn').length);
   console.log('🎣 Hook items found:', document.querySelectorAll('.hook-item').length);
+  
+  // Log template variables (for debugging)
+  console.log('📊 Template variables loaded:', Object.keys(templateVars).filter(key => templateVars[key] && templateVars[key].trim()));
 });
 
 console.log('✅ Enhanced psychological analysis JavaScript loaded successfully');
