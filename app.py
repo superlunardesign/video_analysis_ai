@@ -858,7 +858,13 @@ def process():
             frames_summaries_text = "(Frame analysis failed)"
             gallery_data_urls = []
 
-        # --- Skip RAG for now to focus on retention analysis ---
+    # --- Retrieve knowledge context for this transcript ---
+    try:
+        rag_query = transcript + "\n\n" + frames_summaries_text
+        knowledge_context, knowledge_citations = retrieve_context(rag_query, top_k=8)
+        print(f"Retrieved {len(knowledge_citations)} knowledge citations")
+    except Exception as e:
+        print(f"Knowledge retrieval error: {e}")
         knowledge_context = ""
         knowledge_citations = []
 
