@@ -109,7 +109,7 @@ def enhanced_transcribe_audio(audio_path):
 
 
 def generate_inferred_audio_description(frames_summaries_text, transcript_quality_info):
-    """Generate inferred audio description for visual content."""
+    """Generate inferred audio description for visual content. Make sure the inferred audio lines up with what's happening in the frames/video"""
     try:
         # Analyze the visual content to infer what might be happening
         if 'drawing' in frames_summaries_text.lower() or 'art' in frames_summaries_text.lower():
