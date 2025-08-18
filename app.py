@@ -569,7 +569,7 @@ GOAL: {goal} | PERFORMANCE: {performance_data.get('success_level', 'unknown')}
 {dual_engagement_note}
 {performance_context}
 
-FRAMEWORK FOR DEEP PSYCHOLOGICAL ANALYSIS:
+FRAMEWORK FOR DEEP PSYCHOLOGICAL ANALYSIS. Answer in conversational way while still educating on how to replicate or improve success:
 
 1. HOOK PSYCHOLOGY DECONSTRUCTION:
 - What SPECIFIC psychological trigger does the opening use? (Curiosity gap, pattern interrupt, social proof, controversy, transformation promise)
@@ -645,11 +645,11 @@ Respond in JSON format with comprehensive, psychologically sophisticated insight
 
 {{
   "psychological_breakdown": "Deep analysis of the specific psychological mechanisms at work. Explain WHY this works on a human brain level, not just WHAT works. Minimum 400 words of sophisticated insight.",
-  "hook_mechanics": "Detailed breakdown of why the opening is psychologically compelling. Analyze each component.",
-  "emotional_journey": "Second-by-second emotional experience the viewer has watching this content",
-  "authority_signals": "How the creator builds trust and credibility without explicit credentials",
-  "engagement_psychology": "Deep dive into why people comment, save, share, and follow based on this content",
-  "replication_blueprint": "Exact structural elements needed to recreate this psychological impact",
+  "hook_mechanics": "Detailed breakdown of why the opening is psychologically compelling. Analyze each component and explain how to replicate this in future hooks.",
+  "emotional_journey": "Second-by-second emotional experience the viewer has watching this content. Align the frames to the script to create a timeline in order to better understand the emotional journey of the video",
+  "authority_signals": "Does this creator build trust and credibility? Through authority or relatatability? How does the creator build trust and credibility without explicit credentials",
+  "engagement_psychology": "Deep dive into why people might comment, save, share, and follow based on this content",
+  "replication_blueprint": "Exact formula for a video with structural elements, similar cadence, and any improvements needed to recreate this psychological impact",
   "hooks": [
     "Hook maintaining exact psychological trigger pattern",
     "Alternative angle preserving core emotional mechanism", 
@@ -657,12 +657,12 @@ Respond in JSON format with comprehensive, psychologically sophisticated insight
     "Different context but same confidence-building appeal",
     "Creative angle preserving the personal stakes element"
   ],
-  "timing_psychology": "How the pacing and information release creates psychological retention",
-  "platform_psychology": "Why this content feels native to TikTok and builds authentic connection",
-  "viral_mechanisms": "Specific elements that drive sharing and algorithmic amplification",
-  "audience_psychology": "How this content makes the target audience feel seen and understood",
+  "timing_psychology": "How the pacing and information release creates psychological retention. Align the frames to the script to create a timeline in order to better understand the emotional journey of the video.",
+  "platform_psychology": "Why this content feels native to TikTok and builds authentic connection and how to replicate this",
+  "viral_mechanisms": "Specific elements that increase watch time, keep viewers hooked, drive sharing, and algorithmic amplification",
+  "audience_psychology": "How this content makes the target audience feel seen and understood and compelled to follow, purchase, or share",
   "performance_analysis": "Psychological explanation for why this achieved {performance_data.get('success_level', 'strong')} results",
-  "advanced_insights": "Expert-level observations about human psychology and content effectiveness"
+  "advanced_insights": "Expert-level observations about how this piece of content demonstrates human psychology and content effectiveness and ways it could improve"
 }}
 
 Focus on psychological sophistication over surface-level observations. Every insight should demonstrate deep understanding of human behavior and viral content psychology.
