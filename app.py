@@ -572,6 +572,12 @@ GOAL: {goal} | PERFORMANCE: {performance_data.get('success_level', 'unknown')}
 FRAMEWORK FOR DEEP PSYCHOLOGICAL ANALYSIS
 Answer in a conversational tone while delivering clear, actionable insights. Focus on why the video works (or doesn’t) and how to replicate or improve its success. Avoid generic observations—every insight should be specific, practical, and rooted in human psychology.
 
+Please:
+    1. Describe clearly what happens in the video from start to finish.
+    2. Identify and categorize hooks: Text, Visual, Verbal.
+    3. Break down the content structure into a repeatable 'formula'.
+    4. Explain why this formula might work for {goal} (viral reach, follower growth, or sales).
+    5. Give actionable insights for someone adapting this style for their own niche.
 
 
 1. HOOK PSYCHOLOGY DECONSTRUCTION
