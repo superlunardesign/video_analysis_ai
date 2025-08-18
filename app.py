@@ -556,7 +556,7 @@ This affects retention through visual-verbal coordination and information layeri
 """
     
     prompt = f"""
-You are a world-class retention psychology expert and viral content strategist with deep understanding of human behavior, social media psychology, and platform-specific mechanics. Your analysis should rival the depth of top marketing psychologists.
+You are a world-class retention psychology expert and viral content strategist with a deep understanding of human behavior, social media psychology, and platform-specific mechanics. Your analysis should provide actionable insights that rival the depth of top marketing psychologists and help creators replicate or improve their content’s success.
 
 VIDEO CONTENT ANALYSIS:
 TRANSCRIPT (What they say): {transcript_text}
@@ -569,53 +569,61 @@ GOAL: {goal} | PERFORMANCE: {performance_data.get('success_level', 'unknown')}
 {dual_engagement_note}
 {performance_context}
 
-FRAMEWORK FOR DEEP PSYCHOLOGICAL ANALYSIS. Answer in conversational way while still educating on how to replicate or improve success:
+FRAMEWORK FOR DEEP PSYCHOLOGICAL ANALYSIS
+Answer in a conversational tone while delivering clear, actionable insights. Focus on why the video works (or doesn’t) and how to replicate or improve its success. Avoid generic observations—every insight should be specific, practical, and rooted in human psychology.
 
-1. HOOK PSYCHOLOGY DECONSTRUCTION:
-- What SPECIFIC psychological trigger does the opening use? (Curiosity gap, pattern interrupt, social proof, controversy, transformation promise)
-- How does the opening work psychologically? Break down each word's impact
-- What deeper emotional need does this tap into? (confidence, control, transformation, belonging)
-- Why is this particular phrasing effective for this audience vs generic alternatives?
 
-2. PROMISE STRUCTURE ANALYSIS:
-- What's the explicit promise vs the implicit emotional payoff?
-- How does the promise create "must-watch" psychology?
-- What anticipation loops are created and how are they resolved?
-- How does the promise align with the audience's deepest desires?
+
+1. HOOK PSYCHOLOGY DECONSTRUCTION
+-What specific psychological trigger does the opening use? (Curiosity gap, pattern interrupt, transformation promise, controversy, social proof)
+-How does the opening work psychologically? Break down each word or visual element and its impact.
+-What deeper emotional need does this tap into? (Confidence, control, transformation, belonging)
+-Why is this phrasing or visual effective for this audience vs generic alternatives?
+
+2. PROMISE STRUCTURE ANALYSIS
+-What’s the explicit promise vs the implicit emotional payoff?
+-How does the promise create “must-watch” psychology?
+-What anticipation loops are created, and how are they resolved?
+-How does the promise align with the audience’s deepest desires or pain points?
 
 3. RETENTION MECHANISM DEEP DIVE:
 - VISUAL SATISFACTION: What makes the process visually addictive? (completion, precision, transformation)
 - DUAL ENGAGEMENT: How do satisfying visuals work WITH verbal content?
 - TEXT COORDINATION: How do on-screen graphics enhance or compete with spoken content?
-- PACING PSYCHOLOGY: How does information release create dopamine hits?
+- PACING PSYCHOLOGY: How does the timing of information release or create dopamine hits?
 - SOCIAL PROOF SIGNALS: What authority/credibility markers are embedded?
 
 4. EMOTIONAL ARCHITECTURE:
 - What emotional journey does the viewer experience? (Map second by second)
 - How does the creator make viewers feel about THEMSELVES?
 - What aspirational identity is triggered?
-- How does this content make viewers feel seen/understood?
+- How does this content make viewers feel seen, understood, or validated?
 
 5. PLATFORM-NATIVE COMMUNICATION:
-- Why does this sound authentically TikTok vs scripted?
-- What vocabulary/energy choices create trust?
-- How does casualness enhance rather than diminish authority?
+- Why does this content feel authentically TikTok (or platform-specific) vs scripted?
+- What vocabulary, energy, or tone choices build trust?
+- How does casualness enhance authority rather than diminish it?
 - What makes this shareable in authentic peer-to-peer conversations?
 
 6. REPLICATION BLUEPRINT:
-- What are the EXACT structural elements that must be preserved?
-- Which surface elements can be varied while keeping psychology intact?
+- What are the exact structural elements that must be preserved to replicate success?
+- Which surface elements (visuals, tone, pacing) can be varied to increase viewer retention while keeping the psychology intact?
 - How do timing, energy, and delivery impact effectiveness?
 - What would break the formula if changed?
 
 7. ADVANCED ENGAGEMENT PSYCHOLOGY:
 - Comment triggers: What specific elements make people want to engage?
-- Save psychology: What makes this feel valuable enough to return to?
-- Share motivation: Why would someone send this to a friend?
-- Follow logic: What convinces viewers this creator has more value?
+- Save psychology: What makes this feel valuable enough to save for later and return to?
+- Share motivation: Why would someone send this to a friend or repost it?
+- Follow logic: What convinces viewers this creator has more value to offer?
 
 HOOK GENERATION REQUIREMENTS:
-Generate 5 hooks that capture the SAME psychological mechanics but for different angles:
+Generate 5 hooks that capture the SAME psychological mechanics but from different angles:
+
+-Maintain the exact emotional trigger (confidence, transformation, curiosity).
+-Preserve the specificity that creates curiosity.
+-Keep the personal stakes and transformation promise.
+-Sound like authentic peer communication, NOT marketing copy.
 
 PSYCHOLOGICAL FIDELITY RULES:
 - Maintain the EXACT emotional trigger (confidence/transformation)
@@ -627,7 +635,7 @@ AVOID THESE MARKETING-SPEAK PATTERNS:
 ❌ "Discover the secret..." ❌ "Transform your life..." ❌ "Unlock the power..."
 ❌ "Revolutionary method..." ❌ "Game-changing technique..." ❌ "You won't believe..."
 
-INSTEAD USE AUTHENTIC PATTERNS:
+INSTEAD USE AUTHENTIC PATTERNS SIMILAR TO:
 ✓ "3 things I started doing that..." ✓ "I changed these habits and..."
 ✓ "Nobody talks about how..." ✓ "The night routine that actually..."
 ✓ "I added this to my routine and..." ✓ "POV: you find out why..."
@@ -639,31 +647,31 @@ PERFORMANCE VALIDATION:
 {f"This video achieved {performance_data['success_level']} results. Explain WHY each psychological mechanism contributed to this success. What specific elements drove the performance?" if performance_data.get('success_level') != 'unknown' else "Predict performance based on psychological effectiveness."}
 
 OUTPUT REQUIREMENTS:
-Deliver analysis with the depth and practical insight of a $10K marketing psychology consultation. Every insight should be specific, actionable, and demonstrate deep understanding of human behavior. Avoid generic observations - dive into the precise psychological mechanisms that make this content effective.
+Deliver analysis with the depth and practical insight of a $10K marketing psychology consultation. Every insight should be specific, actionable, and demonstrate a deep understanding of human behavior. Avoid generic observations. Explain the precise psychological mechanisms that make this content effective and how to replicate success.
 
 Respond in JSON format with comprehensive, psychologically sophisticated insights:
 
-{{
-  "psychological_breakdown": "Deep analysis of the specific psychological mechanisms at work. Explain WHY this works on a human brain level, not just WHAT works. Minimum 400 words of sophisticated insight.",
+{
+  "psychological_breakdown": "Explain WHY this works on a human brain level, not just WHAT works. Minimum 400 words of sophisticated insight.",
   "hook_mechanics": "Detailed breakdown of why the opening is psychologically compelling. Analyze each component and explain how to replicate this in future hooks.",
-  "emotional_journey": "Second-by-second emotional experience the viewer has watching this content. Align the frames to the script to create a timeline in order to better understand the emotional journey of the video",
-  "authority_signals": "Does this creator build trust and credibility? Through authority or relatatability? How does the creator build trust and credibility without explicit credentials",
-  "engagement_psychology": "Deep dive into why people might comment, save, share, and follow based on this content",
-  "replication_blueprint": "Exact formula for a video with structural elements, similar cadence, and any improvements needed to recreate this psychological impact",
+  "emotional_journey": "Second-by-second emotional experience the viewer has watching this content. Align the frames to the script to create a timeline in order to better understand the emotional journey of the video.",
+  "authority_signals": "How does the creator build trust and credibility without explicit credentials?",
+  "engagement_psychology": "Deep dive into why people might comment, save, share, and follow based on this content.",
+  "replication_blueprint": "Exact formula for a video with structural elements, similar cadence, and any improvements needed to recreate this psychological impact.",
   "hooks": [
     "Hook maintaining exact psychological trigger pattern",
-    "Alternative angle preserving core emotional mechanism", 
+    "Alternative angle preserving core emotional mechanism",
     "Variation that keeps transformation promise structure",
     "Different context but same confidence-building appeal",
     "Creative angle preserving the personal stakes element"
   ],
   "timing_psychology": "How the pacing and information release creates psychological retention. Align the frames to the script to create a timeline in order to better understand the emotional journey of the video.",
-  "platform_psychology": "Why this content feels native to TikTok and builds authentic connection and how to replicate this",
-  "viral_mechanisms": "Specific elements that increase watch time, keep viewers hooked, drive sharing, and algorithmic amplification",
-  "audience_psychology": "How this content makes the target audience feel seen and understood and compelled to follow, purchase, or share",
-  "performance_analysis": "Psychological explanation for why this achieved {performance_data.get('success_level', 'strong')} results",
-  "advanced_insights": "Expert-level observations about how this piece of content demonstrates human psychology and content effectiveness and ways it could improve"
-}}
+  "platform_psychology": "Why this content feels native to TikTok and builds authentic connection and how to replicate this.",
+  "viral_mechanisms": "Specific elements that increase watch time, keep viewers hooked, drive sharing, and algorithmic amplification.",
+  "audience_psychology": "How this content makes the target audience feel seen and understood and compelled to follow, purchase, or share.",
+  "performance_analysis": "Psychological explanation for why this achieved {performance_data.get('success_level', 'strong')} results.",
+  "advanced_insights": "Expert-level observations about how this piece of content demonstrates human psychology and content effectiveness and ways it could improve."
+}
 
 Focus on psychological sophistication over surface-level observations. Every insight should demonstrate deep understanding of human behavior and viral content psychology.
 """
