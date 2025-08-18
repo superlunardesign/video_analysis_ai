@@ -657,7 +657,9 @@ Deliver analysis with the depth and practical insight of a $10K marketing psycho
 
 Respond in JSON format with comprehensive, psychologically sophisticated insights:
 
-{
+Respond in JSON format with comprehensive, psychologically sophisticated insights:
+
+{{
   "psychological_breakdown": "Explain WHY this works on a human brain level, not just WHAT works. Minimum 400 words of sophisticated insight.",
   "hook_mechanics": "Detailed breakdown of why the opening is psychologically compelling. Analyze each component and explain how to replicate this in future hooks.",
   "emotional_journey": "Second-by-second emotional experience the viewer has watching this content. Align the frames to the script to create a timeline in order to better understand the emotional journey of the video.",
@@ -677,7 +679,8 @@ Respond in JSON format with comprehensive, psychologically sophisticated insight
   "audience_psychology": "How this content makes the target audience feel seen and understood and compelled to follow, purchase, or share.",
   "performance_analysis": "Psychological explanation for why this achieved {performance_data.get('success_level', 'strong')} results.",
   "advanced_insights": "Expert-level observations about how this piece of content demonstrates human psychology and content effectiveness and ways it could improve."
-}
+}}
+
 
 Focus on psychological sophistication over surface-level observations. Every insight should demonstrate deep understanding of human behavior and viral content psychology.
 """
@@ -860,7 +863,7 @@ def process():
 
     # --- Retrieve knowledge context for this transcript ---
         try:
-            rag_query = transcript + "\n\n" + frames_summaries_text
+            rag_query = transcript_data.get('transcript', '') + "\n\n" + frames_summaries_text
             knowledge_context, knowledge_citations = retrieve_context(rag_query, top_k=8)
             print(f"Retrieved {len(knowledge_citations)} knowledge citations")
 
