@@ -692,12 +692,12 @@ def run_enhanced_psychological_analysis(transcript_text, frames_summaries_text, 
     # Build performance context
     performance_context = ""
     if performance_data['success_level'] != "unknown":
-        performance_context = f"""
+        performance_context = f""
 PERFORMANCE CONTEXT:
 This video achieved: {', '.join(performance_data['success_reasons'])}
 Success Level: {performance_data['success_level']}
 Use this performance data to validate your analysis - explain WHY this video achieved this level of success based on psychological mechanisms.
-        """
+        ""
     
     # Build dual engagement note
     dual_engagement_note = ""
