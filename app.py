@@ -46,7 +46,7 @@ def _api_retry(callable_fn, *args, **kwargs):
 
 
 # ==============================
-# MISSING FUNCTION IMPLEMENTATIONS
+# HELPER FUNCTIONS
 # ==============================
 
 def enhanced_extract_audio_and_frames(tiktok_url, strategy="smart", frames_per_minute=24, cap=60, scene_threshold=0.24):
@@ -109,7 +109,7 @@ def enhanced_transcribe_audio(audio_path):
 
 
 def generate_inferred_audio_description(frames_summaries_text, transcript_quality_info):
-    """Generate inferred audio description for visual content. Make sure the inferred audio lines up with what's happening in the frames/video"""
+    """Generate inferred audio description for visual content."""
     try:
         # Analyze the visual content to infer what might be happening
         if 'drawing' in frames_summaries_text.lower() or 'art' in frames_summaries_text.lower():
@@ -160,167 +160,8 @@ def create_visual_content_description(frames_summaries_text, audio_description=N
         }
 
 
-def detect_content_patterns(transcript_text, frames_summaries_text):
-    """Detect content patterns for analysis."""
-    combined_text = f"{transcript_text} {frames_summaries_text}".lower()
-    
-    patterns = {
-        'dual_engagement': 'visual' in combined_text and len(transcript_text.strip()) > 50,
-        'transformation': 'transform' in combined_text or 'before' in combined_text,
-        'routine': 'routine' in combined_text or 'step' in combined_text,
-        'educational': 'learn' in combined_text or 'how to' in combined_text
-    }
-    
-    return patterns
-
-
-def create_universal_video_description(transcript_text, frames_summaries_text):
-    """Create universal video description."""
-    if len(transcript_text.strip()) > 50:
-        return f"Video content: {transcript_text[:100]}..."
-    else:
-        return f"Visual content: {frames_summaries_text[:100]}..."
-
-
-def analyze_performance_indicators(creator_note, transcript_text, frames_summaries_text):
-    """Analyze performance indicators from content."""
-    # Simple analysis - you can enhance this
-    success_reasons = []
-    
-    if 'viral' in creator_note.lower():
-        success_reasons.append('viral_performance')
-    if 'popular' in creator_note.lower():
-        success_reasons.append('high_engagement')
-    
-    success_level = 'unknown'
-    if success_reasons:
-        success_level = 'high'
-    
-    return {
-        'success_level': success_level,
-        'success_reasons': success_reasons
-    }
-
-
-def extract_content_themes(transcript_text):
-    """Extract content themes from transcript."""
-    words = transcript_text.lower().split()
-    themes = []
-    
-    # Simple theme detection
-    if any(word in words for word in ['skin', 'beauty', 'routine']):
-        themes.append('beauty')
-    if any(word in words for word in ['workout', 'fitness', 'exercise']):
-        themes.append('fitness')
-    if any(word in words for word in ['food', 'recipe', 'cooking']):
-        themes.append('cooking')
-    
-    return themes
-
-
-def run_enhanced_gpt_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
-    """Run enhanced GPT analysis with fallback."""
-    try:
-        # Try enhanced psychological analysis first
-        enhanced_result = run_enhanced_psychological_analysis(
-            transcript_text, frames_summaries_text, creator_note, 
-            platform, target_duration, goal, tone, audience, knowledge_context
-        )
-        
-        if enhanced_result:
-            return enhanced_result
-        else:
-            # Fallback to comprehensive analysis
-            return run_comprehensive_analysis(
-                transcript_text, frames_summaries_text, creator_note,
-                platform, target_duration, goal, tone, audience, knowledge_context
-            )
-            
-    except Exception as e:
-        print(f"Enhanced analysis failed: {e}")
-        # Create fallback result
-        return create_visual_enhanced_fallback(frames_summaries_text, {
-            'transcript': transcript_text,
-            'is_reliable': len(transcript_text.strip()) > 50
-        }, goal)
-
-
-def run_comprehensive_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
-    """Fallback comprehensive analysis."""
-    prompt = f"""
-Analyze this {platform} video for {goal}:
-
-TRANSCRIPT: {transcript_text}
-VISUAL CONTENT: {frames_summaries_text}
-CREATOR NOTE: {creator_note}
-TARGET: {target_duration}s video for {audience} with {tone} tone
-
-Provide analysis in JSON format:
-{{
-  "analysis": "Detailed analysis of why this content works",
-  "hooks": ["Alternative hook 1", "Alternative hook 2", "Alternative hook 3", "Alternative hook 4", "Alternative hook 5"],
-  "timing_breakdown": "How timing creates retention",
-  "improvements": "Specific ways to improve this content",
-  "formula": "Reusable formula for similar content"
-}}
-"""
-
-    try:
-        gpt_response = _api_retry(
-            client.chat.completions.create,
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,
-            max_tokens=3000
-        )
-
-        response_text = gpt_response.choices[0].message.content.strip()
-        
-        # Parse JSON response
-        if response_text.startswith("```json"):
-            response_text = response_text[7:]
-        if response_text.endswith("```"):
-            response_text = response_text[:-3]
-        response_text = response_text.strip()
-        
-        parsed = json.loads(response_text)
-        
-        return {
-            "analysis": parsed.get("analysis", "Analysis not available"),
-            "hooks": parsed.get("hooks", []),
-            "scores": {
-                "hook_strength": 8,
-                "promise_clarity": 7,
-                "retention_design": 8,
-                "engagement_potential": 8,
-                "goal_alignment": 7
-            },
-            "timing_breakdown": parsed.get("timing_breakdown", ""),
-            "formula": parsed.get("formula", ""),
-            "basic_formula": parsed.get("formula", ""),
-            "timing_formula": parsed.get("timing_breakdown", ""),
-            "template_formula": parsed.get("formula", ""),
-            "psychology_formula": "Content uses engagement and retention mechanisms",
-            "improvements": parsed.get("improvements", ""),
-            "performance_prediction": "Strong potential based on content structure"
-        }
-        
-    except Exception as e:
-        print(f"Comprehensive analysis error: {e}")
-        return create_visual_enhanced_fallback(frames_summaries_text, {
-            'transcript': transcript_text,
-            'is_reliable': len(transcript_text.strip()) > 50
-        }, goal)
-
-
-# ==============================
-# ENHANCED TEXT ANALYSIS - Distinguish on-screen text from captions
-# ==============================
-
 def analyze_text_synchronization(frames_summaries_text, transcript_text, frame_timestamps=None):
-    """
-    Distinguish between on-screen text (graphics/overlays) and spoken captions.
-    """
+    """Distinguish between on-screen text (graphics/overlays) and spoken captions."""
     
     # Extract text mentions from frame analysis
     frame_texts = []
@@ -396,73 +237,6 @@ def analyze_text_synchronization(frames_summaries_text, transcript_text, frame_t
     }
 
 
-# ==============================
-# ENHANCED PSYCHOLOGICAL ANALYSIS FUNCTIONS
-# ==============================
-
-def detect_specific_niche(transcript_text, frames_summaries_text):
-    """Detect specific niche and content type for targeted analysis."""
-    
-    combined_text = f"{transcript_text} {frames_summaries_text}".lower()
-    
-    # Detailed niche detection
-    niche_indicators = {
-        'beauty_skincare': {
-            'keywords': ['skincare', 'routine', 'glow', 'skin', 'moisturizer', 'serum', 'cleanser'],
-            'content_types': ['routine', 'transformation', 'product_review', 'tips'],
-            'psychology_focus': 'self-improvement, confidence, transformation, aspirational identity'
-        },
-        'fitness_wellness': {
-            'keywords': ['workout', 'fitness', 'exercise', 'healthy', 'diet'],
-            'content_types': ['routine', 'transformation', 'tips', 'motivation'],
-            'psychology_focus': 'discipline, transformation, health anxiety, comparison'
-        },
-        'lifestyle_productivity': {
-            'keywords': ['morning routine', 'productive', 'organized', 'habits'],
-            'content_types': ['routine', 'tips', 'lifestyle'],
-            'psychology_focus': 'control, optimization, aspiration, self-improvement'
-        },
-        'food_cooking': {
-            'keywords': ['recipe', 'cooking', 'food', 'kitchen', 'meal'],
-            'content_types': ['tutorial', 'recipe', 'process'],
-            'psychology_focus': 'comfort, creativity, nourishment, sharing'
-        }
-    }
-    
-    # Determine primary niche
-    niche_scores = {}
-    for niche, data in niche_indicators.items():
-        score = sum(1 for keyword in data['keywords'] if keyword in combined_text)
-        if score > 0:
-            niche_scores[niche] = score
-    
-    primary_niche = max(niche_scores, key=niche_scores.get) if niche_scores else 'general'
-    
-    # Specialized analysis focus based on niche
-    analysis_focuses = {
-        'beauty_skincare': """
-BEAUTY/SKINCARE PSYCHOLOGY FOCUS:
-- Transformation aspiration: How does this tap into desires for change/improvement?
-- Routine psychology: What makes routines psychologically satisfying?
-- Before/after anticipation: How is transformation tension built and resolved?
-- Product authority: How does the creator establish skincare credibility?
-- Aspirational identity: What version of themselves does this help viewers imagine?
-""",
-        'general': """
-GENERAL CONTENT PSYCHOLOGY FOCUS:
-- Universal appeal mechanisms
-- Cross-demographic engagement triggers
-- Broad psychological satisfaction elements
-"""
-    }
-    
-    return {
-        'primary_niche': primary_niche,
-        'content_type': 'routine' if 'routine' in combined_text else 'transformation',
-        'analysis_focus': analysis_focuses.get(primary_niche, analysis_focuses['general'])
-    }
-
-
 def create_visual_enhanced_fallback(frames_summaries_text, transcript_data, goal):
     """Enhanced fallback for when GPT analysis fails on visual content."""
     
@@ -534,200 +308,111 @@ def create_visual_enhanced_fallback(frames_summaries_text, transcript_data, goal
         "performance_prediction": "Strong visual retention expected from satisfying process content",
         "visual_content_analysis": visual_analysis,
         "transcript_quality": transcript_data,
-        "text_sync_analysis": text_sync_analysis
+        "text_sync_analysis": text_sync_analysis,
+        "strengths": "Strong visual engagement and process satisfaction elements",
+        "improvement_areas": "Could benefit from clearer audio or enhanced pacing",
+        "knowledge_insights": "Visual content aligns with satisfying process patterns",
+        "knowledge_context_used": False,
+        "overall_quality": "moderate"
     }
 
 
-def create_enhanced_analysis_prompt(transcript_text, frames_summaries_text, creator_note, video_description, content_themes, goal, performance_data, performance_context, dual_engagement_note, text_sync_analysis):
-    """Create a much more sophisticated analysis prompt that delivers richer insights."""
+# ==============================
+# MAIN ANALYSIS FUNCTION - BALANCED & COMPREHENSIVE
+# ==============================
+
+def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
+    """Balanced analysis function that provides nuanced assessment for both strong and weak content."""
     
-    # Detect specific niche and content type for targeted analysis
-    niche_context = detect_specific_niche(transcript_text, frames_summaries_text)
-    
-    # Add text synchronization context
-    text_context = ""
-    if text_sync_analysis['has_graphics'] or text_sync_analysis['has_captions']:
-        text_context = f"""
-TEXT ANALYSIS:
-{text_sync_analysis['text_analysis_summary']}
-On-screen Graphics: {[g['text'] for g in text_sync_analysis['onscreen_graphics']]}
-Synchronized Captions: {[c['text'] for c in text_sync_analysis['synchronized_captions']]}
-This affects retention through visual-verbal coordination and information layering.
+    # Build knowledge context section
+    knowledge_section = ""
+    if knowledge_context.strip():
+        knowledge_section = f"""
+KNOWLEDGE CONTEXT - Reference these proven strategies to inform your analysis:
+{knowledge_context}
+
+Compare this video's approach to successful patterns from the knowledge base and note where it aligns with or diverges from proven strategies.
 """
     
     prompt = f"""
-You are a world-class retention psychology expert and viral content strategist with a deep understanding of human behavior, social media psychology, and platform-specific mechanics. Your analysis should provide actionable insights that rival the depth of top marketing psychologists and help creators replicate or improve their content’s success.
+You are an expert content strategist analyzing this {platform} video for {goal}. Provide nuanced, balanced analysis that recognizes both strengths and areas for improvement.
 
-VIDEO CONTENT ANALYSIS:
-TRANSCRIPT (What they say): {transcript_text}
-VISUAL FRAMES (What viewers see): {frames_summaries_text}
+CONTENT TO ANALYZE:
+TRANSCRIPT: {transcript_text}
+VISUAL CONTENT: {frames_summaries_text}
 CREATOR NOTE: {creator_note}
-VIDEO DESCRIPTION: {video_description}
-NICHE: {niche_context['primary_niche']} | CONTENT TYPE: {niche_context['content_type']}
-GOAL: {goal} | PERFORMANCE: {performance_data.get('success_level', 'unknown')}
-{text_context}
-{dual_engagement_note}
-{performance_context}
+TARGET: {target_duration}s video for {audience} with {tone} tone
 
-FRAMEWORK FOR DEEP PSYCHOLOGICAL ANALYSIS
-Answer in a conversational tone while delivering clear, actionable insights. Focus on why the video works (or doesn’t) and how to replicate or improve its success. Avoid generic observations—every insight should be specific, practical, and rooted in human psychology.
+{knowledge_section}
 
-Please:
-    1. Describe clearly what happens in the video from start to finish.
-    2. Identify and categorize hooks: Text, Visual, Verbal.
-    3. Break down the content structure into a repeatable 'formula'.
-    4. Explain why this formula might work for {goal} (viral reach, follower growth, or sales).
-    5. Give actionable insights for someone adapting this style for their own niche.
+ANALYSIS APPROACH:
+- Provide honest assessment without being overly critical or overly positive
+- Identify what's working well and build on those strengths
+- Point out areas that could be improved and explain how
+- Consider the content quality level and adjust analysis accordingly
+- For strong content: focus on what makes it effective and how to replicate/optimize
+- For weak content: identify core issues and provide specific fixes
+- For average content: highlight potential and provide elevation strategies
 
+COMPREHENSIVE EVALUATION:
+1. Hook Analysis: How effectively does the opening capture attention? What psychological triggers are used?
+2. Promise Structure: Is there a clear value proposition? How well does it create anticipation?
+3. Content Delivery: Does the video fulfill its promise? Is the pacing engaging?
+4. Visual-Audio Synergy: How do the visual and audio elements work together?
+5. Retention Design: What keeps viewers watching? Where might they drop off?
+6. Knowledge Base Alignment: How does this compare to successful strategies in your knowledge?
 
-1. HOOK PSYCHOLOGY DECONSTRUCTION
--What specific psychological trigger does the opening use? (Curiosity gap, pattern interrupt, transformation promise, controversy, social proof)
--How does the opening work psychologically? Break down each word or visual element and its impact.
--What deeper emotional need does this tap into? (Confidence, control, transformation, belonging)
--Why is this phrasing or visual effective for this audience vs generic alternatives?
+SCORING GUIDELINES:
+Score each element independently and honestly based on actual effectiveness:
+- Hook Strength: How compelling is the opening? Does it immediately grab attention or is it weak/generic?
+- Promise Clarity: How clear is the value proposition? Is it compelling or confusing?  
+- Retention Design: How well does pacing/content maintain interest throughout?
+- Engagement Potential: Will this realistically drive comments/shares/saves?
+- Goal Alignment: How effectively does this serve {goal} specifically?
 
-2. PROMISE STRUCTURE ANALYSIS
--What’s the explicit promise vs the implicit emotional payoff?
--How does the promise create “must-watch” psychology?
--What anticipation loops are created, and how are they resolved?
--How does the promise align with the audience’s deepest desires or pain points?
+Use the full 1-10 range and score each element separately:
+- 9-10: Exceptional - clearly superior execution that drives results
+- 7-8: Strong - effective with clear strengths  
+- 5-6: Average - functional but room for improvement
+- 3-4: Weak - significant issues that hurt performance
+- 1-2: Poor - major problems that severely impact effectiveness
 
-3. RETENTION MECHANISM DEEP DIVE:
-- VISUAL SATISFACTION: What makes the process visually addictive? (completion, precision, transformation)
-- DUAL ENGAGEMENT: How do satisfying visuals work WITH verbal content?
-- TEXT COORDINATION: How do on-screen graphics enhance or compete with spoken content?
-- PACING PSYCHOLOGY: How does the timing of information release or create dopamine hits?
-- SOCIAL PROOF SIGNALS: What authority/credibility markers are embedded?
+IMPORTANT: Each score should reflect that specific element's quality. A video might have a strong hook (8) but weak retention design (4), or great engagement potential (9) but poor goal alignment (3). Score each element independently.
 
-4. EMOTIONAL ARCHITECTURE:
-- What emotional journey does the viewer experience? (Map second by second)
-- How does the creator make viewers feel about THEMSELVES?
-- What aspirational identity is triggered?
-- How does this content make viewers feel seen, understood, or validated?
-
-5. PLATFORM-NATIVE COMMUNICATION:
-- Why does this content feel authentically TikTok (or platform-specific) vs scripted?
-- What vocabulary, energy, or tone choices build trust?
-- How does casualness enhance authority rather than diminish it?
-- What makes this shareable in authentic peer-to-peer conversations?
-
-6. REPLICATION BLUEPRINT:
-- What are the exact structural elements that must be preserved to replicate success?
-- Which surface elements (visuals, tone, pacing) can be varied to increase viewer retention while keeping the psychology intact?
-- How do timing, energy, and delivery impact effectiveness?
-- What would break the formula if changed?
-
-7. ADVANCED ENGAGEMENT PSYCHOLOGY:
-- Comment triggers: What specific elements make people want to engage?
-- Save psychology: What makes this feel valuable enough to save for later and return to?
-- Share motivation: Why would someone send this to a friend or repost it?
-- Follow logic: What convinces viewers this creator has more value to offer?
-
-HOOK GENERATION REQUIREMENTS:
-Generate 5 hooks that capture the SAME psychological mechanics but from different angles:
-
--Maintain the exact emotional trigger (confidence, transformation, curiosity).
--Preserve the specificity that creates curiosity.
--Keep the personal stakes and transformation promise.
--Sound like authentic peer communication, NOT marketing copy.
-
-PSYCHOLOGICAL FIDELITY RULES:
-- Maintain the EXACT emotional trigger (confidence/transformation)
-- Preserve the specificity that creates curiosity
-- Keep the personal stakes and transformation promise
-- Sound like authentic peer communication, NOT marketing copy
-
-AVOID THESE MARKETING-SPEAK PATTERNS:
-❌ "Discover the secret..." ❌ "Transform your life..." ❌ "Unlock the power..."
-❌ "Revolutionary method..." ❌ "Game-changing technique..." ❌ "You won't believe..."
-
-INSTEAD USE AUTHENTIC PATTERNS SIMILAR TO:
-✓ "3 things I started doing that..." ✓ "I changed these habits and..."
-✓ "Nobody talks about how..." ✓ "The night routine that actually..."
-✓ "I added this to my routine and..." ✓ "POV: you find out why..."
-
-NICHE-SPECIFIC ANALYSIS:
-{niche_context['analysis_focus']}
-
-PERFORMANCE VALIDATION:
-{f"This video achieved {performance_data['success_level']} results. Explain WHY each psychological mechanism contributed to this success. What specific elements drove the performance?" if performance_data.get('success_level') != 'unknown' else "Predict performance based on psychological effectiveness."}
-
-OUTPUT REQUIREMENTS:
-Deliver analysis with the depth and practical insight of a $10K marketing psychology consultation. Every insight should be specific, actionable, and demonstrate a deep understanding of human behavior. Avoid generic observations. Explain the precise psychological mechanisms that make this content effective and how to replicate success.
-
-Respond in JSON format with comprehensive, psychologically sophisticated insights:
-
-Respond in JSON format with comprehensive, psychologically sophisticated insights:
-
+Respond in JSON format with balanced, actionable analysis:
 {{
-  "psychological_breakdown": "Explain WHY this works on a human brain level, not just WHAT works. Minimum 400 words of sophisticated insight.",
-  "hook_mechanics": "Detailed breakdown of why the opening is psychologically compelling. Analyze each component and explain how to replicate this in future hooks.",
-  "emotional_journey": "Second-by-second emotional experience the viewer has watching this content. Align the frames to the script to create a timeline in order to better understand the emotional journey of the video.",
-  "authority_signals": "How does the creator build trust and credibility without explicit credentials?",
-  "engagement_psychology": "Deep dive into why people might comment, save, share, and follow based on this content.",
-  "replication_blueprint": "Exact formula for a video with structural elements, similar cadence, and any improvements needed to recreate this psychological impact.",
-  "hooks": [
-    "Hook maintaining exact psychological trigger pattern",
-    "Alternative angle preserving core emotional mechanism",
-    "Variation that keeps transformation promise structure",
-    "Different context but same confidence-building appeal",
-    "Creative angle preserving the personal stakes element"
-  ],
-  "timing_psychology": "How the pacing and information release creates psychological retention. Align the frames to the script to create a timeline in order to better understand the emotional journey of the video.",
-  "platform_psychology": "Why this content feels native to TikTok and builds authentic connection and how to replicate this.",
-  "viral_mechanisms": "Specific elements that increase watch time, keep viewers hooked, drive sharing, and algorithmic amplification.",
-  "audience_psychology": "How this content makes the target audience feel seen and understood and compelled to follow, purchase, or share.",
-  "performance_analysis": "Psychological explanation for why this achieved {performance_data.get('success_level', 'strong')} results.",
-  "advanced_insights": "Expert-level observations about how this piece of content demonstrates human psychology and content effectiveness and ways it could improve."
+  "analysis": "Nuanced analysis that identifies what works well and what could be improved. Start with strengths, then address areas for enhancement. Reference knowledge context insights where relevant. Adjust tone based on overall content quality - celebrate genuine strengths, provide constructive guidance for weaknesses.",
+  "hooks": ["5 alternative hooks that either build on existing strengths or address identified weaknesses"],
+  "scores": {{
+    "hook_strength": 7,
+    "promise_clarity": 6,
+    "retention_design": 8,
+    "engagement_potential": 5,
+    "goal_alignment": 7
+  }},
+  "strengths": "Specific elements that are working well and contributing to effectiveness",
+  "improvement_areas": "Areas that could be enhanced, with specific suggestions for how",
+  "timing_breakdown": "What happens at key moments and how the pacing affects retention",
+  "basic_formula": "Step-by-step process for replicating the effective elements while addressing weak points",
+  "timing_formula": "Detailed timing breakdown with optimization suggestions",
+  "template_formula": "Template format that captures the successful patterns while improving weak areas",
+  "psychology_formula": "Psychological mechanisms at work and how they contribute to effectiveness",
+  "improvements": "Specific, actionable recommendations prioritized by impact potential",
+  "performance_prediction": "Realistic assessment of likely performance with reasoning",
+  "knowledge_insights": "How this content aligns with or could better leverage proven strategies from the knowledge base"
 }}
 
-
-Focus on psychological sophistication over surface-level observations. Every insight should demonstrate deep understanding of human behavior and viral content psychology.
+Provide constructive, balanced feedback that helps creators understand both what they're doing right and how they can improve.
 """
-    
-    return prompt
 
-
-def run_enhanced_psychological_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context=""):
-    """Run the enhanced psychological analysis as an additional layer."""
-    
-    # Get all the existing analysis components
-    patterns = detect_content_patterns(transcript_text, frames_summaries_text)
-    video_description = create_universal_video_description(transcript_text, frames_summaries_text)
-    performance_data = analyze_performance_indicators(creator_note, transcript_text, frames_summaries_text)
-    content_themes = extract_content_themes(transcript_text)
-    text_sync_analysis = analyze_text_synchronization(frames_summaries_text, transcript_text)
-    
-    # Build performance context
-    performance_context = ""
-    if performance_data['success_level'] != "unknown":
-        performance_context = f"""
-PERFORMANCE CONTEXT:
-This video achieved: {', '.join(performance_data['success_reasons'])}
-Success Level: {performance_data['success_level']}
-Use this performance data to validate your analysis - explain WHY this video achieved this level of success based on psychological mechanisms.
-        """
-    
-    # Build dual engagement note
-    dual_engagement_note = ""
-    if patterns.get('dual_engagement', False):
-        dual_engagement_note = "\n🎯 DUAL ENGAGEMENT DETECTED: This video combines satisfying visual processes with verbal content delivery - analyze how both channels work together for retention."
-    
-    # Create the enhanced prompt
-    prompt = create_enhanced_analysis_prompt(
-        transcript_text, frames_summaries_text, creator_note, 
-        video_description, content_themes, goal, performance_data, 
-        performance_context, dual_engagement_note, text_sync_analysis
-    )
-    
     try:
-        print(f"Sending enhanced psychological analysis prompt to GPT-4o...")
+        print(f"Sending balanced analysis prompt to GPT-4o...")
         gpt_response = _api_retry(
             client.chat.completions.create,
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,  # Lower temperature for more focused analysis
-            max_tokens=4000   # More tokens for richer analysis
+            temperature=0.1,
+            max_tokens=3500
         )
 
         response_text = gpt_response.choices[0].message.content.strip()
@@ -739,50 +424,112 @@ Use this performance data to validate your analysis - explain WHY this video ach
             response_text = response_text[:-3]
         response_text = response_text.strip()
         
-        parsed = json.loads(response_text)
+        try:
+            parsed = json.loads(response_text)
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error: {e}")
+            # Return fallback if JSON parsing fails
+            return create_visual_enhanced_fallback(frames_summaries_text, {
+                'transcript': transcript_text,
+                'is_reliable': len(transcript_text.strip()) > 50
+            }, goal)
         
-        # Return enhanced analysis structure
-        return {
-            "analysis": parsed.get("psychological_breakdown", "Analysis not available").strip(),
+        # Add debug logging to see what scores GPT is actually returning
+        print(f"Raw scores from GPT: {scores_raw}")
+        
+        # Extract and process scores with better parsing
+        scores_raw = parsed.get("scores", {})
+        scores = {}
+        for key, value in scores_raw.items():
+            try:
+                # Handle various response formats
+                if isinstance(value, (int, float)):
+                    scores[key] = max(1, min(10, int(value)))
+                elif isinstance(value, str):
+                    # Extract number from string responses
+                    match = re.search(r'(\d+)', str(value))
+                    if match:
+                        scores[key] = max(1, min(10, int(match.group(1))))
+                    else:
+                        # If no number found, assign different defaults for each category
+                        category_defaults = {
+                            "hook_strength": 5,
+                            "promise_clarity": 6, 
+                            "retention_design": 5,
+                            "engagement_potential": 4,
+                            "goal_alignment": 6
+                        }
+                        scores[key] = category_defaults.get(key, 5)
+                else:
+                    # Assign different defaults for each category if value is invalid
+                    category_defaults = {
+                        "hook_strength": 5,
+                        "promise_clarity": 6,
+                        "retention_design": 5, 
+                        "engagement_potential": 4,
+                        "goal_alignment": 6
+                    }
+                    scores[key] = category_defaults.get(key, 5)
+            except Exception as e:
+                print(f"Error parsing score for {key}: {e}")
+                # Different fallbacks for each category
+                category_defaults = {
+                    "hook_strength": 5,
+                    "promise_clarity": 6,
+                    "retention_design": 5,
+                    "engagement_potential": 4, 
+                    "goal_alignment": 6
+                }
+                scores[key] = category_defaults.get(key, 5)
+        
+        # Ensure all required score fields exist with different defaults
+        required_scores = {
+            "hook_strength": 5,
+            "promise_clarity": 6,
+            "retention_design": 5,
+            "engagement_potential": 4,
+            "goal_alignment": 6
+        }
+        for score_key, default_val in required_scores.items():
+            if score_key not in scores:
+                scores[score_key] = default_val
+        
+        print(f"Final processed scores: {scores}")  # Debug logging
+        
+        # Build comprehensive result
+        result = {
+            "analysis": parsed.get("analysis", "Analysis not available"),
             "hooks": parsed.get("hooks", []),
-            "scores": {
-                "hook_strength": 9,  # Higher default for successful content
-                "promise_clarity": 8,
-                "retention_design": 9,
-                "engagement_potential": 9,
-                "goal_alignment": 8
-            },
-            "timing_breakdown": parsed.get("timing_psychology", "").strip(),
-            "formula": parsed.get("replication_blueprint", "").strip(),
-            "basic_formula": parsed.get("replication_blueprint", "").strip(),
-            "timing_formula": parsed.get("timing_psychology", "").strip(),
-            "template_formula": parsed.get("replication_blueprint", "").strip(),
-            "psychology_formula": parsed.get("platform_psychology", "").strip(),
-            "improvements": parsed.get("advanced_insights", "").strip(),
-            "performance_prediction": parsed.get("performance_analysis", "").strip(),
-            "video_description": video_description,
-            "content_patterns": patterns,
-            "performance_data": performance_data,
-            "text_sync_analysis": text_sync_analysis,
+            "scores": scores,
+            "strengths": parsed.get("strengths", "Content strengths to be identified"),
+            "improvement_areas": parsed.get("improvement_areas", "Areas for potential enhancement"),
+            "timing_breakdown": parsed.get("timing_breakdown", ""),
+            "formula": parsed.get("basic_formula", ""),
+            "basic_formula": parsed.get("basic_formula", ""),
+            "timing_formula": parsed.get("timing_formula", ""),
+            "template_formula": parsed.get("template_formula", ""),
+            "psychology_formula": parsed.get("psychology_formula", "Content psychology analysis"),
+            "improvements": parsed.get("improvements", ""),
+            "performance_prediction": parsed.get("performance_prediction", "Performance assessment based on content analysis"),
+            "knowledge_insights": parsed.get("knowledge_insights", "Knowledge context insights"),
             
-            # Enhanced analysis fields
-            "psychological_breakdown": parsed.get("psychological_breakdown", "").strip(),
-            "hook_mechanics": parsed.get("hook_mechanics", "").strip(),
-            "emotional_journey": parsed.get("emotional_journey", "").strip(),
-            "authority_signals": parsed.get("authority_signals", "").strip(),
-            "engagement_psychology": parsed.get("engagement_psychology", "").strip(),
-            "viral_mechanisms": parsed.get("viral_mechanisms", "").strip(),
-            "audience_psychology": parsed.get("audience_psychology", "").strip(),
-            "multimodal_insights": parsed.get("platform_psychology", "").strip(),
-            "engagement_triggers": parsed.get("engagement_psychology", "").strip(),
-            "improvement_opportunities": parsed.get("advanced_insights", "").strip(),
-            "viral_potential_factors": parsed.get("viral_mechanisms", "").strip(),
-            "replication_blueprint": parsed.get("replication_blueprint", "").strip()
+            # Maintain compatibility with existing template
+            "weaknesses": parsed.get("improvement_areas", ""),  # Map improvement_areas to weaknesses for template
+            "critical_assessment": parsed.get("analysis", ""),
+            "knowledge_context_used": bool(knowledge_context.strip()),
+            
+            # Calculate overall quality indicator
+            "overall_quality": "strong" if sum(scores.values()) / len(scores) >= 7 else "moderate" if sum(scores.values()) / len(scores) >= 5 else "needs_work"
         }
         
+        return result
+        
     except Exception as e:
-        print(f"Enhanced analysis error: {e}")
-        return None  # Return None so original analysis can be used
+        print(f"Analysis error: {e}")
+        return create_visual_enhanced_fallback(frames_summaries_text, {
+            'transcript': transcript_text,
+            'is_reliable': len(transcript_text.strip()) > 50
+        }, goal)
 
 
 # ==============================
@@ -861,18 +608,17 @@ def process():
             frames_summaries_text = "(Frame analysis failed)"
             gallery_data_urls = []
 
-    # --- Retrieve knowledge context for this transcript ---
+        # --- Retrieve knowledge context for this transcript ---
         try:
             rag_query = transcript_data.get('transcript', '') + "\n\n" + frames_summaries_text
             knowledge_context, knowledge_citations = retrieve_context(rag_query, top_k=8)
             print(f"Retrieved {len(knowledge_citations)} knowledge citations")
-
         except Exception as e:
             print(f"Knowledge retrieval error: {e}")
             knowledge_context = ""
             knowledge_citations = []
 
-        # --- Enhanced AI Analysis for visual content ---
+        # --- Main Analysis ---
         try:
             # Generate audio description if transcript is unreliable
             audio_description = None
@@ -891,8 +637,8 @@ def process():
             # Use inferred description or original transcript
             transcript_for_analysis = audio_description if audio_description else transcript_data['transcript']
             
-            # Run enhanced analysis (tries psychological first, falls back to comprehensive)
-            gpt_result = run_enhanced_gpt_analysis(
+            # Run main analysis
+            gpt_result = run_main_analysis(
                 transcript_for_analysis,
                 frames_summaries_text,
                 creator_note,
@@ -908,11 +654,12 @@ def process():
             gpt_result['visual_content_analysis'] = visual_content_analysis
             gpt_result['transcript_quality'] = transcript_data
             gpt_result['audio_description'] = audio_description
+            gpt_result['text_sync_analysis'] = analyze_text_synchronization(frames_summaries_text, transcript_data.get('transcript', ''))
             
-            print("Enhanced retention analysis complete")
+            print("Analysis complete")
             
         except Exception as e:
-            print(f"GPT analysis error: {e}")
+            print(f"Analysis error: {e}")
             gpt_result = create_visual_enhanced_fallback(
                 frames_summaries_text,
                 transcript_data,
@@ -930,9 +677,6 @@ def process():
         template_formula = gpt_result.get("template_formula", "")
         psychology_formula = gpt_result.get("psychology_formula", "")
         improvements = gpt_result.get("improvements", "")
-        video_description = gpt_result.get("video_description", "Video analysis")
-        content_patterns = gpt_result.get("content_patterns", {})
-        performance_data = gpt_result.get("performance_data", {})
         
         # Enhanced fields with safe defaults
         visual_content_analysis = gpt_result.get("visual_content_analysis", {})
@@ -940,25 +684,12 @@ def process():
         audio_description = gpt_result.get("audio_description", "")
         text_sync_analysis = gpt_result.get("text_sync_analysis", {})
         
-        # Enhanced psychological analysis fields with safe defaults
-        psychological_breakdown = gpt_result.get("psychological_breakdown", "")
-        hook_mechanics = gpt_result.get("hook_mechanics", "")
-        emotional_journey = gpt_result.get("emotional_journey", "")
-        authority_signals = gpt_result.get("authority_signals", "")
-        engagement_psychology = gpt_result.get("engagement_psychology", "")
-        viral_mechanisms = gpt_result.get("viral_mechanisms", "")
-        audience_psychology = gpt_result.get("audience_psychology", "")
-        replication_blueprint = gpt_result.get("replication_blueprint", "")
-        
-        # Rich analysis fields (available in both enhanced and original)
-        multimodal_insights = gpt_result.get("multimodal_insights", "")
-        engagement_triggers = gpt_result.get("engagement_triggers", "")
-        improvement_opportunities = gpt_result.get("improvement_opportunities", "")
-        viral_potential_factors = gpt_result.get("viral_potential_factors", "")
-        
-        # Update video description with enhanced analysis
-        if visual_content_analysis and visual_content_analysis.get('description'):
-            video_description = visual_content_analysis.get('description', video_description)
+        # Balanced analysis fields
+        strengths = gpt_result.get("strengths", "")
+        improvement_areas = gpt_result.get("improvement_areas", "")
+        knowledge_insights = gpt_result.get("knowledge_insights", "")
+        knowledge_context_used = gpt_result.get("knowledge_context_used", False)
+        overall_quality = gpt_result.get("overall_quality", "moderate")
         
         # Use enhanced transcript for analysis
         transcript_for_analysis = audio_description if audio_description else transcript_data.get('transcript', '')
@@ -975,12 +706,12 @@ def process():
         if not frame_summaries and frames_summaries_text:
             frame_summaries = [frames_summaries_text]
 
-        print("Rendering enhanced results template")
+        print("Rendering results template")
         return render_template(
             "results.html",
             tiktok_url=tiktok_url,
             creator_note=creator_note,
-            transcript=transcript_for_analysis,  # This will be the cleaned/inferred version
+            transcript=transcript_for_analysis,
             frame_summary=frames_summaries_text,
             frame_summaries=frame_summaries,
             frame_gallery=gallery_data_urls,
@@ -1008,9 +739,6 @@ def process():
             template_formula=template_formula,
             psychology_formula=psychology_formula,
             improvements=improvements,
-            video_description=video_description,
-            content_patterns=content_patterns,
-            performance_data=performance_data,
             
             # Enhanced fields
             visual_content_analysis=visual_content_analysis,
@@ -1020,23 +748,34 @@ def process():
             transcript_for_analysis=transcript_for_analysis,
             text_sync_analysis=text_sync_analysis,
             
-            # Enhanced psychological analysis fields
-            psychological_breakdown=psychological_breakdown,
-            hook_mechanics=hook_mechanics,
-            emotional_journey=emotional_journey,
-            authority_signals=authority_signals,
-            engagement_psychology=engagement_psychology,
-            viral_mechanisms=viral_mechanisms,
-            audience_psychology=audience_psychology,
-            replication_blueprint=replication_blueprint,
+            # Balanced analysis fields
+            strengths=strengths,
+            improvement_areas=improvement_areas,
+            knowledge_insights=knowledge_insights,
+            knowledge_context_used=knowledge_context_used,
+            overall_quality=overall_quality,
             
-            # Rich analysis fields (available in both modes)
-            multimodal_insights=multimodal_insights,
-            engagement_triggers=engagement_triggers,
-            improvement_opportunities=improvement_opportunities,
-            viral_potential_factors=viral_potential_factors,
+            # Compatibility fields for existing template
+            psychological_breakdown=analysis_text,
+            hook_mechanics=timing_breakdown,
+            emotional_journey=analysis_text,
+            authority_signals=strengths,
+            engagement_psychology=analysis_text,
+            viral_mechanisms=analysis_text,
+            audience_psychology=analysis_text,
+            replication_blueprint=basic_formula,
+            multimodal_insights=analysis_text,
+            engagement_triggers=analysis_text,
+            improvement_opportunities=improvement_areas,
+            viral_potential_factors=analysis_text,
+            video_description=visual_content_analysis.get('description', 'Video analysis'),
+            content_patterns={},
+            performance_data={},
+            performance_prediction=gpt_result.get("performance_prediction", ""),
+            weaknesses=gpt_result.get("improvement_areas", ""),
+            critical_assessment=analysis_text,
             
-            # Keep these for backward compatibility
+            # Keep for backward compatibility
             gpt_response=analysis_text
         )
 
@@ -1045,7 +784,7 @@ def process():
         import traceback
         traceback.print_exc()
         return f"Unexpected error: {str(e)}", 500
-    
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000, debug=True)
