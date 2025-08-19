@@ -680,7 +680,7 @@ Respond in valid JSON format with these exact keys:
 
 
 def run_enhanced_psychological_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context=""):
-    """Run the enhanced psychological analysis as an additional layer."""
+    ""Run the enhanced psychological analysis as an additional layer.""
     
     # Get all the existing analysis components
     patterns = detect_content_patterns(transcript_text, frames_summaries_text)
