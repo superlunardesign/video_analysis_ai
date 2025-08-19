@@ -235,8 +235,6 @@ def run_enhanced_gpt_analysis(transcript_text, frames_summaries_text, creator_no
                 transcript_text, frames_summaries_text, creator_note,
                 platform, target_duration, goal, tone, audience, knowledge_context
             )
-        
-
             
     except Exception as e:
         print(f"Enhanced analysis failed: {e}")
@@ -541,7 +539,7 @@ def create_visual_enhanced_fallback(frames_summaries_text, transcript_data, goal
 
 
 def create_enhanced_analysis_prompt(transcript_text, frames_summaries_text, creator_note, video_description, content_themes, goal, performance_data, performance_context, dual_engagement_note, text_sync_analysis):
-    ""Create a much more sophisticated analysis prompt that delivers richer insights.""
+    """Create a much more sophisticated analysis prompt that delivers richer insights."""
     
     # Detect specific niche and content type for targeted analysis
     niche_context = detect_specific_niche(transcript_text, frames_summaries_text)
@@ -571,118 +569,127 @@ GOAL: {goal} | PERFORMANCE: {performance_data.get('success_level', 'unknown')}
 {dual_engagement_note}
 {performance_context}
 
+FRAMEWORK FOR DEEP PSYCHOLOGICAL ANALYSIS
+Answer in a conversational tone while delivering clear, actionable insights. Focus on why the video works (or doesn’t) and how to replicate or improve its success. Avoid generic observations—every insight should be specific, practical, and rooted in human psychology.
 
-ANALYSIS FRAMEWORK:
-Analyze this video by combining both the spoken content (transcript) and visual elements (frames) to understand the full retention strategy:
+Please:
+    1. Describe clearly what happens in the video from start to finish.
+    2. Identify and categorize hooks: Text, Visual, Verbal.
+    3. Break down the content structure into a repeatable 'formula'.
+    4. Explain why this formula might work for {goal} (viral reach, follower growth, or sales).
+    5. Give actionable insights for someone adapting this style for their own niche.
 
-1. HOOK ANALYSIS (0-3 seconds):
-   - How do the opening words work with the visual presentation?
-   - Does the on-screen text reinforce or contradict the verbal hook?
-   - Are there visual pattern interrupts (gestures, movements, graphics)?
-   - Combined hook effectiveness: Does audio + visual create stronger curiosity?
 
-2. PROMISE IDENTIFICATION (3-7 seconds):
-   - What promise is made verbally vs. visually?
-   - Do the frames show setup for what's promised in speech?
-   - Is there visual foreshadowing of the payoff?
-   - How well aligned are the words and visuals in setting expectations?
+1. HOOK PSYCHOLOGY DECONSTRUCTION
+-What specific psychological trigger does the opening use? (Curiosity gap, pattern interrupt, transformation promise, controversy, social proof)
+-How does the opening work psychologically? Break down each word or visual element and its impact.
+-What deeper emotional need does this tap into? (Confidence, control, transformation, belonging)
+-Why is this phrasing or visual effective for this audience vs generic alternatives?
 
-3. RETENTION MECHANICS:
-   - Story progression: How do visuals support the narrative flow?
-   - Engagement elements: Eye contact, expressions, gestures that drive comments
-   - Visual variety: Do frame changes maintain interest during speech?
-   - Pacing alignment: Do visual cuts match verbal rhythm and emphasis?
-   - Satisfying processes: Are there repetitive, satisfying activities that retain attention?
+2. PROMISE STRUCTURE ANALYSIS
+-What’s the explicit promise vs the implicit emotional payoff?
+-How does the promise create “must-watch” psychology?
+-What anticipation loops are created, and how are they resolved?
+-How does the promise align with the audience’s deepest desires or pain points?
 
-4. PAYOFF DELIVERY:
-   - Does the visual reveal align with the verbal conclusion?
-   - Are key moments emphasized both verbally and visually?
-   - Is the satisfaction delivered through words, visuals, or both?
+3. RETENTION MECHANISM DEEP DIVE:
+- VISUAL SATISFACTION: What makes the process visually addictive? (completion, precision, transformation)
+- DUAL ENGAGEMENT: How do satisfying visuals work WITH verbal content?
+- TEXT COORDINATION: How do on-screen graphics enhance or compete with spoken content?
+- PACING PSYCHOLOGY: How does the timing of information release or create dopamine hits?
+- SOCIAL PROOF SIGNALS: What authority/credibility markers are embedded?
 
-5. MULTIMODAL HOOKS (analyze combinations):
-   - Text overlays + speech content
-   - Facial expressions + verbal tone
-   - Visual demonstrations + explanations
-   - Environmental changes + narrative progression
+4. EMOTIONAL ARCHITECTURE:
+- What emotional journey does the viewer experience? (Map second by second)
+- How does the creator make viewers feel about THEMSELVES?
+- What aspirational identity is triggered?
+- How does this content make viewers feel seen, understood, or validated?
 
-HOOK GENERATION RULES:
-Generate 5 alternative hooks that sound natural and platform-native:
+5. PLATFORM-NATIVE COMMUNICATION:
+- Why does this content feel authentically TikTok (or platform-specific) vs scripted?
+- What vocabulary, energy, or tone choices build trust?
+- How does casualness enhance authority rather than diminish it?
+- What makes this shareable in authentic peer-to-peer conversations?
 
-TONE REQUIREMENTS:
-- Use conversational, casual language (not marketing speak)
-- Match the energy and vocabulary of the original video
-- Sound like something a real person would actually say on TikTok
-- Be specific to the actual topic/niche, not generic
+6. REPLICATION BLUEPRINT:
+- What are the exact structural elements that must be preserved to replicate success?
+- Which surface elements (visuals, tone, pacing) can be varied to increase viewer retention while keeping the psychology intact?
+- How do timing, energy, and delivery impact effectiveness?
+- What would break the formula if changed?
 
-AVOID THESE AI-SOUNDING PHRASES:
-- "Discover the secret to..."
-- "Unlock your potential..." 
-- "Transform your life with..."
-- "The one trick that..."
-- "You won't believe what happens when..."
-- "Game-changing technique"
-- "Revolutionary method"
+7. ADVANCED ENGAGEMENT PSYCHOLOGY:
+- Comment triggers: What specific elements make people want to engage?
+- Save psychology: What makes this feel valuable enough to save for later and return to?
+- Share motivation: Why would someone send this to a friend or repost it?
+- Follow logic: What convinces viewers this creator has more value to offer?
 
-INSTEAD USE NATURAL LANGUAGE PATTERNS:
-- "wait this actually works"
-- "nobody talks about this but..."
-- "I tried this for [timeframe] and..."
-- "my [relationship/job/etc] changed when I..."
-- "this sounds fake but..."
-- "POV: you just found out..."
-- "telling my [person] that I..."
-- "the day I accidentally..."
-- "why [common thing] is actually..."
+HOOK GENERATION REQUIREMENTS:
+Generate 5 hooks that capture the SAME psychological mechanics but from different angles:
 
-HOOK TYPES TO CONSIDER:
-- Personal story openings with unexpected twists
-- Controversial opinions about common beliefs
-- Behind-the-scenes revelations
-- Mistake/failure stories with lessons
-- Comparison setups that subvert expectations
+-Maintain the exact emotional trigger (confidence, transformation, curiosity).
+-Preserve the specificity that creates curiosity.
+-Keep the personal stakes and transformation promise.
+-Sound like authentic peer communication, NOT marketing copy.
 
-SCORING (1-10 scale):
-- Hook Strength: How compelling is the audio+visual opening combination?
-- Promise Clarity: How clear is the expected payoff across both channels?
-- Retention Design: How well do visuals and audio work together for watch-through?
-- Engagement Potential: Will the combination drive comments/shares?
-- Goal Alignment: How well does the full experience serve {goal}?
+PSYCHOLOGICAL FIDELITY RULES:
+- Maintain the EXACT emotional trigger (confidence/transformation)
+- Preserve the specificity that creates curiosity
+- Keep the personal stakes and transformation promise
+- Sound like authentic peer communication, NOT marketing copy
 
-Focus on how the transcript and visuals work together (or against each other) to create the retention experience. Look for moments where:
-- Visual and verbal hooks reinforce each other
-- Misalignment between what's said vs. shown
-- Visual elements that enhance or detract from the verbal message
-- Opportunities to better synchronize audio and visual retention tactics
+AVOID THESE MARKETING-SPEAK PATTERNS:
+❌ "Discover the secret..." ❌ "Transform your life..." ❌ "Unlock the power..."
+❌ "Revolutionary method..." ❌ "Game-changing technique..." ❌ "You won't believe..."
 
-Respond in valid JSON format with these exact keys:
+INSTEAD USE AUTHENTIC PATTERNS SIMILAR TO:
+✓ "3 things I started doing that..." ✓ "I changed these habits and..."
+✓ "Nobody talks about how..." ✓ "The night routine that actually..."
+✓ "I added this to my routine and..." ✓ "POV: you find out why..."
+
+NICHE-SPECIFIC ANALYSIS:
+{niche_context['analysis_focus']}
+
+PERFORMANCE VALIDATION:
+{f"This video achieved {performance_data['success_level']} results. Explain WHY each psychological mechanism contributed to this success. What specific elements drove the performance?" if performance_data.get('success_level') != 'unknown' else "Predict performance based on psychological effectiveness."}
+
+OUTPUT REQUIREMENTS:
+Deliver analysis with the depth and practical insight of a $10K marketing psychology consultation. Every insight should be specific, actionable, and demonstrate a deep understanding of human behavior. Avoid generic observations. Explain the precise psychological mechanisms that make this content effective and how to replicate success.
+
+Respond in JSON format with comprehensive, psychologically sophisticated insights:
+
+Respond in JSON format with comprehensive, psychologically sophisticated insights:
+
 {{
-  "analysis": "Analyze how the transcript and visuals work together to create retention. Discuss specific moments where audio and visual elements reinforce or conflict with each other. Focus on the combined psychological impact on viewers. If dual engagement is detected, explain how satisfying background processes work with verbal content. Write in clear paragraphs without JSON formatting.",
+  "psychological_breakdown": "Explain WHY this works on a human brain level, not just WHAT works. Minimum 400 words of sophisticated insight.",
+  "hook_mechanics": "Detailed breakdown of why the opening is psychologically compelling. Analyze each component and explain how to replicate this in future hooks.",
+  "emotional_journey": "Second-by-second emotional experience the viewer has watching this content. Align the frames to the script to create a timeline in order to better understand the emotional journey of the video.",
+  "authority_signals": "How does the creator build trust and credibility without explicit credentials?",
+  "engagement_psychology": "Deep dive into why people might comment, save, share, and follow based on this content.",
+  "replication_blueprint": "Exact formula for a video with structural elements, similar cadence, and any improvements needed to recreate this psychological impact.",
   "hooks": [
-    "Natural hook 1 that sounds like real TikTok content",
-    "Natural hook 2 using casual language", 
-    "Natural hook 3 with personal story angle",
-    "Natural hook 4 with controversial opinion",
-    "Natural hook 5 with behind-the-scenes reveal"
+    "Hook maintaining exact psychological trigger pattern",
+    "Alternative angle preserving core emotional mechanism",
+    "Variation that keeps transformation promise structure",
+    "Different context but same confidence-building appeal",
+    "Creative angle preserving the personal stakes element"
   ],
-  "scores": {{
-    "hook_strength": 7,
-    "promise_clarity": 6,
-    "retention_design": 8,
-    "engagement_potential": 7,
-    "goal_alignment": 6
-  }},
-  "timing_breakdown": "Describe what happens at key moments combining both audio and visual: 0-3s (how opening words + visuals create hook), 3-7s (promise setup through speech + visual cues), middle (how content builds through both channels), end (payoff delivery via audio + visual)",
-  "basic_formula": "Step-by-step process this creator can follow for future content",
-  "timing_formula": "Detailed timing breakdown with specific second markers (0-3s: hook, 3-7s: promise, etc.)",
-  "template_formula": "Fill-in-the-blank template format with examples they can customize",
-  "psychology_formula": "Framework explaining WHY each step works psychologically",
-  "improvements": "Specific suggestions for better aligning transcript and visuals, enhancing multimodal retention, and optimizing the audio-visual experience for {goal}"
+  "timing_psychology": "How the pacing and information release creates psychological retention. Align the frames to the script to create a timeline in order to better understand the emotional journey of the video.",
+  "platform_psychology": "Why this content feels native to TikTok and builds authentic connection and how to replicate this.",
+  "viral_mechanisms": "Specific elements that increase watch time, keep viewers hooked, drive sharing, and algorithmic amplification.",
+  "audience_psychology": "How this content makes the target audience feel seen and understood and compelled to follow, purchase, or share.",
+  "performance_analysis": "Psychological explanation for why this achieved {performance_data.get('success_level', 'strong')} results.",
+  "advanced_insights": "Expert-level observations about how this piece of content demonstrates human psychology and content effectiveness and ways it could improve."
+}}
+
+
+Focus on psychological sophistication over surface-level observations. Every insight should demonstrate deep understanding of human behavior and viral content psychology.
+"""
     
     return prompt
 
 
 def run_enhanced_psychological_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context=""):
-    """Run the enhanced psychological analysis..."""
+    """Run the enhanced psychological analysis as an additional layer."""
     
     # Get all the existing analysis components
     patterns = detect_content_patterns(transcript_text, frames_summaries_text)
@@ -694,12 +701,12 @@ def run_enhanced_psychological_analysis(transcript_text, frames_summaries_text, 
     # Build performance context
     performance_context = ""
     if performance_data['success_level'] != "unknown":
-        performance_context = f""
+        performance_context = f"""
 PERFORMANCE CONTEXT:
 This video achieved: {', '.join(performance_data['success_reasons'])}
 Success Level: {performance_data['success_level']}
 Use this performance data to validate your analysis - explain WHY this video achieved this level of success based on psychological mechanisms.
-        ""
+        """
     
     # Build dual engagement note
     dual_engagement_note = ""
