@@ -235,6 +235,8 @@ def run_enhanced_gpt_analysis(transcript_text, frames_summaries_text, creator_no
                 transcript_text, frames_summaries_text, creator_note,
                 platform, target_duration, goal, tone, audience, knowledge_context
             )
+        
+
             
     except Exception as e:
         print(f"Enhanced analysis failed: {e}")
@@ -539,7 +541,7 @@ def create_visual_enhanced_fallback(frames_summaries_text, transcript_data, goal
 
 
 def create_enhanced_analysis_prompt(transcript_text, frames_summaries_text, creator_note, video_description, content_themes, goal, performance_data, performance_context, dual_engagement_note, text_sync_analysis):
-    """Create a much more sophisticated analysis prompt that delivers richer insights."""
+    ""Create a much more sophisticated analysis prompt that delivers richer insights.""
     
     # Detect specific niche and content type for targeted analysis
     niche_context = detect_specific_niche(transcript_text, frames_summaries_text)
@@ -680,7 +682,7 @@ Respond in valid JSON format with these exact keys:
 
 
 def run_enhanced_psychological_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context=""):
-    ""Run the enhanced psychological analysis as an additional layer.""
+    """Run the enhanced psychological analysis..."""
     
     # Get all the existing analysis components
     patterns = detect_content_patterns(transcript_text, frames_summaries_text)
