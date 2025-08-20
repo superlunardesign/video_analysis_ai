@@ -766,18 +766,10 @@ def process():
         print(f"Strategy: {strategy}, Goal: {goal}")
 
         # --- Enhanced Video processing with better frame distribution ---
-        try:
-            audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
-                tiktok_url,
-                strategy=strategy,
-                frames_per_minute=frames_per_minute,
-                cap=cap,
-                scene_threshold=scene_threshold,
-            )
-            print(f"Extracted {len(frame_paths)} frames with improved distribution")
-        except Exception as e:
-            print(f"Video processing error: {e}")
-            return f"Error processing video: {str(e)}", 500
+def enhanced_extract_audio_and_frames(tiktok_url, strategy="smart", frames_per_minute=24, cap=60, scene_threshold=0.24):
+    """Enhanced version of extract_audio_and_frames with better distribution."""
+    # For now, use the original function - you can enhance this later
+    return extract_audio_and_frames(tiktok_url, strategy, frames_per_minute, cap, scene_threshold)
 
         # --- Enhanced Transcription with quality analysis ---
         try:
