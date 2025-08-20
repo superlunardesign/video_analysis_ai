@@ -31,6 +31,31 @@ app = Flask(__name__)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=600.0)
 
 
+def validate_dependencies():
+    """Check if all required dependencies are available"""
+    missing_deps = []
+    
+    try:
+        import PyPDF2
+    except ImportError:
+        missing_deps.append("PyPDF2 (for PDF processing)")
+    
+    try:
+        from openai import OpenAI
+    except ImportError:
+        missing_deps.append("openai")
+    
+    # Check if required environment variables are set
+    if not os.getenv("OPENAI_API_KEY"):
+        missing_deps.append("OPENAI_API_KEY environment variable")
+    
+    if missing_deps:
+        print(f"WARNING: Missing dependencies: {', '.join(missing_deps)}")
+        print("Some features may not work properly.")
+    
+    return len(missing_deps) == 0
+
+
 def _api_retry(callable_fn, *args, **kwargs):
     max_tries = 4
     base = 1.25
@@ -64,6 +89,11 @@ def parse_knowledge_folder(knowledge_path="knowledge"):
         
         for filename in os.listdir(knowledge_path):
             file_path = os.path.join(knowledge_path, filename)
+            
+            # Security check - ensure we're not accessing files outside the folder
+            if not os.path.abspath(file_path).startswith(os.path.abspath(knowledge_path)):
+                print(f"[SECURITY] Skipping file outside knowledge folder: {filename}")
+                continue
             
             try:
                 if filename.lower().endswith('.txt'):
@@ -129,83 +159,138 @@ def parse_knowledge_folder(knowledge_path="knowledge"):
         return ""
 
 
-def get_knowledge_context():
-    """Get knowledge context from direct file parsing first, then RAG fallback"""
+def get_knowledge_context_robust():
+    """More robust knowledge context loading with better fallbacks"""
+    knowledge_content = ""
+    knowledge_citations = []
     
-    # ALWAYS try direct file parsing first
-    print("[INFO] Attempting direct file parsing of /knowledge folder...")
-    knowledge_content = parse_knowledge_folder("knowledge")
-    
-    if len(knowledge_content) > 500:  # Got meaningful content from files
-        print(f"[SUCCESS] Direct parsing loaded {len(knowledge_content)} characters")
-        return knowledge_content, ["Direct file parsing from /knowledge folder"]
-    
-    # If no files found, try retrieve_all_context (which seems to work based on your logs)
-    print("[FALLBACK] No files found, trying retrieve_all_context...")
+    # Try direct file parsing first
     try:
+        print("[INFO] Attempting direct file parsing...")
+        knowledge_content = parse_knowledge_folder("knowledge")
+        if len(knowledge_content) > 500:
+            knowledge_citations = ["Direct file parsing from /knowledge folder"]
+            print(f"[SUCCESS] Direct parsing: {len(knowledge_content)} chars")
+            return knowledge_content, knowledge_citations
+    except Exception as e:
+        print(f"[ERROR] Direct file parsing failed: {e}")
+    
+    # Try RAG retrieval
+    try:
+        print("[INFO] Trying RAG retrieval...")
         all_context = retrieve_all_context()
         if all_context and len(str(all_context)) > 500:
-            content = str(all_context)
-            print(f"[SUCCESS] retrieve_all_context loaded {len(content)} characters")
-            # Truncate if too long
-            if len(content) > 15000:
-                content = content[:15000] + "\n\n[Content truncated...]"
-            return content, ["Retrieved from full knowledge base"]
+            knowledge_content = str(all_context)[:15000]
+            knowledge_citations = ["Retrieved from full knowledge base"]
+            print(f"[SUCCESS] RAG retrieval: {len(knowledge_content)} chars")
+            return knowledge_content, knowledge_citations
     except Exception as e:
-        print(f"[ERROR] retrieve_all_context failed: {e}")
+        print(f"[ERROR] RAG retrieval failed: {e}")
     
-    # Final fallback to enhanced patterns
-    print("[FALLBACK] Using enhanced fallback knowledge patterns")
-    return """
-PROVEN VIRAL CONTENT PATTERNS (ENHANCED FALLBACK):
+    # Enhanced fallback with more specific patterns
+    print("[FALLBACK] Using enhanced fallback patterns")
+    knowledge_content = """
+PROVEN VIRAL CONTENT ANALYSIS PATTERNS:
 
-HOOK ANALYSIS FOR LOW-PERFORMING CONTENT:
-Current video hook: "You spent over the project proposal, thought it was your best yet..."
-Problem: This hook lacks immediate emotional stakes and curiosity gap
+PERFORMANCE DIAGNOSIS FOR UNDERPERFORMING CONTENT:
+- Videos with <1K views typically have hook problems (weak first 3 seconds)
+- Videos with 1K-10K views often have retention issues (weak middle content)
+- Videos with >10K but <100K often have weak call-to-action or shareability
 
-HIGH-PERFORMING HOOK PATTERNS:
-- "POV: you just discovered..." (creates immediate curiosity)
-- "Nobody talks about how..." (controversial angle)
-- "I tried this for 30 days and..." (transformation promise)
-- "The real reason why..." (insider knowledge)
-- "This is why you're failing at..." (direct challenge)
+HOOK STRENGTH INDICATORS:
+HIGH-PERFORMING (8-10/10):
+- Immediate controversy: "Everyone's doing X wrong..."
+- Personal transformation: "This changed everything for me..."
+- Exclusive insight: "Industry secret they don't want you to know..."
+- Pattern interrupt: Visual or auditory surprise in first 2 seconds
 
-LOW-PERFORMING PATTERNS (like analyzed video):
-- Starting with mundane actions ("You spent over...")
-- No immediate personal stakes for viewer
-- Weak curiosity gap or pattern interrupt
-- Business advice without emotional hook
+LOW-PERFORMING (1-4/10):
+- Generic openings: "Today I'm going to show you..."
+- No immediate stakes: "You spent time on [mundane task]..."
+- Weak curiosity: "Here's a tip..." without compelling reason to care
+- No pattern interrupt or stopping power
 
-RETENTION KILLERS:
-- Slow openings that don't grab attention in first 3 seconds
-- Generic business advice without personal transformation
-- Background activities that don't enhance the message
-- No clear promise of value or revelation
+RETENTION DESIGN PATTERNS:
+- Quick cuts every 2-3 seconds (visual variety)
+- Tension building toward payoff/revelation
+- Progress indicators ("Step 1 of 3...")
+- Visual or narrative callbacks to opening hook
 
-VIRAL IMPROVEMENT STRATEGIES:
-- Lead with controversial opinion or surprising revelation
-- Create immediate tension: "If you're doing X, you're failing because..."
-- Promise specific transformation: "How I went from ghosted to booked"
-- Use pattern interrupts: sudden movement, controversial statements
-- Build curiosity gaps that demand resolution
+ENGAGEMENT PSYCHOLOGY:
+- Controversy drives comments (but avoid offensive content)
+- Transformation content gets saves
+- Behind-the-scenes gets shares
+- Educational content with personality gets follows
 
-ALGORITHM FACTORS:
-- First 3 seconds determine 60% of retention
-- Comment rate in first hour affects reach
-- Watch time >50% triggers recommendation engine
-- Visual variety every 2-3 seconds increases retention
+SCORING CALIBRATION FOR REALISTIC ASSESSMENT:
+For underperforming content (<500 views):
+- Hook Strength: Often 3-5/10 (lacks stopping power)
+- Promise Clarity: Often 4-6/10 (unclear value proposition)  
+- Retention Design: Often 4-7/10 (depends on pacing)
+- Engagement Potential: Often 2-4/10 (low shareability)
+- Goal Alignment: Often 3-5/10 (not optimized for stated goal)
 
-SCORING CALIBRATION:
-For content with <300 views:
-- Hook Strength: Likely 3-5/10 (lacks stopping power)
-- Promise Clarity: Likely 4-6/10 (unclear value proposition)  
-- Retention Design: Likely 4-7/10 (depends on pacing)
-- Engagement Potential: Likely 2-4/10 (low shareability)
-- Goal Alignment: Likely 3-5/10 (not optimized for viral reach)
-""", ["Enhanced fallback with performance-based patterns"]
-    """Enhanced version of extract_audio_and_frames with better distribution."""
-    # For now, use the original function - you can enhance this later
-    return extract_audio_and_frames(tiktok_url, strategy, frames_per_minute, cap, scene_threshold)
+For strong performing content (>100K views):
+- Hook Strength: Usually 7-10/10 (immediate attention grab)
+- Promise Clarity: Usually 7-9/10 (clear compelling promise)
+- Retention Design: Usually 7-10/10 (excellent pacing and payoffs)
+- Engagement Potential: Usually 6-9/10 (drives interaction)
+- Goal Alignment: Usually 7-10/10 (serves stated goal effectively)
+"""
+    knowledge_citations = ["Enhanced performance-based fallback patterns"]
+    
+    return knowledge_content, knowledge_citations
+
+
+def get_knowledge_context():
+    """Get knowledge context from direct file parsing first, then RAG fallback"""
+    return get_knowledge_context_robust()
+
+
+def enhanced_extract_audio_and_frames(tiktok_url, strategy, frames_per_minute, cap, scene_threshold):
+    """Enhanced version of extract_audio_and_frames with better distribution and validation."""
+    try:
+        print(f"[INFO] Starting enhanced extraction for {tiktok_url}")
+        
+        # Call original function first
+        audio_path, frames_dir, frame_paths = extract_audio_and_frames(
+            tiktok_url, strategy, frames_per_minute, cap, scene_threshold
+        )
+        
+        # Validate audio extraction
+        if not audio_path or not os.path.exists(audio_path):
+            raise ValueError("Audio extraction failed - no audio file created")
+        
+        audio_size = os.path.getsize(audio_path)
+        if audio_size < 1024:  # Less than 1KB suggests failure
+            raise ValueError(f"Audio file too small ({audio_size} bytes) - extraction likely failed")
+        
+        # Validate frame extraction
+        if not frame_paths or len(frame_paths) == 0:
+            raise ValueError("Frame extraction failed - no frames created")
+        
+        # Validate frame files exist and are readable
+        valid_frames = []
+        for fp in frame_paths:
+            if os.path.exists(fp) and os.path.getsize(fp) > 1024:  # Basic size check
+                valid_frames.append(fp)
+            else:
+                print(f"[WARNING] Frame file missing or too small: {fp}")
+        
+        if len(valid_frames) == 0:
+            raise ValueError("No valid frame files found")
+        
+        if len(valid_frames) != len(frame_paths):
+            print(f"[WARNING] {len(frame_paths) - len(valid_frames)} frame files were invalid")
+        
+        print(f"[SUCCESS] Enhanced extraction complete: audio + {len(valid_frames)} frames")
+        return audio_path, frames_dir, valid_frames
+        
+    except Exception as e:
+        print(f"[ERROR] Enhanced extraction failed: {e}")
+        import traceback
+        traceback.print_exc()
+        raise e
 
 
 def enhanced_transcribe_audio(audio_path):
@@ -217,7 +302,7 @@ def enhanced_transcribe_audio(audio_path):
         # Analyze transcript quality
         if not transcript or len(transcript.strip()) < 10:
             return {
-                'transcript': transcript,
+                'transcript': transcript if transcript else "",
                 'quality': 'poor',
                 'quality_reason': 'Transcript too short or empty',
                 'is_reliable': False
@@ -237,7 +322,7 @@ def enhanced_transcribe_audio(audio_path):
             }
         
         # Check for repetitive/nonsense content
-        if len(set(words)) < len(words) * 0.3:  # Too many repeated words
+        if len(words) > 0 and len(set(words)) < len(words) * 0.3:  # Too many repeated words
             return {
                 'transcript': transcript,
                 'quality': 'poor',
@@ -253,6 +338,7 @@ def enhanced_transcribe_audio(audio_path):
         }
         
     except Exception as e:
+        print(f"[ERROR] Transcription error: {e}")
         return {
             'transcript': f"(Transcription error: {str(e)})",
             'quality': 'error',
@@ -265,15 +351,25 @@ def generate_inferred_audio_description(frames_summaries_text, transcript_qualit
     """Generate inferred audio description for visual content."""
     try:
         # Analyze the visual content to infer what might be happening
-        if 'drawing' in frames_summaries_text.lower() or 'art' in frames_summaries_text.lower():
+        frames_lower = frames_summaries_text.lower()
+        
+        if 'drawing' in frames_lower or 'art' in frames_lower or 'sketch' in frames_lower:
             return "Creative process video with drawing/artistic elements. Likely contains ambient drawing sounds, paper rustling, or background music."
-        elif 'skincare' in frames_summaries_text.lower() or 'routine' in frames_summaries_text.lower():
+        elif 'skincare' in frames_lower or 'routine' in frames_lower or 'makeup' in frames_lower:
             return "Personal care routine video. Likely contains ambient sounds of product application, water, or soft background music."
-        elif 'cooking' in frames_summaries_text.lower() or 'kitchen' in frames_summaries_text.lower():
+        elif 'cooking' in frames_lower or 'kitchen' in frames_lower or 'recipe' in frames_lower:
             return "Cooking/food preparation video. Likely contains kitchen sounds, sizzling, chopping, or cooking ambient audio."
+        elif 'workout' in frames_lower or 'exercise' in frames_lower or 'fitness' in frames_lower:
+            return "Fitness/workout video. Likely contains exercise sounds, breathing, or motivational background music."
+        elif 'dance' in frames_lower or 'dancing' in frames_lower:
+            return "Dance video. Likely contains music and movement sounds."
+        elif 'transformation' in frames_lower or 'before' in frames_lower and 'after' in frames_lower:
+            return "Transformation video. Likely contains process sounds and background music."
         else:
-            return f"Visual content video with ambient audio. {transcript_quality_info[1] if len(transcript_quality_info) > 1 else 'No clear speech detected.'}"
-    except:
+            quality_reason = transcript_quality_info[1] if len(transcript_quality_info) > 1 else 'No clear speech detected.'
+            return f"Visual content video with ambient audio. {quality_reason}"
+    except Exception as e:
+        print(f"[ERROR] Audio description generation failed: {e}")
         return "Visual content with ambient audio track."
 
 
@@ -282,18 +378,24 @@ def create_visual_content_description(frames_summaries_text, audio_description=N
     try:
         description = f"Visual analysis: {frames_summaries_text[:200]}..."
         
-        # Determine content type
+        # Determine content type based on visual content
+        frames_lower = frames_summaries_text.lower()
         content_type = 'general'
-        if 'drawing' in frames_summaries_text.lower():
+        
+        if 'drawing' in frames_lower or 'art' in frames_lower:
             content_type = 'visual_process'
-        elif 'transformation' in frames_summaries_text.lower():
+        elif 'transformation' in frames_lower or 'before' in frames_lower:
             content_type = 'transformation'
-        elif 'routine' in frames_summaries_text.lower():
+        elif 'routine' in frames_lower or 'skincare' in frames_lower:
             content_type = 'routine'
+        elif 'dance' in frames_lower or 'dancing' in frames_lower:
+            content_type = 'performance'
+        elif 'cooking' in frames_lower or 'recipe' in frames_lower:
+            content_type = 'tutorial'
         
         # Analyze satisfaction potential
-        satisfaction_indicators = ['completion', 'finish', 'result', 'final', 'transform']
-        highly_satisfying = any(word in frames_summaries_text.lower() for word in satisfaction_indicators)
+        satisfaction_indicators = ['completion', 'finish', 'result', 'final', 'transform', 'reveal', 'outcome']
+        highly_satisfying = any(word in frames_lower for word in satisfaction_indicators)
         
         return {
             'description': description,
@@ -301,173 +403,362 @@ def create_visual_content_description(frames_summaries_text, audio_description=N
             'has_strong_visual_narrative': len(frames_summaries_text) > 200,
             'satisfaction_analysis': {
                 'highly_satisfying': highly_satisfying,
-                'completion_elements': satisfaction_indicators
+                'completion_elements': [word for word in satisfaction_indicators if word in frames_lower]
             }
         }
-    except:
+    except Exception as e:
+        print(f"[ERROR] Visual content description failed: {e}")
         return {
             'description': "Visual content analysis",
             'content_type': 'general',
             'has_strong_visual_narrative': False,
-            'satisfaction_analysis': {'highly_satisfying': False}
+            'satisfaction_analysis': {'highly_satisfying': False, 'completion_elements': []}
         }
 
 
 def analyze_text_synchronization(frames_summaries_text, transcript_text, frame_timestamps=None):
     """Distinguish between on-screen text (graphics/overlays) and spoken captions."""
     
-    # Extract text mentions from frame analysis
-    frame_texts = []
-    frames_blocks = frames_summaries_text.split('\n\n')
-    
-    for i, block in enumerate(frames_blocks):
-        if 'text' in block.lower() or 'overlay' in block.lower() or 'caption' in block.lower():
-            # Extract potential text content
-            text_patterns = [
-                r'"([^"]+)"',  # Text in quotes
-                r'text[:\s]+([^\n.]+)',  # Text following "text:"
-                r'overlay[:\s]+([^\n.]+)',  # Text following "overlay:"
-                r'caption[:\s]+([^\n.]+)',  # Text following "caption:"
-                r'reads[:\s]+([^\n.]+)',  # Text following "reads:"
-                r'says[:\s]+([^\n.]+)',  # Text following "says:"
-            ]
-            
-            extracted_texts = []
-            for pattern in text_patterns:
-                matches = re.findall(pattern, block, re.IGNORECASE)
-                extracted_texts.extend([match.strip() for match in matches])
-            
-            if extracted_texts:
-                timestamp = frame_timestamps[i] if frame_timestamps and i < len(frame_timestamps) else i * 2  # Assume 2s intervals
-                frame_texts.append({
-                    'timestamp': timestamp,
-                    'texts': extracted_texts,
-                    'frame_block': block
-                })
-    
-    # Analyze synchronization with transcript
-    transcript_words = transcript_text.lower().split()
-    
-    synchronized_texts = []
-    onscreen_graphics = []
-    
-    for frame_text_data in frame_texts:
-        timestamp = frame_text_data['timestamp']
-        texts = frame_text_data['texts']
+    try:
+        # Extract text mentions from frame analysis
+        frame_texts = []
+        frames_blocks = frames_summaries_text.split('\n\n')
         
-        for text in texts:
-            text_lower = text.lower()
+        for i, block in enumerate(frames_blocks):
+            if 'text' in block.lower() or 'overlay' in block.lower() or 'caption' in block.lower():
+                # Extract potential text content
+                text_patterns = [
+                    r'"([^"]+)"',  # Text in quotes
+                    r'text[:\s]+([^\n.]+)',  # Text following "text:"
+                    r'overlay[:\s]+([^\n.]+)',  # Text following "overlay:"
+                    r'caption[:\s]+([^\n.]+)',  # Text following "caption:"
+                    r'reads[:\s]+([^\n.]+)',  # Text following "reads:"
+                    r'says[:\s]+([^\n.]+)',  # Text following "says:"
+                ]
+                
+                extracted_texts = []
+                for pattern in text_patterns:
+                    matches = re.findall(pattern, block, re.IGNORECASE)
+                    extracted_texts.extend([match.strip() for match in matches if match.strip()])
+                
+                if extracted_texts:
+                    timestamp = frame_timestamps[i] if frame_timestamps and i < len(frame_timestamps) else i * 2  # Assume 2s intervals
+                    frame_texts.append({
+                        'timestamp': timestamp,
+                        'texts': extracted_texts,
+                        'frame_block': block
+                    })
+        
+        # Analyze synchronization with transcript
+        transcript_words = transcript_text.lower().split()
+        
+        synchronized_texts = []
+        onscreen_graphics = []
+        
+        for frame_text_data in frame_texts:
+            timestamp = frame_text_data['timestamp']
+            texts = frame_text_data['texts']
             
-            # Check if this text appears in the transcript
-            text_words = text_lower.split()
-            
-            # Calculate similarity to transcript
-            matching_words = sum(1 for word in text_words if word in transcript_words)
-            similarity_ratio = matching_words / len(text_words) if text_words else 0
-            
-            # Classify as synchronized caption vs on-screen graphic
-            if similarity_ratio > 0.7 and len(text_words) > 2:
-                synchronized_texts.append({
-                    'text': text,
-                    'timestamp': timestamp,
-                    'type': 'caption',
-                    'similarity': similarity_ratio
-                })
-            else:
-                onscreen_graphics.append({
-                    'text': text,
-                    'timestamp': timestamp,
-                    'type': 'graphic',
-                    'similarity': similarity_ratio
-                })
-    
-    return {
-        'synchronized_captions': synchronized_texts,
-        'onscreen_graphics': onscreen_graphics,
-        'has_graphics': len(onscreen_graphics) > 0,
-        'has_captions': len(synchronized_texts) > 0,
-        'text_analysis_summary': f"Found {len(synchronized_texts)} synchronized captions and {len(onscreen_graphics)} on-screen graphics"
-    }
+            for text in texts:
+                text_lower = text.lower()
+                
+                # Check if this text appears in the transcript
+                text_words = text_lower.split()
+                
+                if not text_words:
+                    continue
+                
+                # Calculate similarity to transcript
+                matching_words = sum(1 for word in text_words if word in transcript_words)
+                similarity_ratio = matching_words / len(text_words)
+                
+                # Classify as synchronized caption vs on-screen graphic
+                if similarity_ratio > 0.7 and len(text_words) > 2:
+                    synchronized_texts.append({
+                        'text': text,
+                        'timestamp': timestamp,
+                        'type': 'caption',
+                        'similarity': similarity_ratio
+                    })
+                else:
+                    onscreen_graphics.append({
+                        'text': text,
+                        'timestamp': timestamp,
+                        'type': 'graphic',
+                        'similarity': similarity_ratio
+                    })
+        
+        return {
+            'synchronized_captions': synchronized_texts,
+            'onscreen_graphics': onscreen_graphics,
+            'has_graphics': len(onscreen_graphics) > 0,
+            'has_captions': len(synchronized_texts) > 0,
+            'text_analysis_summary': f"Found {len(synchronized_texts)} synchronized captions and {len(onscreen_graphics)} on-screen graphics"
+        }
+        
+    except Exception as e:
+        print(f"[ERROR] Text synchronization analysis failed: {e}")
+        return {
+            'synchronized_captions': [],
+            'onscreen_graphics': [],
+            'has_graphics': False,
+            'has_captions': False,
+            'text_analysis_summary': "Text analysis failed"
+        }
 
 
 def create_visual_enhanced_fallback(frames_summaries_text, transcript_data, goal):
     """Enhanced fallback for when GPT analysis fails on visual content."""
     
-    visual_analysis = create_visual_content_description(frames_summaries_text, None)
-    text_sync_analysis = analyze_text_synchronization(frames_summaries_text, transcript_data.get('transcript', ''))
-    
-    analysis = f"Visual content analysis: {visual_analysis['description']}. "
-    
-    if not transcript_data['is_reliable']:
-        analysis += f"Audio consists of ambient activity sounds rather than speech. "
-    
-    if text_sync_analysis['has_graphics'] or text_sync_analysis['has_captions']:
-        analysis += f"{text_sync_analysis['text_analysis_summary']}. "
-    
-    analysis += "The content uses visual engagement and process satisfaction to maintain viewer attention."
-    
-    # Generate appropriate hooks based on content type
-    if visual_analysis.get('content_type') == 'visual_process':
-        if 'coloring' in frames_summaries_text.lower():
-            hooks = [
-                "this drawing technique is blowing everyone's mind",
-                "watch this simple outline become something amazing",
-                "the way this transforms will shock you",
-                "POV: you discover the most satisfying art method",
-                "this drawing hack changed everything for me"
-            ]
-        elif 'skincare' in frames_summaries_text.lower():
-            hooks = [
-                "this skincare routine is going viral for a reason",
-                "watch my skin transform with these 3 steps",
-                "the glow up is real with this routine",
-                "POV: you finally find a routine that works",
-                "this is why my skin looks like this"
-            ]
+    try:
+        visual_analysis = create_visual_content_description(frames_summaries_text, None)
+        text_sync_analysis = analyze_text_synchronization(frames_summaries_text, transcript_data.get('transcript', ''))
+        
+        analysis = f"Visual content analysis: {visual_analysis['description']}. "
+        
+        if not transcript_data.get('is_reliable', False):
+            analysis += f"Audio consists of ambient activity sounds rather than speech. "
+        
+        if text_sync_analysis['has_graphics'] or text_sync_analysis['has_captions']:
+            analysis += f"{text_sync_analysis['text_analysis_summary']}. "
+        
+        analysis += "The content uses visual engagement and process satisfaction to maintain viewer attention."
+        
+        # Generate appropriate hooks based on content type
+        content_type = visual_analysis.get('content_type', 'general')
+        if content_type == 'visual_process':
+            if 'coloring' in frames_summaries_text.lower():
+                hooks = [
+                    "this drawing technique is blowing everyone's mind",
+                    "watch this simple outline become something amazing",
+                    "the way this transforms will shock you",
+                    "POV: you discover the most satisfying art method",
+                    "this drawing hack changed everything for me"
+                ]
+            elif 'skincare' in frames_summaries_text.lower():
+                hooks = [
+                    "this skincare routine is going viral for a reason",
+                    "watch my skin transform with these 3 steps",
+                    "the glow up is real with this routine",
+                    "POV: you finally find a routine that works",
+                    "this is why my skin looks like this"
+                ]
+            else:
+                hooks = [
+                    "this process is oddly satisfying",
+                    "watch this transformation happen",
+                    "the end result will amaze you",
+                    "POV: you discover the perfect method",
+                    "this technique is pure satisfaction"
+                ]
         else:
             hooks = [
-                "this process is oddly satisfying",
-                "watch this transformation happen",
-                "the end result will amaze you",
-                "POV: you discover the perfect method",
-                "this technique is pure satisfaction"
+                "wait until you see how this ends",
+                "this process is mesmerizing",
+                "the transformation is incredible",
+                "you won't believe the final result",
+                "this is so satisfying to watch"
             ]
-    else:
-        hooks = [
-            "wait until you see how this ends",
-            "this process is mesmerizing",
-            "the transformation is incredible",
-            "you won't believe the final result",
-            "this is so satisfying to watch"
-        ]
+        
+        return {
+            "analysis": analysis,
+            "hooks": hooks,
+            "scores": {
+                "hook_strength": 7,
+                "promise_clarity": 8 if visual_analysis.get('has_strong_visual_narrative') else 6,
+                "retention_design": 8,
+                "engagement_potential": 9 if visual_analysis.get('satisfaction_analysis', {}).get('highly_satisfying') else 7,
+                "goal_alignment": 7
+            },
+            "timing_breakdown": "Visual progression builds anticipation from setup through completion",
+            "formula": "Visual hook → Process demonstration → Transformation delivery → Satisfying conclusion",
+            "basic_formula": "1. Show engaging setup 2. Demonstrate process 3. Build anticipation 4. Deliver satisfying result",
+            "timing_formula": "0-3s: Visual hook, 3-10s: Process setup, Middle: Transformation, End: Final result",
+            "template_formula": "[Visual Hook] → [Process Setup] → [Transformation] → [Satisfying Result]",
+            "psychology_formula": "Visual attention → Process fascination → Anticipation → Completion satisfaction",
+            "improvements": f"Enhance visual clarity, consider adding text overlays for context, optimize pacing for {goal}",
+            "performance_prediction": "Strong visual retention expected from satisfying process content",
+            "visual_content_analysis": visual_analysis,
+            "transcript_quality": transcript_data,
+            "text_sync_analysis": text_sync_analysis,
+            "strengths": "Strong visual engagement and process satisfaction elements",
+            "improvement_areas": "Could benefit from clearer audio or enhanced pacing",
+            "knowledge_insights": "Visual content aligns with satisfying process patterns",
+            "knowledge_context_used": False,
+            "overall_quality": "moderate"
+        }
+        
+    except Exception as e:
+        print(f"[ERROR] Enhanced fallback creation failed: {e}")
+        return {
+            "analysis": "Content analysis failed - unable to process visual or audio elements",
+            "hooks": ["Alternative hook analysis not available"],
+            "scores": {
+                "hook_strength": 5,
+                "promise_clarity": 5,
+                "retention_design": 5,
+                "engagement_potential": 5,
+                "goal_alignment": 5
+            },
+            "timing_breakdown": "Unable to analyze timing",
+            "formula": "Analysis formula not available",
+            "basic_formula": "Basic analysis not available",
+            "timing_formula": "Timing analysis not available",
+            "template_formula": "Template analysis not available",
+            "psychology_formula": "Psychology analysis not available",
+            "improvements": "Improvements analysis not available",
+            "performance_prediction": "Performance prediction not available",
+            "strengths": "Unable to identify strengths",
+            "improvement_areas": "Unable to identify improvement areas",
+            "knowledge_insights": "Knowledge insights not available",
+            "knowledge_context_used": False,
+            "overall_quality": "unknown"
+        }
+
+
+def safe_parse_gpt_response(response_text, fallback_data):
+    """Safely parse GPT response with better error handling"""
+    try:
+        # Clean up response text
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
+        
+        # Try to parse JSON
+        parsed = json.loads(response_text)
+        
+        # Validate required fields exist
+        required_fields = ['analysis', 'hooks', 'scores']
+        for field in required_fields:
+            if field not in parsed:
+                print(f"Warning: Missing required field '{field}' in GPT response")
+                if field == 'analysis':
+                    parsed[field] = "Analysis not available due to parsing error"
+                elif field == 'hooks':
+                    parsed[field] = ["Alternative hook suggestions not available"]
+                elif field == 'scores':
+                    parsed[field] = {
+                        "hook_strength": 5,
+                        "promise_clarity": 5,
+                        "retention_design": 5,
+                        "engagement_potential": 5,
+                        "goal_alignment": 5
+                    }
+        
+        return parsed
+        
+    except json.JSONDecodeError as e:
+        print(f"JSON parsing error: {e}")
+        print(f"Raw response: {response_text[:500]}...")
+        return fallback_data
+    except Exception as e:
+        print(f"Unexpected parsing error: {e}")
+        return fallback_data
+
+
+def prepare_template_variables(gpt_result, transcript_data, frames_summaries_text, form_data, gallery_data_urls, frame_paths, frames_dir, knowledge_citations, knowledge_context):
+    """Safely prepare all template variables with proper defaults"""
     
-    return {
-        "analysis": analysis,
-        "hooks": hooks,
-        "scores": {
-            "hook_strength": 7,
-            "promise_clarity": 8 if visual_analysis.get('has_strong_visual_narrative') else 6,
-            "retention_design": 8,
-            "engagement_potential": 9 if visual_analysis.get('satisfaction_analysis', {}).get('highly_satisfying') else 7,
-            "goal_alignment": 7
-        },
-        "timing_breakdown": "Visual progression builds anticipation from setup through completion",
-        "formula": "Visual hook → Process demonstration → Transformation delivery → Satisfying conclusion",
-        "basic_formula": "1. Show engaging setup 2. Demonstrate process 3. Build anticipation 4. Deliver satisfying result",
-        "timing_formula": "0-3s: Visual hook, 3-10s: Process setup, Middle: Transformation, End: Final result",
-        "template_formula": "[Visual Hook] → [Process Setup] → [Transformation] → [Satisfying Result]",
-        "psychology_formula": "Visual attention → Process fascination → Anticipation → Completion satisfaction",
-        "improvements": f"Enhance visual clarity, consider adding text overlays for context, optimize pacing for {goal}",
-        "performance_prediction": "Strong visual retention expected from satisfying process content",
-        "visual_content_analysis": visual_analysis,
-        "transcript_quality": transcript_data,
-        "text_sync_analysis": text_sync_analysis,
-        "strengths": "Strong visual engagement and process satisfaction elements",
-        "improvement_areas": "Could benefit from clearer audio or enhanced pacing",
-        "knowledge_insights": "Visual content aligns with satisfying process patterns",
-        "knowledge_context_used": False,
-        "overall_quality": "moderate"
+    # Core variables with safe defaults
+    template_vars = {
+        # Form data
+        'tiktok_url': form_data.get('tiktok_url', ''),
+        'creator_note': form_data.get('creator_note', ''),
+        'platform': form_data.get('platform', 'tiktok'),
+        'target_duration': form_data.get('target_duration', '30'),
+        'goal': form_data.get('goal', 'follower_growth'),
+        'tone': form_data.get('tone', 'confident, friendly'),
+        'audience': form_data.get('audience', 'creators and small business owners'),
+        'strategy': form_data.get('strategy', 'smart'),
+        'frames_per_minute': int(form_data.get('frames_per_minute', 24)),
+        'cap': int(form_data.get('cap', 60)),
+        'scene_threshold': float(form_data.get('scene_threshold', 0.24)),
+        
+        # File and processing data
+        'frames_count': len(frame_paths) if frame_paths else 0,
+        'frame_gallery': gallery_data_urls if gallery_data_urls else [],
+        'frames_dir': frames_dir if frames_dir else "",
+        'frame_paths': frame_paths if frame_paths else [],
+        'knowledge_citations': knowledge_citations if knowledge_citations else [],
+        'knowledge_context': knowledge_context if knowledge_context else "",
+        
+        # Analysis results with safe defaults
+        'analysis': gpt_result.get('analysis', 'Analysis not available'),
+        'hooks': gpt_result.get('hooks', []),
+        'scores': gpt_result.get('scores', {}),
+        'strengths': gpt_result.get('strengths', 'Content strengths to be identified'),
+        'improvement_areas': gpt_result.get('improvement_areas', 'Areas for enhancement to be identified'),
+        'timing_breakdown': gpt_result.get('timing_breakdown', 'Timing analysis not available'),
+        'improvements': gpt_result.get('improvements', 'Improvement suggestions not available'),
+        'formula': gpt_result.get('formula', 'Analysis formula not available'),
+        'basic_formula': gpt_result.get('basic_formula', 'Basic formula not available'),
+        'timing_formula': gpt_result.get('timing_formula', 'Timing formula not available'),
+        'template_formula': gpt_result.get('template_formula', 'Template formula not available'),
+        'psychology_formula': gpt_result.get('psychology_formula', 'Psychology formula not available'),
+        
+        # Transcript data
+        'transcript': transcript_data.get('transcript', ''),
+        'transcript_quality': transcript_data,
+        'transcript_original': transcript_data.get('transcript', ''),
+        'transcript_for_analysis': transcript_data.get('transcript', ''),
+        'audio_description': gpt_result.get('audio_description', ''),
+        
+        # Frame data
+        'frame_summary': frames_summaries_text if frames_summaries_text else "",
+        'frame_summaries': [block.strip() for block in frames_summaries_text.split('\n\n') if block.strip()] if frames_summaries_text else [],
+        
+        # Enhanced analysis fields
+        'visual_content_analysis': gpt_result.get('visual_content_analysis', {}),
+        'text_sync_analysis': gpt_result.get('text_sync_analysis', {}),
+        'knowledge_insights': gpt_result.get('knowledge_insights', 'Knowledge insights not available'),
+        'knowledge_context_used': gpt_result.get('knowledge_context_used', False),
+        'overall_quality': gpt_result.get('overall_quality', 'moderate'),
+        'performance_prediction': gpt_result.get('performance_prediction', 'Performance assessment pending'),
+        
+        # Compatibility fields for existing templates
+        'psychological_breakdown': gpt_result.get('analysis', ''),
+        'hook_mechanics': gpt_result.get('timing_breakdown', ''),
+        'emotional_journey': gpt_result.get('analysis', ''),
+        'authority_signals': gpt_result.get('strengths', ''),
+        'engagement_psychology': gpt_result.get('analysis', ''),
+        'viral_mechanisms': gpt_result.get('analysis', ''),
+        'audience_psychology': gpt_result.get('analysis', ''),
+        'replication_blueprint': gpt_result.get('basic_formula', ''),
+        'multimodal_insights': gpt_result.get('analysis', ''),
+        'engagement_triggers': gpt_result.get('analysis', ''),
+        'improvement_opportunities': gpt_result.get('improvement_areas', ''),
+        'viral_potential_factors': gpt_result.get('analysis', ''),
+        'video_description': gpt_result.get('visual_content_analysis', {}).get('description', 'Video analysis'),
+        'content_patterns': {},
+        'performance_data': {},
+        'weaknesses': gpt_result.get('improvement_areas', ''),
+        'critical_assessment': gpt_result.get('analysis', ''),
+        'gpt_response': gpt_result.get('analysis', ''),
     }
+    
+    # Ensure hooks is always a list
+    if isinstance(template_vars['hooks'], str):
+        template_vars['hooks'] = [template_vars['hooks']]
+    
+    # Ensure scores has all required fields
+    required_scores = {
+        "hook_strength": 5,
+        "promise_clarity": 5,
+        "retention_design": 5,
+        "engagement_potential": 5,
+        "goal_alignment": 5
+    }
+    
+    scores = template_vars['scores']
+    for score_key, default_val in required_scores.items():
+        if score_key not in scores:
+            scores[score_key] = default_val
+    
+    template_vars['scores'] = scores
+    
+    return template_vars
 
 
 # ==============================
@@ -598,23 +889,31 @@ Provide constructive, balanced feedback that helps creators understand both what
 
         response_text = gpt_response.choices[0].message.content.strip()
         
-        # Parse JSON response
-        if response_text.startswith("```json"):
-            response_text = response_text[7:]
-        if response_text.endswith("```"):
-            response_text = response_text[:-3]
-        response_text = response_text.strip()
+        # Create fallback data for safe parsing
+        fallback_data = {
+            "analysis": "Analysis parsing failed - using fallback assessment",
+            "hooks": ["Alternative hook analysis not available"],
+            "scores": {
+                "hook_strength": 5,
+                "promise_clarity": 5,
+                "retention_design": 5,
+                "engagement_potential": 5,
+                "goal_alignment": 5
+            },
+            "strengths": "Unable to identify specific strengths",
+            "improvement_areas": "Unable to identify specific improvement areas",
+            "timing_breakdown": "Timing analysis not available",
+            "basic_formula": "Formula analysis not available",
+            "timing_formula": "Timing formula not available", 
+            "template_formula": "Template formula not available",
+            "psychology_formula": "Psychology analysis not available",
+            "improvements": "Improvement suggestions not available",
+            "performance_prediction": "Performance prediction not available",
+            "knowledge_insights": "Knowledge insights not available"
+        }
         
-        try:
-            parsed = json.loads(response_text)
-        except json.JSONDecodeError as e:
-            print(f"JSON parsing error: {e}")
-            print(f"Response text that failed to parse: {response_text[:500]}...")
-            # Return fallback if JSON parsing fails
-            return create_visual_enhanced_fallback(frames_summaries_text, {
-                'transcript': transcript_for_analysis,
-                'is_reliable': len(transcript_for_analysis.strip()) > 50
-            }, goal)
+        # Parse JSON response safely
+        parsed = safe_parse_gpt_response(response_text, fallback_data)
         
         # Add debug logging to see what scores GPT is actually returning
         scores_raw = parsed.get("scores", {})
@@ -676,10 +975,6 @@ Provide constructive, balanced feedback that helps creators understand both what
             if score_key not in scores:
                 scores[score_key] = default_val
         
-        # Validate score ranges
-        for key in scores:
-            scores[key] = max(1, min(10, scores[key]))
-        
         print(f"Final processed scores: {scores}")  # Debug logging
         
         # Build comprehensive result with enhanced fields
@@ -728,6 +1023,37 @@ Provide constructive, balanced feedback that helps creators understand both what
         
     except Exception as e:
         print(f"Analysis error: {e}")
+        import traceback
+        traceback.print_exc()
+        return create_visual_enhanced_fallback(frames_summaries_text, {
+            'transcript': transcript_text,
+            'is_reliable': len(transcript_text.strip()) > 50
+        }, goal)
+
+
+def run_main_analysis_safe(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
+    """Wrapper for main analysis with better error handling"""
+    try:
+        result = run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context)
+        
+        # Validate result structure
+        if not isinstance(result, dict):
+            raise ValueError("Analysis did not return expected dictionary format")
+        
+        # Ensure required fields exist
+        required_fields = ['analysis', 'hooks', 'scores']
+        for field in required_fields:
+            if field not in result:
+                raise ValueError(f"Missing required field: {field}")
+        
+        return result
+        
+    except Exception as e:
+        print(f"Main analysis failed: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Return comprehensive fallback
         return create_visual_enhanced_fallback(frames_summaries_text, {
             'transcript': transcript_text,
             'is_reliable': len(transcript_text.strip()) > 50
@@ -752,17 +1078,37 @@ def analyze_async():
 def process():
     try:
         # --- Form data ---
-        tiktok_url = request.form.get("tiktok_url", "").strip()
-        creator_note = request.form.get("creator_note", "").strip()
-        strategy = request.form.get("strategy", "smart").strip()
-        frames_per_minute = int(request.form.get("frames_per_minute", 24))
-        cap = int(request.form.get("cap", 60))
-        scene_threshold = float(request.form.get("scene_threshold", 0.24))
-        platform = request.form.get("platform", "tiktok").strip()
-        target_duration = request.form.get("target_duration", "30").strip()
-        goal = request.form.get("goal", "follower_growth").strip()
-        tone = request.form.get("tone", "confident, friendly").strip()
-        audience = request.form.get("audience", "creators and small business owners").strip()
+        form_data = {
+            'tiktok_url': request.form.get("tiktok_url", "").strip(),
+            'creator_note': request.form.get("creator_note", "").strip(),
+            'strategy': request.form.get("strategy", "smart").strip(),
+            'frames_per_minute': request.form.get("frames_per_minute", "24"),
+            'cap': request.form.get("cap", "60"),
+            'scene_threshold': request.form.get("scene_threshold", "0.24"),
+            'platform': request.form.get("platform", "tiktok").strip(),
+            'target_duration': request.form.get("target_duration", "30").strip(),
+            'goal': request.form.get("goal", "follower_growth").strip(),
+            'tone': request.form.get("tone", "confident, friendly").strip(),
+            'audience': request.form.get("audience", "creators and small business owners").strip(),
+        }
+        
+        # Convert numeric fields with validation
+        try:
+            frames_per_minute = int(form_data['frames_per_minute'])
+            cap = int(form_data['cap'])
+            scene_threshold = float(form_data['scene_threshold'])
+        except ValueError as e:
+            print(f"Invalid numeric parameter: {e}")
+            return "Error: Invalid numeric parameters provided", 400
+        
+        tiktok_url = form_data['tiktok_url']
+        creator_note = form_data['creator_note']
+        strategy = form_data['strategy']
+        platform = form_data['platform']
+        target_duration = form_data['target_duration']
+        goal = form_data['goal']
+        tone = form_data['tone']
+        audience = form_data['audience']
 
         if not tiktok_url:
             return "Error: TikTok URL is required", 400
@@ -779,10 +1125,17 @@ def process():
                 cap=cap,
                 scene_threshold=scene_threshold,
             )
+            
+            if not audio_path or not frame_paths:
+                raise ValueError("Failed to extract audio or frames from video")
+                
             print(f"Extracted {len(frame_paths)} frames with improved distribution")
+            
         except Exception as e:
             print(f"Video processing error: {e}")
-            return f"Error processing video: {str(e)}", 500
+            import traceback
+            traceback.print_exc()
+            return f"Error processing video: {str(e)}. Please check the URL and try again.", 500
 
         # --- Enhanced Transcription with quality analysis ---
         try:
@@ -810,10 +1163,10 @@ def process():
             frames_summaries_text = "(Frame analysis failed)"
             gallery_data_urls = []
 
-        # --- Get knowledge context using direct file parsing FIRST ---
+        # --- Get knowledge context using robust method ---
         try:
             print("[INFO] Loading knowledge from /knowledge folder and full knowledge base...")
-            knowledge_context, knowledge_citations = get_knowledge_context()
+            knowledge_context, knowledge_citations = get_knowledge_context_robust()
             
             print(f"[RESULT] Knowledge context length: {len(knowledge_context)} characters")
             print(f"[RESULT] Sources: {knowledge_citations}")
@@ -828,10 +1181,12 @@ def process():
             
             # Enhanced fallback with performance-aware patterns
             knowledge_context = """
-VIRAL CONTENT ANALYSIS FOR PERFORMANCE-BASED INSIGHTS:
+VIRAL CONTENT ANALYSIS FOR LOW-PERFORMING CONTENT:
 
-PERFORMANCE CONTEXT ANALYSIS:
-Creator Performance Note: {creator_note}
+CURRENT VIDEO DIAGNOSIS:
+- Hook: "You spent over the project proposal..." 
+- Problem: Lacks emotional stakes, no curiosity gap
+- Performance: <300 views indicates hook/retention issues
 
 HIGH-PERFORMING VS LOW-PERFORMING PATTERNS:
 
@@ -842,10 +1197,10 @@ HIGH-PERFORMING HOOKS (8M+ avg views):
 - "The industry secret they don't want you to know..."
 
 LOW-PERFORMING HOOKS (<500k views):
-- Generic openings without curiosity gaps
-- No immediate personal stakes or emotional connection
-- Weak pattern interrupts that don't stop scrolling
-- Lacks specific, relatable scenarios
+- "You spent time on [mundane activity]..."
+- Generic business advice without emotional stakes
+- No immediate curiosity or pattern interrupt
+- Lacks personal transformation elements
 
 RETENTION FACTORS:
 - First 3 seconds: Must create curiosity gap or controversy
@@ -859,27 +1214,13 @@ ALGORITHM OPTIMIZATION:
 - Watch time >50% triggers recommendations
 - Visual variety prevents drop-off
 
-ENGAGEMENT PSYCHOLOGY:
-- Personal transformation stories drive follows
-- Behind-the-scenes content builds trust
-- Controversial opinions (with nuance) drive comments
-- Before/after reveals drive saves and shares
-
-REALISTIC SCORING GUIDELINES:
-High-performing content (500k+ views):
-- Hook Strength: 7-9/10 (proven stopping power)
-- Promise Clarity: 7-8/10 (clear value proposition)
-- Retention Design: 7-9/10 (strong pacing and engagement)
-- Engagement Potential: 6-8/10 (drives comments/shares)
-- Goal Alignment: 7-9/10 (effectively serves stated goal)
-
-Low-performing content (<100k views):
-- Hook Strength: 3-5/10 (weak opening, limited stopping power)
-- Promise Clarity: 4-6/10 (unclear or weak value proposition)
-- Retention Design: 4-6/10 (pacing issues, viewer drop-off)
-- Engagement Potential: 2-4/10 (low shareability/comment potential)
-- Goal Alignment: 3-5/10 (doesn't effectively serve viral reach)
-""".format(creator_note=creator_note)
+REALISTIC SCORING FOR UNDERPERFORMING CONTENT:
+- Hook Strength: 3-4/10 (weak opening, no stopping power)
+- Promise Clarity: 4-5/10 (unclear value proposition)
+- Retention Design: 5-6/10 (decent pacing but weak content)
+- Engagement Potential: 2-3/10 (low shareability/comment potential)
+- Goal Alignment: 3-4/10 (doesn't serve viral reach effectively)
+"""
             knowledge_citations = ["Enhanced performance-aware fallback patterns"]
 
         # --- Main Analysis ---
@@ -901,8 +1242,8 @@ Low-performing content (<100k views):
             # Use inferred description or original transcript
             transcript_for_analysis = audio_description if audio_description else transcript_data['transcript']
             
-            # Run main analysis
-            gpt_result = run_main_analysis(
+            # Run main analysis with safety wrapper
+            gpt_result = run_main_analysis_safe(
                 transcript_for_analysis,
                 frames_summaries_text,
                 creator_note,
@@ -924,124 +1265,38 @@ Low-performing content (<100k views):
             
         except Exception as e:
             print(f"Analysis error: {e}")
+            import traceback
+            traceback.print_exc()
             gpt_result = create_visual_enhanced_fallback(
                 frames_summaries_text,
                 transcript_data,
                 goal
             )
 
-        # --- Extract ALL results with safe defaults ---
-        analysis_text = gpt_result.get("analysis", "Analysis not available")
-        hooks_list = gpt_result.get("hooks", [])
-        scores = gpt_result.get("scores", {})
-        timing_breakdown = gpt_result.get("timing_breakdown", "")
-        formula = gpt_result.get("formula", "")
-        basic_formula = gpt_result.get("basic_formula", "")
-        timing_formula = gpt_result.get("timing_formula", "")
-        template_formula = gpt_result.get("template_formula", "")
-        psychology_formula = gpt_result.get("psychology_formula", "")
-        improvements = gpt_result.get("improvements", "")
-        
-        # Enhanced fields with safe defaults
-        visual_content_analysis = gpt_result.get("visual_content_analysis", {})
-        transcript_quality = gpt_result.get("transcript_quality", {})
-        audio_description = gpt_result.get("audio_description", "")
-        text_sync_analysis = gpt_result.get("text_sync_analysis", {})
-        
-        # Balanced analysis fields
-        strengths = gpt_result.get("strengths", "")
-        improvement_areas = gpt_result.get("improvement_areas", "")
-        knowledge_insights = gpt_result.get("knowledge_insights", "")
-        knowledge_context_used = gpt_result.get("knowledge_context_used", False)
-        overall_quality = gpt_result.get("overall_quality", "moderate")
-        
-        # Use enhanced transcript for analysis
-        transcript_for_analysis = audio_description if audio_description else transcript_data.get('transcript', '')
-        
-        if isinstance(hooks_list, str):
-            hooks_list = [hooks_list]
-
-        # --- Prepare frame summaries for template ---
-        frame_summaries = []
-        if frames_summaries_text:
-            blocks = frames_summaries_text.split('\n\n')
-            frame_summaries = [block.strip() for block in blocks if block.strip()]
-        
-        if not frame_summaries and frames_summaries_text:
-            frame_summaries = [frames_summaries_text]
+        # --- Prepare template variables safely ---
+        try:
+            template_vars = prepare_template_variables(
+                gpt_result, 
+                transcript_data, 
+                frames_summaries_text, 
+                form_data, 
+                gallery_data_urls, 
+                frame_paths, 
+                frames_dir, 
+                knowledge_citations, 
+                knowledge_context
+            )
+            
+            print("Template variables prepared successfully")
+            
+        except Exception as e:
+            print(f"Template preparation error: {e}")
+            import traceback
+            traceback.print_exc()
+            return f"Error preparing results: {str(e)}", 500
 
         print("Rendering results template")
-        return render_template(
-            "results.html",
-            tiktok_url=tiktok_url,
-            creator_note=creator_note,
-            transcript=transcript_for_analysis,
-            frame_summary=frames_summaries_text,
-            frame_summaries=frame_summaries,
-            frame_gallery=gallery_data_urls,
-            strategy=strategy,
-            frames_per_minute=frames_per_minute,
-            cap=cap,
-            scene_threshold=scene_threshold,
-            frames_count=len(frame_paths) if frame_paths else 0,
-            platform=platform,
-            target_duration=target_duration,
-            goal=goal,
-            tone=tone,
-            audience=audience,
-            knowledge_citations=knowledge_citations,
-            knowledge_context=knowledge_context,
-            frames_dir=frames_dir,
-            frame_paths=frame_paths,
-            analysis=analysis_text,
-            hooks=hooks_list,
-            scores=scores,
-            timing_breakdown=timing_breakdown,
-            formula=formula,
-            basic_formula=basic_formula,
-            timing_formula=timing_formula,
-            template_formula=template_formula,
-            psychology_formula=psychology_formula,
-            improvements=improvements,
-            
-            # Enhanced fields
-            visual_content_analysis=visual_content_analysis,
-            transcript_quality=transcript_quality,
-            audio_description=audio_description,
-            transcript_original=transcript_data.get('transcript', ''),
-            transcript_for_analysis=transcript_for_analysis,
-            text_sync_analysis=text_sync_analysis,
-            
-            # Balanced analysis fields
-            strengths=strengths,
-            improvement_areas=improvement_areas,
-            knowledge_insights=knowledge_insights,
-            knowledge_context_used=knowledge_context_used,
-            overall_quality=overall_quality,
-            
-            # Compatibility fields for existing template
-            psychological_breakdown=analysis_text,
-            hook_mechanics=timing_breakdown,
-            emotional_journey=analysis_text,
-            authority_signals=strengths,
-            engagement_psychology=analysis_text,
-            viral_mechanisms=analysis_text,
-            audience_psychology=analysis_text,
-            replication_blueprint=basic_formula,
-            multimodal_insights=analysis_text,
-            engagement_triggers=analysis_text,
-            improvement_opportunities=improvement_areas,
-            viral_potential_factors=analysis_text,
-            video_description=visual_content_analysis.get('description', 'Video analysis'),
-            content_patterns={},
-            performance_data={},
-            performance_prediction=gpt_result.get("performance_prediction", ""),
-            weaknesses=gpt_result.get("improvement_areas", ""),
-            critical_assessment=analysis_text,
-            
-            # Keep for backward compatibility
-            gpt_response=analysis_text
-        )
+        return render_template("results.html", **template_vars)
 
     except Exception as e:
         print(f"Unexpected error in process(): {str(e)}")
@@ -1051,4 +1306,5 @@ Low-performing content (<100k views):
 
 
 if __name__ == "__main__":
+    validate_dependencies()
     app.run(host="0.0.0.0", port=10000, debug=True)
