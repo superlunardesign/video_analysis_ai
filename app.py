@@ -49,670 +49,112 @@ def _api_retry(callable_fn, *args, **kwargs):
 # HELPER FUNCTIONS
 # ==============================
 
-def enhanced_extract_audio_and_frames(tiktok_url, strategy="smart", frames_per_minute=24, cap=60, scene_threshold=0.24):
-    """Enhanced version of extract_audio_and_frames with better distribution."""
-    # For now, use the original function - you can enhance this later
-    return extract_audio_and_frames(tiktok_url, strategy, frames_per_minute, cap, scene_threshold)
-
-
-def enhanced_transcribe_audio(audio_path):
-    """Enhanced transcription with quality analysis."""
+def parse_knowledge_folder(knowledge_path="knowledge"):
+    """Parse documents directly from knowledge folder"""
+    import os
+    
+    knowledge_content = []
+    
     try:
-        # Get original transcript
-        transcript = transcribe_audio(audio_path)
+        if not os.path.exists(knowledge_path):
+            print(f"[ERROR] Knowledge folder '{knowledge_path}' not found")
+            return ""
         
-        # Analyze transcript quality
-        if not transcript or len(transcript.strip()) < 10:
-            return {
-                'transcript': transcript,
-                'quality': 'poor',
-                'quality_reason': 'Transcript too short or empty',
-                'is_reliable': False
-            }
+        print(f"[INFO] Scanning knowledge folder: {knowledge_path}")
         
-        # Check for common transcription issues
-        words = transcript.lower().split()
-        
-        # Check for music/ambient sound indicators
-        music_indicators = ['music', 'sound', 'noise', 'audio', 'background']
-        if any(indicator in transcript.lower() for indicator in music_indicators):
-            return {
-                'transcript': transcript,
-                'quality': 'ambient',
-                'quality_reason': 'Contains music/ambient audio descriptions',
-                'is_reliable': False
-            }
-        
-        # Check for repetitive/nonsense content
-        if len(set(words)) < len(words) * 0.3:  # Too many repeated words
-            return {
-                'transcript': transcript,
-                'quality': 'poor',
-                'quality_reason': 'Highly repetitive content detected',
-                'is_reliable': False
-            }
-        
-        return {
-            'transcript': transcript,
-            'quality': 'good',
-            'quality_reason': 'Clear speech detected',
-            'is_reliable': True
-        }
-        
-    except Exception as e:
-        return {
-            'transcript': f"(Transcription error: {str(e)})",
-            'quality': 'error',
-            'quality_reason': str(e),
-            'is_reliable': False
-        }
-
-
-def generate_inferred_audio_description(frames_summaries_text, transcript_quality_info):
-    """Generate inferred audio description for visual content."""
-    try:
-        # Analyze the visual content to infer what might be happening
-        if 'drawing' in frames_summaries_text.lower() or 'art' in frames_summaries_text.lower():
-            return "Creative process video with drawing/artistic elements. Likely contains ambient drawing sounds, paper rustling, or background music."
-        elif 'skincare' in frames_summaries_text.lower() or 'routine' in frames_summaries_text.lower():
-            return "Personal care routine video. Likely contains ambient sounds of product application, water, or soft background music."
-        elif 'cooking' in frames_summaries_text.lower() or 'kitchen' in frames_summaries_text.lower():
-            return "Cooking/food preparation video. Likely contains kitchen sounds, sizzling, chopping, or cooking ambient audio."
-        else:
-            return f"Visual content video with ambient audio. {transcript_quality_info[1] if len(transcript_quality_info) > 1 else 'No clear speech detected.'}"
-    except:
-        return "Visual content with ambient audio track."
-
-
-def create_visual_content_description(frames_summaries_text, audio_description=None):
-    """Create comprehensive visual content analysis."""
-    try:
-        description = f"Visual analysis: {frames_summaries_text[:200]}..."
-        
-        # Determine content type
-        content_type = 'general'
-        if 'drawing' in frames_summaries_text.lower():
-            content_type = 'visual_process'
-        elif 'transformation' in frames_summaries_text.lower():
-            content_type = 'transformation'
-        elif 'routine' in frames_summaries_text.lower():
-            content_type = 'routine'
-        
-        # Analyze satisfaction potential
-        satisfaction_indicators = ['completion', 'finish', 'result', 'final', 'transform']
-        highly_satisfying = any(word in frames_summaries_text.lower() for word in satisfaction_indicators)
-        
-        return {
-            'description': description,
-            'content_type': content_type,
-            'has_strong_visual_narrative': len(frames_summaries_text) > 200,
-            'satisfaction_analysis': {
-                'highly_satisfying': highly_satisfying,
-                'completion_elements': satisfaction_indicators
-            }
-        }
-    except:
-        return {
-            'description': "Visual content analysis",
-            'content_type': 'general',
-            'has_strong_visual_narrative': False,
-            'satisfaction_analysis': {'highly_satisfying': False}
-        }
-
-
-def analyze_text_synchronization(frames_summaries_text, transcript_text, frame_timestamps=None):
-    """Distinguish between on-screen text (graphics/overlays) and spoken captions."""
-    
-    # Extract text mentions from frame analysis
-    frame_texts = []
-    frames_blocks = frames_summaries_text.split('\n\n')
-    
-    for i, block in enumerate(frames_blocks):
-        if 'text' in block.lower() or 'overlay' in block.lower() or 'caption' in block.lower():
-            # Extract potential text content
-            text_patterns = [
-                r'"([^"]+)"',  # Text in quotes
-                r'text[:\s]+([^\n.]+)',  # Text following "text:"
-                r'overlay[:\s]+([^\n.]+)',  # Text following "overlay:"
-                r'caption[:\s]+([^\n.]+)',  # Text following "caption:"
-                r'reads[:\s]+([^\n.]+)',  # Text following "reads:"
-                r'says[:\s]+([^\n.]+)',  # Text following "says:"
-            ]
+        for filename in os.listdir(knowledge_path):
+            file_path = os.path.join(knowledge_path, filename)
             
-            extracted_texts = []
-            for pattern in text_patterns:
-                matches = re.findall(pattern, block, re.IGNORECASE)
-                extracted_texts.extend([match.strip() for match in matches])
-            
-            if extracted_texts:
-                timestamp = frame_timestamps[i] if frame_timestamps and i < len(frame_timestamps) else i * 2  # Assume 2s intervals
-                frame_texts.append({
-                    'timestamp': timestamp,
-                    'texts': extracted_texts,
-                    'frame_block': block
-                })
-    
-    # Analyze synchronization with transcript
-    transcript_words = transcript_text.lower().split()
-    
-    synchronized_texts = []
-    onscreen_graphics = []
-    
-    for frame_text_data in frame_texts:
-        timestamp = frame_text_data['timestamp']
-        texts = frame_text_data['texts']
-        
-        for text in texts:
-            text_lower = text.lower()
-            
-            # Check if this text appears in the transcript
-            text_words = text_lower.split()
-            
-            # Calculate similarity to transcript
-            matching_words = sum(1 for word in text_words if word in transcript_words)
-            similarity_ratio = matching_words / len(text_words) if text_words else 0
-            
-            # Classify as synchronized caption vs on-screen graphic
-            if similarity_ratio > 0.7 and len(text_words) > 2:
-                synchronized_texts.append({
-                    'text': text,
-                    'timestamp': timestamp,
-                    'type': 'caption',
-                    'similarity': similarity_ratio
-                })
-            else:
-                onscreen_graphics.append({
-                    'text': text,
-                    'timestamp': timestamp,
-                    'type': 'graphic',
-                    'similarity': similarity_ratio
-                })
-    
-    return {
-        'synchronized_captions': synchronized_texts,
-        'onscreen_graphics': onscreen_graphics,
-        'has_graphics': len(onscreen_graphics) > 0,
-        'has_captions': len(synchronized_texts) > 0,
-        'text_analysis_summary': f"Found {len(synchronized_texts)} synchronized captions and {len(onscreen_graphics)} on-screen graphics"
-    }
-
-
-def create_visual_enhanced_fallback(frames_summaries_text, transcript_data, goal):
-    """Enhanced fallback for when GPT analysis fails on visual content."""
-    
-    visual_analysis = create_visual_content_description(frames_summaries_text, None)
-    text_sync_analysis = analyze_text_synchronization(frames_summaries_text, transcript_data.get('transcript', ''))
-    
-    analysis = f"Visual content analysis: {visual_analysis['description']}. "
-    
-    if not transcript_data['is_reliable']:
-        analysis += f"Audio consists of ambient activity sounds rather than speech. "
-    
-    if text_sync_analysis['has_graphics'] or text_sync_analysis['has_captions']:
-        analysis += f"{text_sync_analysis['text_analysis_summary']}. "
-    
-    analysis += "The content uses visual engagement and process satisfaction to maintain viewer attention."
-    
-    # Generate appropriate hooks based on content type
-    if visual_analysis.get('content_type') == 'visual_process':
-        if 'coloring' in frames_summaries_text.lower():
-            hooks = [
-                "this drawing technique is blowing everyone's mind",
-                "watch this simple outline become something amazing",
-                "the way this transforms will shock you",
-                "POV: you discover the most satisfying art method",
-                "this drawing hack changed everything for me"
-            ]
-        elif 'skincare' in frames_summaries_text.lower():
-            hooks = [
-                "this skincare routine is going viral for a reason",
-                "watch my skin transform with these 3 steps",
-                "the glow up is real with this routine",
-                "POV: you finally find a routine that works",
-                "this is why my skin looks like this"
-            ]
-        else:
-            hooks = [
-                "this process is oddly satisfying",
-                "watch this transformation happen",
-                "the end result will amaze you",
-                "POV: you discover the perfect method",
-                "this technique is pure satisfaction"
-            ]
-    else:
-        hooks = [
-            "wait until you see how this ends",
-            "this process is mesmerizing",
-            "the transformation is incredible",
-            "you won't believe the final result",
-            "this is so satisfying to watch"
-        ]
-    
-    return {
-        "analysis": analysis,
-        "hooks": hooks,
-        "scores": {
-            "hook_strength": 7,
-            "promise_clarity": 8 if visual_analysis.get('has_strong_visual_narrative') else 6,
-            "retention_design": 8,
-            "engagement_potential": 9 if visual_analysis.get('satisfaction_analysis', {}).get('highly_satisfying') else 7,
-            "goal_alignment": 7
-        },
-        "timing_breakdown": "Visual progression builds anticipation from setup through completion",
-        "formula": "Visual hook → Process demonstration → Transformation delivery → Satisfying conclusion",
-        "basic_formula": "1. Show engaging setup 2. Demonstrate process 3. Build anticipation 4. Deliver satisfying result",
-        "timing_formula": "0-3s: Visual hook, 3-10s: Process setup, Middle: Transformation, End: Final result",
-        "template_formula": "[Visual Hook] → [Process Setup] → [Transformation] → [Satisfying Result]",
-        "psychology_formula": "Visual attention → Process fascination → Anticipation → Completion satisfaction",
-        "improvements": f"Enhance visual clarity, consider adding text overlays for context, optimize pacing for {goal}",
-        "performance_prediction": "Strong visual retention expected from satisfying process content",
-        "visual_content_analysis": visual_analysis,
-        "transcript_quality": transcript_data,
-        "text_sync_analysis": text_sync_analysis,
-        "strengths": "Strong visual engagement and process satisfaction elements",
-        "improvement_areas": "Could benefit from clearer audio or enhanced pacing",
-        "knowledge_insights": "Visual content aligns with satisfying process patterns",
-        "knowledge_context_used": False,
-        "overall_quality": "moderate"
-    }
-
-
-# ==============================
-# MAIN ANALYSIS FUNCTION - BALANCED & COMPREHENSIVE
-# ==============================
-
-def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
-    """Balanced analysis function that provides nuanced assessment for both strong and weak content."""
-    
-    # Build knowledge context section - CRITICAL for quality analysis
-    knowledge_section = ""
-    if knowledge_context.strip():
-        knowledge_section = f"""
-PROVEN VIRAL STRATEGIES FROM KNOWLEDGE BASE:
-{knowledge_context}
-
-ANALYSIS REQUIREMENT: Use these proven examples to:
-1. Compare this video's approach against successful viral content
-2. Identify specific gaps between this content and high-performers  
-3. Calibrate scores based on what actually drives results
-4. Provide recommendations based on proven patterns
-5. Reference specific successful examples when making suggestions
-
-If this video underperformed (like <300 views), explain WHY by comparing to these successful examples.
-"""
-    else:
-        knowledge_section = """
-WARNING: No knowledge context retrieved. Analysis will be less specific without proven examples to compare against.
-Focus on general best practices and obvious improvement areas.
-"""
-    
-    prompt = f"""
-You are an expert content strategist analyzing this {platform} video for {goal}. Provide nuanced, balanced analysis that recognizes both strengths and areas for improvement.
-
-CONTENT TO ANALYZE:
-TRANSCRIPT: {transcript_text}
-VISUAL CONTENT: {frames_summaries_text}
-CREATOR NOTE: {creator_note}
-TARGET: {target_duration}s video for {audience} with {tone} tone
-
-{knowledge_section}
-
-ANALYSIS APPROACH:
-- Provide honest assessment without being overly critical or overly positive
-- Consider the creator's note about performance when scoring and analyzing
-- If the creator mentions poor performance (like low views), investigate why and provide specific solutions
-- Identify what's working well and build on those strengths
-- Point out areas that could be improved and explain how
-- Consider the content quality level and adjust analysis accordingly
-- For strong content: focus on what makes it effective and how to replicate/optimize
-- For weak content: identify core issues and provide specific fixes
-- For average content: highlight potential and provide elevation strategies
-
-PERFORMANCE CONTEXT ANALYSIS:
-Creator's note: "{creator_note}"
-If the creator mentions low performance, poor results, or specific problems, factor this into your scoring and analysis. Don't give high scores to content that's demonstrably not working.
-
-COMPREHENSIVE EVALUATION:
-1. Performance Reality Check: Does this content's structure and execution match the performance described by the creator?
-2. Hook Analysis: How effectively does the opening capture attention? What psychological triggers are used?
-3. Promise Structure: Is there a clear value proposition? How well does it create anticipation?
-4. Content Delivery: Does the video fulfill its promise? Is the pacing engaging?
-5. Visual-Audio Synergy: How do the visual and audio elements work together?
-6. Retention Design: What keeps viewers watching? Where might they drop off?
-7. Algorithmic Factors: What might be hurting algorithmic distribution?
-8. Knowledge Base Alignment: How does this compare to successful strategies in your knowledge?
-
-SCORING GUIDELINES:
-Score each element independently and honestly based on actual effectiveness AND performance results:
-
-PERFORMANCE-INFORMED SCORING:
-- If creator reports poor performance (low views, no engagement), scores should reflect this reality
-- High-performing content rarely gets all scores below 6
-- Low-performing content rarely deserves scores above 6
-- Look for specific reasons why content might be underperforming
-
-ELEMENT-SPECIFIC SCORING:
-- Hook Strength: Does it immediately grab attention or is it weak/generic? Consider if it would make someone stop scrolling.
-- Promise Clarity: How clear is the value proposition? Is it compelling or confusing? Does it create urgency?
-- Retention Design: How well does pacing/content maintain interest throughout? Are there dead spots or weak transitions?
-- Engagement Potential: Will this realistically drive comments/shares/saves? Does it inspire action?
-- Goal Alignment: How effectively does this serve {goal} specifically? Does it actually achieve what it's trying to do?
-
-Use the full 1-10 range and score each element separately based on RESULTS:
-- 8-10: Exceptional - clearly driving strong results and engagement
-- 6-7: Good - solid performance with clear strengths
-- 4-5: Average/Weak - functional but significant issues preventing success
-- 2-3: Poor - major problems that severely hurt performance  
-- 1: Broken - completely ineffective
-
-REALITY CHECK: If a video has very low views/engagement, multiple scores above 7 are unlikely to be accurate. Be honest about what's not working.
-
-Respond in JSON format with balanced, actionable analysis:
-{{
-  "analysis": "Nuanced analysis that identifies what works well and what could be improved. Start with strengths, then address areas for enhancement. Reference knowledge context insights where relevant. Adjust tone based on overall content quality - celebrate genuine strengths, provide constructive guidance for weaknesses.",
-  "hooks": ["5 alternative hooks that either build on existing strengths or address identified weaknesses"],
-  "scores": {{
-    "hook_strength": 7,
-    "promise_clarity": 6,
-    "retention_design": 8,
-    "engagement_potential": 5,
-    "goal_alignment": 7
-  }},
-  "strengths": "Specific elements that are working well and contributing to effectiveness",
-  "improvement_areas": "Areas that could be enhanced, with specific suggestions for how",
-  "timing_breakdown": "What happens at key moments and how the pacing affects retention",
-  "basic_formula": "Step-by-step process for replicating the effective elements while addressing weak points",
-  "timing_formula": "Detailed timing breakdown with optimization suggestions",
-  "template_formula": "Template format that captures the successful patterns while improving weak areas",
-  "psychology_formula": "Psychological mechanisms at work and how they contribute to effectiveness",
-  "improvements": "Specific, actionable recommendations prioritized by impact potential",
-  "performance_prediction": "Realistic assessment of likely performance with reasoning",
-  "knowledge_insights": "How this content aligns with or could better leverage proven strategies from the knowledge base"
-}}
-
-Provide constructive, balanced feedback that helps creators understand both what they're doing right and how they can improve.
-"""
-
-    try:
-        print(f"Sending balanced analysis prompt to GPT-4o...")
-        gpt_response = _api_retry(
-            client.chat.completions.create,
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,
-            max_tokens=3500
-        )
-
-        response_text = gpt_response.choices[0].message.content.strip()
-        
-        # Parse JSON response
-        if response_text.startswith("```json"):
-            response_text = response_text[7:]
-        if response_text.endswith("```"):
-            response_text = response_text[:-3]
-        response_text = response_text.strip()
-        
-        try:
-            parsed = json.loads(response_text)
-        except json.JSONDecodeError as e:
-            print(f"JSON parsing error: {e}")
-            # Return fallback if JSON parsing fails
-            return create_visual_enhanced_fallback(frames_summaries_text, {
-                'transcript': transcript_text,
-                'is_reliable': len(transcript_text.strip()) > 50
-            }, goal)
-        
-        # Add debug logging to see what scores GPT is actually returning
-        scores_raw = parsed.get("scores", {})
-        print(f"Raw scores from GPT: {scores_raw}")
-        
-        # Extract and process scores with better parsing
-        scores = {}
-        for key, value in scores_raw.items():
             try:
-                # Handle various response formats
-                if isinstance(value, (int, float)):
-                    scores[key] = max(1, min(10, int(value)))
-                elif isinstance(value, str):
-                    # Extract number from string responses
-                    match = re.search(r'(\d+)', str(value))
-                    if match:
-                        scores[key] = max(1, min(10, int(match.group(1))))
-                    else:
-                        # If no number found, assign different defaults for each category
-                        category_defaults = {
-                            "hook_strength": 5,
-                            "promise_clarity": 6, 
-                            "retention_design": 5,
-                            "engagement_potential": 4,
-                            "goal_alignment": 6
-                        }
-                        scores[key] = category_defaults.get(key, 5)
+                if filename.lower().endswith('.txt'):
+                    # Read text files
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        knowledge_content.append(f"=== {filename} ===\n{content}\n")
+                        print(f"[LOADED] {filename} ({len(content)} chars)")
+                
+                elif filename.lower().endswith('.pdf'):
+                    # Try to read PDFs using PyPDF2 or similar
+                    try:
+                        import PyPDF2
+                        with open(file_path, 'rb') as f:
+                            pdf_reader = PyPDF2.PdfReader(f)
+                            pdf_text = ""
+                            for page in pdf_reader.pages:
+                                pdf_text += page.extract_text() + "\n"
+                            
+                            if len(pdf_text.strip()) > 50:  # Only include if we got meaningful text
+                                knowledge_content.append(f"=== {filename} ===\n{pdf_text}\n")
+                                print(f"[LOADED] {filename} ({len(pdf_text)} chars)")
+                            else:
+                                print(f"[SKIP] {filename} - no readable text found")
+                    except ImportError:
+                        print(f"[SKIP] {filename} - PyPDF2 not installed, can't read PDFs")
+                    except Exception as pdf_e:
+                        print(f"[ERROR] Reading {filename}: {pdf_e}")
+                
+                elif filename.lower().endswith(('.md', '.markdown')):
+                    # Read markdown files
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        knowledge_content.append(f"=== {filename} ===\n{content}\n")
+                        print(f"[LOADED] {filename} ({len(content)} chars)")
+                
+                elif filename.lower().endswith('.json'):
+                    # Read JSON files
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        json_data = json.load(f)
+                        content = json.dumps(json_data, indent=2)
+                        knowledge_content.append(f"=== {filename} ===\n{content}\n")
+                        print(f"[LOADED] {filename} ({len(content)} chars)")
+                        
                 else:
-                    # Assign different defaults for each category if value is invalid
-                    category_defaults = {
-                        "hook_strength": 5,
-                        "promise_clarity": 6,
-                        "retention_design": 5, 
-                        "engagement_potential": 4,
-                        "goal_alignment": 6
-                    }
-                    scores[key] = category_defaults.get(key, 5)
+                    print(f"[SKIP] {filename} - unsupported file type")
+                    
             except Exception as e:
-                print(f"Error parsing score for {key}: {e}")
-                # Different fallbacks for each category
-                category_defaults = {
-                    "hook_strength": 5,
-                    "promise_clarity": 6,
-                    "retention_design": 5,
-                    "engagement_potential": 4, 
-                    "goal_alignment": 6
-                }
-                scores[key] = category_defaults.get(key, 5)
+                print(f"[ERROR] Processing {filename}: {e}")
         
-        # Ensure all required score fields exist with different defaults
-        required_scores = {
-            "hook_strength": 5,
-            "promise_clarity": 6,
-            "retention_design": 5,
-            "engagement_potential": 4,
-            "goal_alignment": 6
-        }
-        for score_key, default_val in required_scores.items():
-            if score_key not in scores:
-                scores[score_key] = default_val
+        total_content = "\n".join(knowledge_content)
+        print(f"[SUCCESS] Loaded {len(knowledge_content)} documents, {len(total_content)} total characters")
         
-        print(f"Final processed scores: {scores}")  # Debug logging
+        # Truncate if too long (GPT has token limits)
+        if len(total_content) > 15000:  # Reasonable limit for GPT context
+            print(f"[INFO] Truncating knowledge content from {len(total_content)} to 15000 chars")
+            total_content = total_content[:15000] + "\n\n[Content truncated...]"
         
-        # Build comprehensive result
-        result = {
-            "analysis": parsed.get("analysis", "Analysis not available"),
-            "hooks": parsed.get("hooks", []),
-            "scores": scores,
-            "strengths": parsed.get("strengths", "Content strengths to be identified"),
-            "improvement_areas": parsed.get("improvement_areas", "Areas for potential enhancement"),
-            "timing_breakdown": parsed.get("timing_breakdown", ""),
-            "formula": parsed.get("basic_formula", ""),
-            "basic_formula": parsed.get("basic_formula", ""),
-            "timing_formula": parsed.get("timing_formula", ""),
-            "template_formula": parsed.get("template_formula", ""),
-            "psychology_formula": parsed.get("psychology_formula", "Content psychology analysis"),
-            "improvements": parsed.get("improvements", ""),
-            "performance_prediction": parsed.get("performance_prediction", "Performance assessment based on content analysis"),
-            "knowledge_insights": parsed.get("knowledge_insights", "Knowledge context insights"),
-            
-            # Maintain compatibility with existing template
-            "weaknesses": parsed.get("improvement_areas", ""),  # Map improvement_areas to weaknesses for template
-            "critical_assessment": parsed.get("analysis", ""),
-            "knowledge_context_used": bool(knowledge_context.strip()),
-            
-            # Calculate overall quality indicator
-            "overall_quality": "strong" if sum(scores.values()) / len(scores) >= 7 else "moderate" if sum(scores.values()) / len(scores) >= 5 else "needs_work"
-        }
-        
-        return result
+        return total_content
         
     except Exception as e:
-        print(f"Analysis error: {e}")
-        return create_visual_enhanced_fallback(frames_summaries_text, {
-            'transcript': transcript_text,
-            'is_reliable': len(transcript_text.strip()) > 50
-        }, goal)
+        print(f"[ERROR] Failed to parse knowledge folder: {e}")
+        return ""
 
 
-# ==============================
-# FLASK ROUTES
-# ==============================
-
-@app.route("/", methods=["GET"])
-def index():
-    return render_template("index.html")
-
-
-@app.route("/analyze_async", methods=["POST"])
-def analyze_async():
-    return render_template("progress.html", form_data=request.form.to_dict())
-
-
-@app.route("/process", methods=["POST"])
-def process():
+def get_knowledge_context():
+    """Get knowledge context from direct file parsing first, then RAG fallback"""
+    
+    # ALWAYS try direct file parsing first
+    print("[INFO] Attempting direct file parsing of /knowledge folder...")
+    knowledge_content = parse_knowledge_folder("knowledge")
+    
+    if len(knowledge_content) > 500:  # Got meaningful content from files
+        print(f"[SUCCESS] Direct parsing loaded {len(knowledge_content)} characters")
+        return knowledge_content, ["Direct file parsing from /knowledge folder"]
+    
+    # If no files found, try retrieve_all_context (which seems to work based on your logs)
+    print("[FALLBACK] No files found, trying retrieve_all_context...")
     try:
-        # --- Form data ---
-        tiktok_url = request.form.get("tiktok_url", "").strip()
-        creator_note = request.form.get("creator_note", "").strip()
-        strategy = request.form.get("strategy", "smart").strip()
-        frames_per_minute = int(request.form.get("frames_per_minute", 24))
-        cap = int(request.form.get("cap", 60))
-        scene_threshold = float(request.form.get("scene_threshold", 0.24))
-        platform = request.form.get("platform", "tiktok").strip()
-        target_duration = request.form.get("target_duration", "30").strip()
-        goal = request.form.get("goal", "follower_growth").strip()
-        tone = request.form.get("tone", "confident, friendly").strip()
-        audience = request.form.get("audience", "creators and small business owners").strip()
-
-        if not tiktok_url:
-            return "Error: TikTok URL is required", 400
-
-        print(f"Processing: {tiktok_url}")
-        print(f"Strategy: {strategy}, Goal: {goal}")
-
-        # --- Enhanced Video processing with better frame distribution ---
-        try:
-            audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
-                tiktok_url,
-                strategy=strategy,
-                frames_per_minute=frames_per_minute,
-                cap=cap,
-                scene_threshold=scene_threshold,
-            )
-            print(f"Extracted {len(frame_paths)} frames with improved distribution")
-        except Exception as e:
-            print(f"Video processing error: {e}")
-            return f"Error processing video: {str(e)}", 500
-
-        # --- Enhanced Transcription with quality analysis ---
-        try:
-            transcript_data = enhanced_transcribe_audio(audio_path)
-            print(f"Transcript quality: {transcript_data['quality']} - {transcript_data['quality_reason']}")
-            
-            if not transcript_data['is_reliable']:
-                print(f"[warning] Transcript appears unreliable: {transcript_data['quality_reason']}")
-        except Exception as e:
-            print(f"Transcription error: {e}")
-            transcript_data = {
-                'transcript': "(Transcription failed)",
-                'quality': 'error',
-                'quality_reason': str(e),
-                'is_reliable': False
-            }
-
-        # --- Frame analysis ---
-        try:
-            frames_summaries_text, gallery_data_urls = analyze_frames_batch(frame_paths)
-            print(f"Frame analysis complete, gallery has {len(gallery_data_urls)} images")
-            print(f"Frame analysis preview: {frames_summaries_text[:200]}...")
-        except Exception as e:
-            print(f"Frame analysis error: {e}")
-            frames_summaries_text = "(Frame analysis failed)"
-            gallery_data_urls = []
-
-        # --- Retrieve knowledge context BEFORE main analysis ---
-        try:
-            # Build comprehensive query for RAG
-            transcript_text = transcript_data.get('transcript', '')
-            
-            # Create rich context for RAG retrieval
-            rag_query_parts = []
-            if transcript_text and transcript_text != "(Transcription failed)":
-                rag_query_parts.append(f"Transcript: {transcript_text}")
-            if frames_summaries_text and frames_summaries_text != "(Frame analysis failed)":
-                rag_query_parts.append(f"Visual content: {frames_summaries_text}")
-            if creator_note:
-                rag_query_parts.append(f"Creator note: {creator_note}")
-            
-            # Add goal and platform context for better retrieval
-            rag_query_parts.append(f"Goal: {goal}")
-            rag_query_parts.append(f"Platform: {platform}")
-            
-            rag_query = "\n\n".join(rag_query_parts)
-            
-            print(f"RAG query length: {len(rag_query)} characters")
-            print(f"RAG query preview: {rag_query[:200]}...")
-            
-            # Try knowledge retrieval with detailed error handling
-            knowledge_context, knowledge_citations = retrieve_context(rag_query, top_k=10)
-            
-            print(f"Retrieved {len(knowledge_citations)} knowledge citations")
-            print(f"Knowledge context length: {len(knowledge_context)} characters")
-            
-            # Debug: Check if retrieve_context function exists and works
-            if len(knowledge_citations) == 0:
-                print("[DEBUG] Zero citations retrieved - diagnosing RAG system...")
-                
-                # Test 1: Basic function test
-                try:
-                    test_queries = [
-                        "viral content",
-                        "hook", 
-                        "engagement",
-                        "tiktok",
-                        "retention",
-                        "views"
-                    ]
-                    
-                    for test_query in test_queries:
-                        test_context, test_citations = retrieve_context(test_query, top_k=3)
-                        print(f"[TEST] '{test_query}' returned {len(test_citations)} results")
-                        if len(test_citations) > 0:
-                            print(f"[TEST] Sample result: {test_context[:100]}...")
-                            break
-                    
-                    if all(len(retrieve_context(q, top_k=3)[1]) == 0 for q in test_queries):
-                        print("[ERROR] RAG system has no indexed content or connection issues")
-                        
-                        # Test 2: Check if retrieve_all_context works
-                        try:
-                            all_context = retrieve_all_context()
-                            print(f"[TEST] retrieve_all_context returned {len(str(all_context))} characters")
-                            if len(str(all_context)) > 100:
-                                print("[INFO] Knowledge base has content but search isn't working")
-                                # Use all context as fallback
-                                knowledge_context = str(all_context)[:3000]  # Limit size
-                                knowledge_citations = ["Retrieved from full knowledge base"]
-                            else:
-                                print("[ERROR] Knowledge base appears empty")
-                        except Exception as all_e:
-                            print(f"[ERROR] retrieve_all_context failed: {all_e}")
-                    
-                except Exception as test_e:
-                    print(f"[ERROR] RAG system error: {test_e}")
-                    import traceback
-                    traceback.print_exc()
-            
-            else:
-                print(f"[SUCCESS] RAG working - got {len(knowledge_citations)} citations")
-            
-            # Final fallback to enhanced patterns
+        all_context = retrieve_all_context()
+        if all_context and len(str(all_context)) > 500:
+            content = str(all_context)
+            print(f"[SUCCESS] retrieve_all_context loaded {len(content)} characters")
+            # Truncate if too long
+            if len(content) > 15000:
+                content = content[:15000] + "\n\n[Content truncated...]"
+            return content, ["Retrieved from full knowledge base"]
+    except Exception as e:
+        print(f"[ERROR] retrieve_all_context failed: {e}")
+    
+    # Final fallback to enhanced patterns
     print("[FALLBACK] Using enhanced fallback knowledge patterns")
     return """
 PROVEN VIRAL CONTENT PATTERNS (ENHANCED FALLBACK):
@@ -1167,10 +609,11 @@ Provide constructive, balanced feedback that helps creators understand both what
             parsed = json.loads(response_text)
         except json.JSONDecodeError as e:
             print(f"JSON parsing error: {e}")
+            print(f"Response text that failed to parse: {response_text[:500]}...")
             # Return fallback if JSON parsing fails
             return create_visual_enhanced_fallback(frames_summaries_text, {
-                'transcript': transcript_text,
-                'is_reliable': len(transcript_text.strip()) > 50
+                'transcript': transcript_for_analysis,
+                'is_reliable': len(transcript_for_analysis.strip()) > 50
             }, goal)
         
         # Add debug logging to see what scores GPT is actually returning
@@ -1232,6 +675,10 @@ Provide constructive, balanced feedback that helps creators understand both what
         for score_key, default_val in required_scores.items():
             if score_key not in scores:
                 scores[score_key] = default_val
+        
+        # Validate score ranges
+        for key in scores:
+            scores[key] = max(1, min(10, scores[key]))
         
         print(f"Final processed scores: {scores}")  # Debug logging
         
@@ -1381,12 +828,10 @@ def process():
             
             # Enhanced fallback with performance-aware patterns
             knowledge_context = """
-VIRAL CONTENT ANALYSIS FOR LOW-PERFORMING CONTENT:
+VIRAL CONTENT ANALYSIS FOR PERFORMANCE-BASED INSIGHTS:
 
-CURRENT VIDEO DIAGNOSIS:
-- Hook: "You spent over the project proposal..." 
-- Problem: Lacks emotional stakes, no curiosity gap
-- Performance: <300 views indicates hook/retention issues
+PERFORMANCE CONTEXT ANALYSIS:
+Creator Performance Note: {creator_note}
 
 HIGH-PERFORMING VS LOW-PERFORMING PATTERNS:
 
@@ -1397,10 +842,10 @@ HIGH-PERFORMING HOOKS (8M+ avg views):
 - "The industry secret they don't want you to know..."
 
 LOW-PERFORMING HOOKS (<500k views):
-- "You spent time on [mundane activity]..."
-- Generic business advice without emotional stakes
-- No immediate curiosity or pattern interrupt
-- Lacks personal transformation elements
+- Generic openings without curiosity gaps
+- No immediate personal stakes or emotional connection
+- Weak pattern interrupts that don't stop scrolling
+- Lacks specific, relatable scenarios
 
 RETENTION FACTORS:
 - First 3 seconds: Must create curiosity gap or controversy
@@ -1414,13 +859,27 @@ ALGORITHM OPTIMIZATION:
 - Watch time >50% triggers recommendations
 - Visual variety prevents drop-off
 
-REALISTIC SCORING FOR UNDERPERFORMING CONTENT:
-- Hook Strength: 3-4/10 (weak opening, no stopping power)
-- Promise Clarity: 4-5/10 (unclear value proposition)
-- Retention Design: 5-6/10 (decent pacing but weak content)
-- Engagement Potential: 2-3/10 (low shareability/comment potential)
-- Goal Alignment: 3-4/10 (doesn't serve viral reach effectively)
-"""
+ENGAGEMENT PSYCHOLOGY:
+- Personal transformation stories drive follows
+- Behind-the-scenes content builds trust
+- Controversial opinions (with nuance) drive comments
+- Before/after reveals drive saves and shares
+
+REALISTIC SCORING GUIDELINES:
+High-performing content (500k+ views):
+- Hook Strength: 7-9/10 (proven stopping power)
+- Promise Clarity: 7-8/10 (clear value proposition)
+- Retention Design: 7-9/10 (strong pacing and engagement)
+- Engagement Potential: 6-8/10 (drives comments/shares)
+- Goal Alignment: 7-9/10 (effectively serves stated goal)
+
+Low-performing content (<100k views):
+- Hook Strength: 3-5/10 (weak opening, limited stopping power)
+- Promise Clarity: 4-6/10 (unclear or weak value proposition)
+- Retention Design: 4-6/10 (pacing issues, viewer drop-off)
+- Engagement Potential: 2-4/10 (low shareability/comment potential)
+- Goal Alignment: 3-5/10 (doesn't effectively serve viral reach)
+""".format(creator_note=creator_note)
             knowledge_citations = ["Enhanced performance-aware fallback patterns"]
 
         # --- Main Analysis ---
