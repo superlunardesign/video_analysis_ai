@@ -928,7 +928,7 @@ For UNKNOWN: "Based on patterns, X should improve performance because..."
 
 Respond with COMPREHENSIVE analysis in JSON:
 {{
-  "analysis": "Let me break down {'why this exploded' if is_high_performing else 'what happened here' if not is_high_performing else 'what I'm seeing'}. [Detailed, specific, conversational explanation that teaches while analyzing. Reference specific moments, quote exact text, describe exact visuals]",
+  "analysis": "Let me break down {'why this exploded' if is_high_performing else 'what happened here' if not is_high_performing else 'what I\'m seeing'}. [Detailed, specific, conversational explanation that teaches while analyzing. Reference specific moments, quote exact text, describe exact visuals]",
   
   "video_type_analysis": "This is a {'visual-focused' if not has_speech else 'verbal + visual'} video that [explain how this type works, what makes it effective or not]",
   
