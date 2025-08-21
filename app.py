@@ -767,7 +767,29 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
 # ==============================
 
 def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
-    """Enhanced analysis function with conversational, explanatory output."""
+    """Comprehensive analysis that handles all video types - with/without sound, high/low performing."""
+    
+    # Determine video type and performance level
+    has_speech = transcript_text and len(transcript_text.strip()) > 20 and not any(
+        indicator in transcript_text.lower() 
+        for indicator in ['music', 'sound', 'noise', 'audio', 'background', 'ambient']
+    )
+    
+    # Check performance indicators from creator note
+    is_high_performing = False
+    performance_indicators = []
+    if creator_note:
+        note_lower = creator_note.lower()
+        if any(word in note_lower for word in ['million', 'viral', 'blew up', 'exploded']):
+            is_high_performing = True
+            # Extract specific numbers if mentioned
+            import re
+            numbers = re.findall(r'(\d+\.?\d*)\s*(million|m|k|thousand)', note_lower)
+            if numbers:
+                performance_indicators.append(f"{numbers[0][0]}{numbers[0][1]}")
+        elif any(word in note_lower for word in ['low', 'poor', 'didn\'t work', 'no views', 'flopped']):
+            is_high_performing = False
+            performance_indicators.append("underperformed")
     
     # Build knowledge context section
     knowledge_section = ""
@@ -776,181 +798,223 @@ def run_main_analysis(transcript_text, frames_summaries_text, creator_note, plat
 PROVEN VIRAL STRATEGIES FROM KNOWLEDGE BASE:
 {knowledge_context}
 
-Use these examples to explain WHY things work or don't work, making comparisons that help the creator understand the mechanics behind viral content.
+CRITICAL: Use these patterns to explain EXACTLY why this video succeeded or failed compared to proven examples.
+"""
+    
+    # Adjust prompt based on video type
+    video_type_context = ""
+    if not has_speech:
+        video_type_context = """
+This is a VISUAL-ONLY or AMBIENT AUDIO video. Focus analysis on:
+- Visual hooks and progression
+- On-screen text vs captions (are they different?)
+- Visual satisfaction elements (transformations, processes, reveals)
+- Color, movement, and pacing
+- How visuals alone tell the story
 """
     else:
-        knowledge_section = """
-Note: Limited knowledge context available. Analysis based on general best practices.
+        video_type_context = """
+This video has VERBAL CONTENT. Analyze:
+- How verbal and visual elements work together
+- Whether on-screen text reinforces or adds to spoken content
+- The relationship between what's said and what's shown
 """
     
     prompt = f"""
-You are a friendly content strategist having a conversation with a creator about their {platform} video. Explain everything like you're teaching a friend over coffee - be specific, use examples, and help them truly understand WHY things work or don't.
+You are analyzing a {platform} video. Creator context: {creator_note if creator_note else "No specific performance data provided"}. 
+Be EXTREMELY SPECIFIC and adapt your analysis to the actual performance level.
 
 CONTENT TO ANALYZE:
-TRANSCRIPT: {transcript_text}
+TRANSCRIPT: {transcript_text if has_speech else "(No speech - visual/ambient only)"}
 VISUAL CONTENT: {frames_summaries_text}
 CREATOR'S CONTEXT: {creator_note}
-TARGET: {target_duration}s video for {audience} with {tone} tone
+TARGET: {target_duration}s video for {audience}
+VIDEO TYPE: {"Visual/Ambient" if not has_speech else "Verbal + Visual"}
+
+{video_type_context}
 
 {knowledge_section}
 
-IMPORTANT: Write everything conversationally, as if explaining to someone who's smart but not familiar with viral content mechanics. Use "you" and "your video" throughout. Avoid marketing jargon - instead of "leverage," say "use." Instead of "optimize," say "improve." Make it feel like friendly, expert advice.
+ADAPTIVE ANALYSIS FRAMEWORK:
 
-ANALYSIS FRAMEWORK:
+1. PERFORMANCE-AWARE SCORING
+If creator mentions high performance (millions of views, viral, etc.):
+- Scores should reflect success (7-10 range)
+- Explain WHAT made it work
+- Give formulas to replicate success
 
-1. FIRST, WATCH THE VIDEO THROUGH A VIEWER'S EYES
-- What happens in the first 3 seconds that would make someone stop scrolling?
-- What promise or question does it set up?
-- How does it flow from beginning to end?
-- What emotional journey does it take viewers on?
+If creator mentions poor performance (low views, didn't work, etc.):
+- Scores should reflect problems (3-6 range)  
+- Explain WHY it didn't work
+- Give specific fixes
 
-2. HOOK BREAKDOWN (BE SPECIFIC!)
-Look at the first 3 seconds and identify:
-- VISUAL HOOK: What do viewers SEE first? Is it movement, a surprising image, a transformation teaser?
-- TEXT HOOK: Are there on-screen graphics/text that aren't just captions? What do they say?
-- VERBAL HOOK: What words are spoken? How do they create curiosity?
+If no performance mentioned:
+- Score based on objective quality
+- Predict likely performance
+- Explain reasoning
 
-For each hook type, explain:
-- What it is specifically (quote it, describe it)
-- Why it works or doesn't work psychologically
-- How to replicate this approach
+2. EXACT HOOK BREAKDOWN (Adapt to Content Type)
+For ALL videos, identify what happens in first 3 seconds:
+- VISUAL: Describe EXACTLY what appears (movement, colors, objects, people)
+- TEXT: Quote EXACT on-screen text. Determine: Is it a hook or just captions?
+  * If text matches transcript = captions
+  * If text is different/additional = text hook
+- AUDIO: What's heard? (speech, music type, sound effects, silence)
+- TIMING: Break down 0s, 1s, 2s, 3s precisely
 
-3. THE VIRAL MECHANICS (EXPLAIN THE "WHY")
-Don't just say "this has good retention" - explain:
-- WHY people would keep watching (what psychological principle is at play?)
-- WHERE they might drop off and why
-- WHAT makes them want to comment (controversy? Questions? Relatability?)
-- WHY they'd share it (Does it make them look smart? Funny? Helpful?)
-- WHEN they'd save it (Is it educational? Transformational? Reference material?)
+For VISUAL-ONLY videos, emphasize:
+- What visual element stops the scroll?
+- How does movement/color/composition grab attention?
+- What creates curiosity without words?
 
-4. PERFORMANCE REALITY CHECK
-Creator says: "{creator_note}"
-Based on this context:
-- If they mention low views/engagement, be honest about what's not working
-- Explain it like: "The reason this didn't get views is probably because..."
-- Compare to successful examples: "Videos that go viral typically do X, but yours does Y"
-- Give specific fixes: "Instead of opening with X, try Y because..."
+3. WHY IT WORKED OR DIDN'T (Be Brutally Specific)
+Don't say "good hook" - explain:
+- "The jarring cut from dark to bright at 0:01 creates pattern interrupt"
+- "The text 'wait for it' is overused and creates skepticism rather than curiosity"
+- "The satisfying peeling motion triggers ASMR-like response"
+- "Opening with 'hey guys' wastes precious first seconds"
 
-5. SCORING WITH EXPLANATIONS
-Don't just give numbers - explain what each score means:
-- Hook Strength: "I gave this a [X]/10 because [specific reason]. A 10/10 hook would [example]"
-- Promise Clarity: "This scores [X]/10 - viewers understand/don't understand what they'll get"
-- Retention Design: "[X]/10 - here's where people stay vs leave"
-- Engagement Potential: "[X]/10 - here's what drives/prevents comments and shares"
-- Goal Alignment: "[X]/10 - this does/doesn't achieve {goal} because..."
+4. CONTENT-TYPE SPECIFIC ANALYSIS
 
-6. ALTERNATIVE HOOKS (MAKE THEM NATURAL)
+FOR VISUAL/PROCESS VIDEOS:
+- Satisfaction mechanics (what makes it satisfying to watch?)
+- Visual progression (how does it build anticipation?)
+- Transformation moments (where are the payoffs?)
+- Rewatch factors (what makes people loop it?)
+
+FOR TALKING HEAD/EDUCATIONAL:
+- Hook efficiency (how fast do they get to the point?)
+- Value clarity (is the benefit obvious?)
+- Authority signals (why should we listen?)
+- Engagement triggers (what drives interaction?)
+
+FOR ENTERTAINMENT/COMEDY:
+- Setup efficiency (how quick is the premise established?)
+- Punchline timing (where are the laughs?)
+- Shareability (what makes people send to friends?)
+- Memorable moments (what sticks?)
+
+5. ENGAGEMENT PSYCHOLOGY (Specific to This Video)
+Explain the EXACT mechanisms:
+- Comments: "The $200 high-frequency wand is controversial - dermatologists debate it"
+- Shares: "People share to seem knowledgeable about insider beauty secrets"
+- Saves: "The specific 3-step routine is reference material for bedtime"
+- Rewatches: "The satisfying application process creates visual ASMR"
+
+6. ALTERNATIVE HOOKS (Natural & Platform-Specific)
 Create 5 hooks that:
-- Sound like something a real person would actually say
-- Are specific to their content (not generic templates)
-- Include emotional triggers
-- Create curiosity gaps
-- Feel authentic to {platform}
+- Match the video's actual content type
+- Sound like real {platform} users
+- Address same desire/problem
+- Create similar or better curiosity gaps
+- Would work for {audience}
 
-Examples of good hooks (natural, not corporate):
-- "okay so I just discovered why nobody's talking about..."
-- "this is gonna sound weird but hear me out..."
-- "I can't believe I've been doing this wrong for years"
-- "wait till you see what happens at the end"
-- "POV: you finally figure out why..."
+For visual-only videos, suggest text overlay hooks
+For verbal videos, suggest opening lines
+Make them natural, not corporate
 
-7. ENGAGEMENT PSYCHOLOGY (TEACH THEM)
-Explain in simple terms:
-- "People share videos that make them look [smart/funny/helpful] to their friends"
-- "Comments happen when you [create controversy/ask questions/make people feel something]"
-- "Saves are triggered by [transformation/education/reference value]"
-- "The rewatch factor comes from [satisfaction/hidden details/pure entertainment]"
+7. PRECISE FORMULAS (Based on What Actually Works)
 
-8. FORMULAS THAT ACTUALLY HELP
-Don't give generic structures. Make them specific and actionable:
-- Basic: Step-by-step what to do
-- Timing: Exactly what should happen at each second
-- Template: Fill-in-the-blank format they can customize
-- Psychology: The emotional/mental journey to create
+Include ALL of these:
+- SECOND-BY-SECOND: "0-1s: [Exact action], 1-2s: [Exact action]..."
+- VISUAL FORMULA: "Pattern interrupt → Visual question → Process → Payoff"
+- TEXT FORMULA: "[Number] + [Unexpected adjective] + [Common desire] + [Time promise]"
+- PSYCHOLOGY FORMULA: "Create [specific emotion] → Promise [specific outcome] → Build [specific feeling] → Deliver [specific satisfaction]"
 
-9. IMPROVEMENTS (BE SPECIFIC AND ENCOURAGING)
-Instead of: "Improve your hook"
-Say: "Your hook could grab attention faster if you started with the surprise reveal instead of the setup. For example..."
+8. IMPROVEMENTS (Even for Successful Videos)
+For HIGH performers: "This worked because X, test Y to push further"
+For LOW performers: "Replace X with Y because [specific reason]"
+For UNKNOWN: "Based on patterns, X should improve performance because..."
 
-Instead of: "Increase engagement"
-Say: "To get more comments, try ending with a question like... or adding a controversial opinion about..."
-
-Respond in JSON format, but write all text conversationally:
+Respond with COMPREHENSIVE analysis in JSON:
 {{
-  "analysis": "Let me break down what's happening in your video and why it's performing the way it is. [Detailed, conversational explanation that teaches while analyzing]",
+  "analysis": "Let me break down {'why this exploded' if is_high_performing else 'what happened here' if not is_high_performing else 'what I'm seeing'}. [Detailed, specific, conversational explanation that teaches while analyzing. Reference specific moments, quote exact text, describe exact visuals]",
   
-  "hook_breakdown": {{
-    "visual_hook": "In the first 3 seconds, viewers see [specific description]. This [works/doesn't work] because...",
-    "text_hook": "The on-screen text says '[exact text]' which [creates curiosity/fails to grab attention] because...",
-    "verbal_hook": "You open by saying '[exact words]' which [psychological effect explanation]...",
-    "why_it_works_or_not": "Here's the thing about hooks - yours [specific explanation of the psychology]..."
+  "video_type_analysis": "This is a {'visual-focused' if not has_speech else 'verbal + visual'} video that [explain how this type works, what makes it effective or not]",
+  
+  "exact_hook_breakdown": {{
+    "first_second": "0:00 - [EXACT description of what appears/happens]",
+    "second_second": "0:01 - [EXACT description including any text/changes]",
+    "third_second": "0:02 - [EXACT description of action/progression]",
+    "visual_hook": "[Detailed description of visual elements that grab attention]",
+    "text_hook": "[EXACT text if it appears] - {'This is a hook because...' or 'This appears to be captions because it matches the audio'}",
+    "audio_hook": "{'Opening words: [quote]' if speech else 'Audio: [describe sounds/music]'}",
+    "why_it_works_or_not": "[Specific explanation of hook psychology, what works, what doesn't]"
   }},
   
+  "performance_analysis": "{'This video ' + performance_indicators[0] + ' because...' if performance_indicators else 'Based on the structure, this video likely...'} [Detailed explanation comparing to known patterns]",
+  
   "hooks": [
-    "5 natural-sounding alternative hooks that real people would actually use"
+    "5 natural hooks specific to this content type and platform"
   ],
   
   "scores": {{
-    "hook_strength": 7,
-    "promise_clarity": 6,
-    "retention_design": 8,
-    "engagement_potential": 5,
-    "goal_alignment": 7
+    "hook_strength": {"8-10 if high performing, 3-6 if low performing, else evaluate objectively"},
+    "promise_clarity": {"similar logic"},
+    "retention_design": {"similar logic"},
+    "engagement_potential": {"similar logic"},
+    "goal_alignment": {"similar logic"}
   }},
   
   "score_explanations": {{
-    "hook_strength": "I gave your hook a [X]/10 because [specific reason with example of what would be better]",
-    "promise_clarity": "The promise scores [X]/10 - [explanation of what viewers understand or don't]",
-    "retention_design": "Your retention design gets [X]/10 because [where people stay vs leave and why]",
-    "engagement_potential": "[X]/10 for engagement - [what drives or prevents interaction]",
-    "goal_alignment": "For {goal}, this scores [X]/10 because [how well it achieves the goal]"
+    "hook_strength": "I gave this a [X]/10 because [specific reason tied to actual performance or predicted performance]",
+    "promise_clarity": "[X]/10 - The promise is [clear/unclear] because [specific element analysis]",
+    "retention_design": "[X]/10 - [Specific pacing/structure analysis]",
+    "engagement_potential": "[X]/10 - [Specific triggers or lack thereof]",
+    "goal_alignment": "[X]/10 - For {goal}, this [achieves/misses] because..."
   }},
   
-  "strengths": "What's working really well: [Specific elements with explanations of WHY they work]",
+  "visual_satisfaction_analysis": "{'For this visual content: ' + visual satisfaction analysis if not has_speech else 'Visual elements contribute by...'}",
   
-  "improvement_areas": "Here's what could be stronger: [Specific issues with explanations and solutions]",
+  "engagement_psychology": "Here's what drives engagement: [Specific to this video's content, not generic]",
   
-  "timing_breakdown": "Here's what happens moment by moment: 0-3s: [what happens and viewer psychology], 3-7s: [next phase], etc.",
+  "viral_mechanisms": "The {'viral success' if is_high_performing else 'performance'} comes from [specific mechanisms, patterns, triggers]",
   
-  "engagement_psychology": "Let me explain why people will or won't engage: [Detailed explanation of share triggers, comment drivers, save motivations]",
+  "audience_psychology": "Your {audience} audience specifically responds to [preferences]. This video [does/doesn't] tap into these because...",
   
-  "viral_mechanisms": "The viral potential here depends on [specific factors]. Videos go viral when [explanation]. Yours [comparison]...",
+  "strengths": "What's genuinely working: [Specific elements with explanations]",
   
-  "basic_formula": "Here's exactly how to recreate this: Step 1: [specific action], Step 2: [specific action], etc.",
+  "improvement_areas": "{'Even at ' + performance_indicators[0] + ', you could...' if is_high_performing else 'To improve performance: '} [Specific, actionable suggestions]",
   
-  "timing_formula": "0-3 seconds: Do [specific thing] to [achieve specific effect]. 3-7 seconds: [next step]. etc.",
+  "timing_breakdown": "Full journey: 0-3s: [Hook phase], 3-10s: [Development], 10-20s: [Core content], 20-[end]: [Resolution]",
   
-  "template_formula": "Fill in these blanks: Start with [type of opener]: _____, Then promise [type of value]: _____, etc.",
+  "formulas": {{
+    "basic_formula": "Step 1: [Specific action]\nStep 2: [Specific action]\nStep 3: [Specific action]",
+    "timing_formula": "0-1s: [Do this]\n1-3s: [Do this]\n3-7s: [Do this]\n7-15s: [Do this]",
+    "visual_formula": "[Visual element] → [Visual element] → [Visual element]",
+    "text_formula": "[Formula for on-screen text that works]",
+    "psychology_formula": "Create [emotion] → Build [anticipation] → Deliver [satisfaction]"
+  }},
   
-  "psychology_formula": "Create this mental journey: First, make them feel [emotion] by [action]. Then build [feeling] through [technique]. Finally, satisfy with [payoff].",
+  "performance_prediction": "Based on everything: [Specific prediction with reasoning]",
   
-  "improvements": "Here are specific things to try: Instead of [current approach], try [specific alternative] because [explanation of why it works better]",
-  
-  "performance_prediction": "Based on everything I'm seeing, this video will likely [specific prediction] because [detailed reasoning]",
-  
-  "knowledge_insights": "Compared to viral videos in our knowledge base, yours [specific comparison with examples]",
-  
-  "why_viral_or_not": "The honest truth about why this [did/didn't] go viral: [Detailed, educational explanation that helps them understand the mechanics]",
-  
-  "audience_psychology": "Your audience ({audience}) specifically responds to [preferences and triggers]. Your video [does/doesn't] tap into these because..."
+  "knowledge_insights": "Compared to viral patterns: [Specific comparisons to knowledge base examples]"
 }}
 
-Remember: Be conversational, specific, and educational. Help them understand not just WHAT to do, but WHY it works. Use examples, comparisons, and clear explanations throughout.
+Remember: 
+- Be SPECIFIC (quote, describe, explain exactly)
+- Adapt to video type (visual-only vs verbal)
+- Reflect actual performance in scores
+- Give natural, actionable alternatives
+- Explain the psychology behind everything
 """
 
     try:
-        print(f"Sending enhanced conversational analysis prompt to GPT-4o...")
+        print(f"Sending comprehensive analysis prompt to GPT-4o...")
+        print(f"Video type: {'Visual/Ambient' if not has_speech else 'Verbal+Visual'}")
+        print(f"Performance level: {'High' if is_high_performing else 'Unknown/Low'}")
+        
         gpt_response = _api_retry(
             client.chat.completions.create,
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,  # Slightly higher for more natural language
-            max_tokens=4000   # More tokens for detailed explanations
+            temperature=0.3,
+            max_tokens=4000
         )
 
         response_text = gpt_response.choices[0].message.content.strip()
         
-        # Parse and process response
+        # Parse response
         if response_text.startswith("```json"):
             response_text = response_text[7:]
         if response_text.endswith("```"):
@@ -958,75 +1022,114 @@ Remember: Be conversational, specific, and educational. Help them understand not
         
         parsed = json.loads(response_text.strip())
         
-        # Process scores
+        # Process scores based on performance level
         scores = {}
         scores_raw = parsed.get("scores", {})
-        required_scores = {
-            "hook_strength": 5,
-            "promise_clarity": 6,
-            "retention_design": 5,
-            "engagement_potential": 4,
-            "goal_alignment": 6
-        }
         
-        for key, default in required_scores.items():
+        # Set appropriate defaults based on performance
+        if is_high_performing:
+            defaults = {
+                "hook_strength": 8,
+                "promise_clarity": 8,
+                "retention_design": 8,
+                "engagement_potential": 8,
+                "goal_alignment": 8
+            }
+        elif "low" in creator_note.lower() if creator_note else False:
+            defaults = {
+                "hook_strength": 4,
+                "promise_clarity": 4,
+                "retention_design": 5,
+                "engagement_potential": 4,
+                "goal_alignment": 4
+            }
+        else:
+            defaults = {
+                "hook_strength": 6,
+                "promise_clarity": 6,
+                "retention_design": 6,
+                "engagement_potential": 5,
+                "goal_alignment": 6
+            }
+        
+        for key, default in defaults.items():
             try:
                 scores[key] = max(1, min(10, int(scores_raw.get(key, default))))
             except:
                 scores[key] = default
         
-        # Build comprehensive result
+        # Extract all components
+        exact_hook = parsed.get("exact_hook_breakdown", {})
+        formulas = parsed.get("formulas", {})
+        
+        # Build comprehensive result preserving ALL functionality
         result = {
             # Core analysis
-            "analysis": parsed.get("analysis", "Analysis not available"),
+            "analysis": parsed.get("analysis", ""),
+            "video_type_analysis": parsed.get("video_type_analysis", ""),
+            "performance_analysis": parsed.get("performance_analysis", ""),
+            
+            # Hooks and alternatives
             "hooks": parsed.get("hooks", []),
+            
+            # Scores
             "scores": scores,
-            
-            # Hook breakdown
-            "hook_breakdown": parsed.get("hook_breakdown", {}),
-            "visual_hook": parsed.get("hook_breakdown", {}).get("visual_hook", ""),
-            "text_hook": parsed.get("hook_breakdown", {}).get("text_hook", ""),
-            "verbal_hook": parsed.get("hook_breakdown", {}).get("verbal_hook", ""),
-            "why_hook_works": parsed.get("hook_breakdown", {}).get("why_it_works_or_not", ""),
-            
-            # Score explanations
             "score_explanations": parsed.get("score_explanations", {}),
             
-            # Performance analysis
-            "strengths": parsed.get("strengths", ""),
-            "improvement_areas": parsed.get("improvement_areas", ""),
-            "improvements": parsed.get("improvements", ""),
+            # Hook breakdown
+            "exact_hook_breakdown": exact_hook,
+            "first_3_seconds": f"{exact_hook.get('first_second', '')}\n{exact_hook.get('second_second', '')}\n{exact_hook.get('third_second', '')}",
+            "visual_hook": exact_hook.get("visual_hook", ""),
+            "text_hook": exact_hook.get("text_hook", ""),
+            "verbal_hook": exact_hook.get("audio_hook", ""),
+            "why_hook_works": exact_hook.get("why_it_works_or_not", ""),
             
-            # Viral analysis
-            "why_viral_or_not": parsed.get("why_viral_or_not", ""),
-            "viral_mechanisms": parsed.get("viral_mechanisms", ""),
-            "performance_prediction": parsed.get("performance_prediction", ""),
-            
-            # Psychology
+            # Psychology and mechanics
             "engagement_psychology": parsed.get("engagement_psychology", ""),
             "audience_psychology": parsed.get("audience_psychology", ""),
+            "viral_mechanisms": parsed.get("viral_mechanisms", ""),
+            "visual_satisfaction_analysis": parsed.get("visual_satisfaction_analysis", ""),
             
-            # Formulas
+            # Strengths and improvements
+            "strengths": parsed.get("strengths", ""),
+            "improvement_areas": parsed.get("improvement_areas", ""),
+            "improvements": parsed.get("improvement_areas", ""),
+            
+            # Formulas (all types)
+            "basic_formula": formulas.get("basic_formula", ""),
+            "timing_formula": formulas.get("timing_formula", ""),
+            "visual_formula": formulas.get("visual_formula", ""),
+            "text_formula": formulas.get("text_formula", ""),
+            "psychology_formula": formulas.get("psychology_formula", ""),
             "timing_breakdown": parsed.get("timing_breakdown", ""),
-            "basic_formula": parsed.get("basic_formula", ""),
-            "timing_formula": parsed.get("timing_formula", ""),
-            "template_formula": parsed.get("template_formula", ""),
-            "psychology_formula": parsed.get("psychology_formula", ""),
             
-            # Knowledge insights
+            # Predictions and insights
+            "performance_prediction": parsed.get("performance_prediction", ""),
             "knowledge_insights": parsed.get("knowledge_insights", ""),
-            "knowledge_context_used": bool(knowledge_context.strip()),
             
-            # Overall quality
-            "overall_quality": "strong" if sum(scores.values()) / len(scores) >= 7 else "moderate" if sum(scores.values()) / len(scores) >= 5 else "needs_work",
+            # Why viral or not
+            "why_viral_or_not": parsed.get("performance_analysis", ""),
             
-            # Additional fields for template compatibility
-            "formula": parsed.get("basic_formula", ""),
+            # Preserve all existing fields for compatibility
+            "formula": formulas.get("basic_formula", ""),
             "psychological_breakdown": parsed.get("analysis", ""),
-            "hook_mechanics": parsed.get("hook_breakdown", {}).get("why_it_works_or_not", ""),
-            "emotional_journey": parsed.get("engagement_psychology", ""),
+            "hook_mechanics": exact_hook.get("why_it_works_or_not", ""),
+            "emotional_journey": parsed.get("audience_psychology", ""),
             "authority_signals": parsed.get("strengths", ""),
-            "replication_blueprint": parsed.get("basic_formula", ""),
+            "replication_blueprint": formulas.get("basic_formula", ""),
+            "template_formula": formulas.get("text_formula", ""),
+            "multimodal_insights": parsed.get("video_type_analysis", ""),
+            "engagement_triggers": parsed.get("engagement_psychology", ""),
+            "improvement_opportunities": parsed.get("improvement_areas", ""),
+            "viral_potential_factors": parsed.get("viral_mechanisms", ""),
+            "weaknesses": parsed.get("improvement_areas", ""),
+            "critical_assessment": parsed.get("performance_analysis", ""),
+            
+            # Meta information
+            "knowledge_context_used": bool(knowledge_context.strip()),
+            "overall_quality": "strong" if sum(scores.values()) / len(scores) >= 7 else "moderate" if sum(scores.values()) / len(scores) >= 5 else "needs_work",
+            "video_has_speech": has_speech,
+            "detected_performance": "high" if is_high_performing else "unknown"
         }
         
         return result
@@ -1036,52 +1139,132 @@ Remember: Be conversational, specific, and educational. Help them understand not
         import traceback
         traceback.print_exc()
         
-        # Return conversational fallback
+        # Return comprehensive fallback
+        return create_enhanced_fallback_analysis(
+            transcript_text, 
+            frames_summaries_text, 
+            creator_note, 
+            platform, 
+            goal, 
+            audience,
+            has_speech,
+            is_high_performing
+        )
+
+
+def create_enhanced_fallback_analysis(transcript_text, frames_summaries_text, creator_note, platform, goal, audience, has_speech, is_high_performing):
+    """Enhanced fallback that handles all video types."""
+    
+    if not has_speech:
+        # Visual-only video fallback
         return {
-            "analysis": f"Let me break down what I see in your video. Based on the visuals and {'audio' if len(transcript_text.strip()) > 50 else 'ambient sound'}, this appears to be a {goal.replace('_', ' ')} focused piece. The content flows through several phases designed to maintain viewer attention.",
+            "analysis": f"This visual-focused video relies on imagery and movement to engage viewers. The visual progression creates interest through {frames_summaries_text[:100]}...",
+            "video_type_analysis": "This is a visual/ambient video that tells its story through imagery rather than words. These videos succeed through satisfying visuals, transformations, or visual storytelling.",
+            "performance_analysis": f"Based on visual structure, this video {'has strong potential' if 'transformation' in frames_summaries_text.lower() else 'could benefit from clearer visual hooks'}.",
             "hooks": [
-                "wait, this actually works and I had no idea",
-                "POV: you just discovered the easiest method ever",
-                "okay but why did nobody tell me about this sooner",
-                "this is about to change how you do everything",
-                "I tried this for a week and the results are insane"
+                "wait for the transformation at the end",
+                "POV: you discover the most satisfying process",
+                "this is oddly satisfying to watch",
+                "the ending will blow your mind",
+                "you won't believe how this turns out"
             ],
             "scores": {
-                "hook_strength": 5,
-                "promise_clarity": 5,
-                "retention_design": 5,
-                "engagement_potential": 5,
-                "goal_alignment": 5
-            },
-            "strengths": "Your video has a clear structure and maintains visual interest throughout.",
-            "improvement_areas": "To boost performance, focus on creating a stronger hook in the first 3 seconds and making your value proposition clearer.",
-            "timing_breakdown": "0-3s: Opening establishes the scene. 3-10s: Context builds. Middle: Core content delivery. End: Resolution and call-to-action.",
-            "improvements": "Try starting with your most surprising or valuable moment first, then explain how you got there. This creates immediate curiosity.",
-            "performance_prediction": "With some adjustments to the opening, this video could perform significantly better.",
-            "knowledge_insights": "Successful videos in this category typically open with stronger hooks and clearer promises.",
-            "engagement_psychology": "People share content that makes them look smart or helpful. Your video could tap into this more by adding a surprising insight or transformation.",
-            "viral_mechanisms": "Viral content typically has a strong emotional trigger in the first few seconds. Consider adding surprise, humor, or controversy.",
-            "basic_formula": "1. Start with your best moment 2. Promise what they'll learn 3. Build anticipation 4. Deliver value 5. Call to action",
-            "timing_formula": "0-3s: Hook with best moment. 3-7s: Clear promise. 7-20s: Build value. 20-27s: Deliver payoff. 27-30s: Engage.",
-            "template_formula": "Hook: [Your surprising moment] Promise: [What they'll learn] Build: [3 key points] Payoff: [The revelation] CTA: [What to do next]",
-            "psychology_formula": "Create curiosity → Promise value → Build anticipation → Deliver satisfaction → Inspire action",
-            "why_viral_or_not": "This video has potential but needs a stronger opening to compete in the algorithm. The first 3 seconds determine everything.",
-            "audience_psychology": f"Your {audience} audience responds best to practical value and authentic insights. Make sure your content speaks directly to their needs.",
-            "hook_breakdown": {
-                "visual_hook": "The opening visual could be more attention-grabbing",
-                "text_hook": "Consider adding on-screen text that creates curiosity",
-                "verbal_hook": "The opening words should immediately create a question in the viewer's mind",
-                "why_it_works_or_not": "Hooks work when they create an immediate emotional response - curiosity, surprise, or recognition"
+                "hook_strength": 7 if is_high_performing else 5,
+                "promise_clarity": 6 if is_high_performing else 4,
+                "retention_design": 7 if is_high_performing else 5,
+                "engagement_potential": 6 if is_high_performing else 4,
+                "goal_alignment": 6 if is_high_performing else 5
             },
             "score_explanations": {
-                "hook_strength": "5/10 - The hook could be much stronger with a pattern interrupt or curiosity gap",
-                "promise_clarity": "5/10 - Viewers need to understand what they'll gain within the first few seconds",
-                "retention_design": "5/10 - Good structure but could use more retention tactics throughout",
-                "engagement_potential": "5/10 - Add elements that inspire comments, shares, and saves",
-                "goal_alignment": f"5/10 - For {goal}, you need more specific elements that drive that outcome"
+                "hook_strength": "Visual hooks work through pattern interrupts and curiosity",
+                "promise_clarity": "Visual promises are implicit - viewers understand through imagery",
+                "retention_design": "Visual progression and pacing maintain attention",
+                "engagement_potential": "Satisfying visuals drive shares and saves",
+                "goal_alignment": f"For {goal}, visual content can be highly effective"
             },
+            "exact_hook_breakdown": {
+                "first_second": "0:00 - Opening visual establishes scene",
+                "second_second": "0:01 - Movement or change creates interest",
+                "third_second": "0:02 - Visual progression locks attention",
+                "visual_hook": "The opening imagery creates immediate visual interest",
+                "text_hook": "On-screen text (if any) adds context to visuals",
+                "audio_hook": "Ambient audio or music sets the mood",
+                "why_it_works_or_not": "Visual hooks work through curiosity and satisfaction promises"
+            },
+            "visual_satisfaction_analysis": "The visual appeal comes from the progression and transformation elements that create anticipation and payoff",
+            "engagement_psychology": "People engage with visual content that's satisfying, surprising, or shareable",
+            "viral_mechanisms": "Visual content goes viral through satisfaction loops and shareability",
+            "audience_psychology": f"{audience} responds to visual content that delivers quick satisfaction",
+            "strengths": "Visual storytelling and progression",
+            "improvement_areas": "Consider adding text overlays for context and stronger hooks",
+            "basic_formula": "1. Open with intriguing visual\n2. Build visual tension\n3. Deliver visual payoff",
+            "timing_formula": "0-3s: Visual hook\n3-10s: Build intrigue\n10-20s: Development\n20-30s: Payoff",
+            "visual_formula": "Attention-grabbing visual → Progressive reveal → Satisfying conclusion",
+            "text_formula": "[Curiosity text] + [Promise] + [Call to action]",
+            "psychology_formula": "Visual curiosity → Anticipation → Satisfaction",
+            "timing_breakdown": "The video progresses through visual phases designed to maintain attention",
+            "performance_prediction": "Visual content performs well when satisfaction payoff is clear",
+            "knowledge_insights": "Successful visual content follows patterns of setup, tension, and payoff",
+            "why_viral_or_not": "Performance depends on visual satisfaction and shareability",
+            "knowledge_context_used": False,
             "overall_quality": "moderate",
-            "knowledge_context_used": False
+            "video_has_speech": False,
+            "detected_performance": "unknown"
+        }
+    else:
+        # Standard video with speech fallback
+        return {
+            "analysis": f"This video combines verbal and visual elements. {transcript_text[:100]}...",
+            "video_type_analysis": "This video uses both speech and visuals to deliver its message.",
+            "performance_analysis": f"Based on content structure, this video {'shows promise' if is_high_performing else 'has areas for improvement'}.",
+            "hooks": [
+                "here's what nobody tells you about...",
+                "I discovered something that changes everything",
+                "stop what you're doing and watch this",
+                "this one thing made all the difference",
+                "you've been doing it wrong this whole time"
+            ],
+            "scores": {
+                "hook_strength": 7 if is_high_performing else 5,
+                "promise_clarity": 7 if is_high_performing else 5,
+                "retention_design": 6 if is_high_performing else 5,
+                "engagement_potential": 6 if is_high_performing else 4,
+                "goal_alignment": 7 if is_high_performing else 5
+            },
+            "score_explanations": {
+                "hook_strength": "The opening creates curiosity through verbal and visual elements",
+                "promise_clarity": "The value proposition is communicated through words and imagery",
+                "retention_design": "Pacing and structure maintain viewer attention",
+                "engagement_potential": "Content triggers for comments and shares",
+                "goal_alignment": f"Alignment with {goal} objective"
+            },
+            "exact_hook_breakdown": {
+                "first_second": "0:00 - Opening establishes context",
+                "second_second": "0:01 - Hook develops",
+                "third_second": "0:02 - Attention locked",
+                "visual_hook": "Visual elements support the message",
+                "text_hook": "Text reinforces key points",
+                "audio_hook": f"Opening: {transcript_text[:50]}...",
+                "why_it_works_or_not": "The combination of elements creates engagement"
+            },
+            "engagement_psychology": "Engagement comes from value delivery and emotional connection",
+            "viral_mechanisms": "Viral potential through shareability and value",
+            "audience_psychology": f"{audience} seeks content that provides value",
+            "strengths": "Clear message delivery",
+            "improvement_areas": "Optimize opening hook and pacing",
+            "basic_formula": "1. Strong opening\n2. Clear value\n3. Call to action",
+            "timing_formula": "0-3s: Hook\n3-15s: Setup\n15-25s: Value\n25-30s: CTA",
+            "visual_formula": "Visual support for verbal message",
+            "text_formula": "Reinforcement text for key points",
+            "psychology_formula": "Curiosity → Value → Action",
+            "timing_breakdown": "Progressive value delivery",
+            "performance_prediction": "Performance depends on hook strength and value clarity",
+            "knowledge_insights": "Successful content delivers clear value quickly",
+            "why_viral_or_not": "Performance tied to value delivery and engagement triggers",
+            "knowledge_context_used": False,
+            "overall_quality": "moderate",
+            "video_has_speech": True,
+            "detected_performance": "unknown"
         }
         return result
         
