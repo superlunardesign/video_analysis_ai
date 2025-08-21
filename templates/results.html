@@ -1,668 +1,709 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Enhanced Retention Analysis Results</title>
+  <title>Video Analysis Results</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
     body { 
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; 
-      margin: 0; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #1a1a1a;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
-      color: #333;
     }
-    .container { 
-      max-width: 1200px; 
-      margin: 0 auto; 
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
       padding: 20px;
     }
+    
     .header {
       text-align: center;
       color: white;
       margin-bottom: 30px;
+      padding: 20px 0;
     }
+    
     .header h1 {
       font-size: 2.5rem;
       margin-bottom: 10px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
-    .meta { 
-      background: rgba(255,255,255,0.95);
-      padding: 20px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .scores-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin: 20px 0;
-    }
-    .score-card {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      color: white;
-      padding: 20px;
-      border-radius: 10px;
-      text-align: center;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    .score-value {
-      font-size: 2rem;
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-    .score-label {
-      font-size: 0.9rem;
-      opacity: 0.9;
-    }
-    .card { 
-      background: rgba(255,255,255,0.95);
-      border-radius: 12px; 
-      padding: 25px; 
-      margin-bottom: 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .card h2 {
-      margin-top: 0;
-      color: #4a5568;
-      border-bottom: 3px solid #667eea;
-      padding-bottom: 10px;
+      font-weight: 700;
     }
     
-    /* Enhanced styling for psychological analysis sections */
-    .psychology-card {
-      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-      border: 2px solid rgba(102, 126, 234, 0.2);
-      border-radius: 15px;
-      padding: 25px;
-      margin-bottom: 25px;
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.95;
+    }
+    
+    /* Performance Scores Section */
+    .scores-section {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .scores-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+      margin-top: 25px;
+    }
+    
+    .score-card {
+      text-align: center;
+      padding: 20px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
       position: relative;
       overflow: hidden;
     }
-    .psychology-card::before {
+    
+    .score-card::before {
       content: '';
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 5px;
-      height: 100%;
-      background: linear-gradient(to bottom, #667eea, #764ba2);
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      animation: shimmer 3s infinite;
     }
-    .psychology-card h2 {
-      color: #667eea;
-      font-size: 1.4rem;
-      margin-bottom: 15px;
+    
+    @keyframes shimmer {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .score-value {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .score-label {
+      font-size: 0.9rem;
+      opacity: 0.95;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Content Cards */
+    .content-card {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 25px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    }
+    
+    .content-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: #2d3748;
       display: flex;
       align-items: center;
       gap: 10px;
     }
-    .psychology-card h2::before {
-      content: '🧠';
+    
+    .content-card h3 {
       font-size: 1.2rem;
+      margin: 20px 0 15px 0;
+      color: #4a5568;
     }
     
-    .hooks-grid {
+    .content-text {
+      color: #4a5568;
+      line-height: 1.8;
+      font-size: 1.05rem;
+    }
+    
+    /* Hook Analysis Cards */
+    .hooks-analysis {
       display: grid;
-      gap: 12px;
-      margin: 15px 0;
-    }
-    .hook-item {
-      background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
-      color: #2d3436;
-      padding: 15px;
-      border-radius: 8px;
-      font-style: italic;
-      font-weight: 500;
-      border-left: 4px solid #e17055;
-    }
-    .formula-box {
-      background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-      border: 1px solid #81ecec;
-      border-radius: 10px;
-      padding: 20px;
-      margin: 15px 0;
-    }
-    .timing-box {
-      background: linear-gradient(135deg, #d1f2eb 0%, #a8e6cf 100%);
-      border: 1px solid #00b894;
-      border-radius: 10px;
-      padding: 20px;
-      margin: 15px 0;
-    }
-    .improvements-box {
-      background: linear-gradient(135deg, #ffe8cc 0%, #ffcc8f 100%);
-      border: 1px solid #fdcb6e;
-      border-radius: 10px;
-      padding: 20px;
-      margin: 15px 0;
+      gap: 20px;
+      margin-top: 20px;
     }
     
-    /* New enhanced analysis boxes */
-    .psychology-box {
-      background: linear-gradient(135deg, #e8d5ff 0%, #d4b9ff 100%);
-      border: 1px solid #a855f7;
+    .hook-card {
+      background: linear-gradient(135deg, #f6f9fc 0%, #e9ecef 100%);
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    
+    .hook-card h4 {
+      color: #2d3748;
+      margin-bottom: 10px;
+      font-size: 1.1rem;
+    }
+    
+    .hook-type {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+    }
+    
+    /* Alternative Hooks */
+    .alt-hooks-grid {
+      display: grid;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .alt-hook-item {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      padding: 18px;
+      border-radius: 10px;
+      border-left: 4px solid #f59e0b;
+      font-style: italic;
+      font-size: 1.05rem;
+      color: #1a1a1a;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    .alt-hook-item:hover {
+      transform: translateX(5px);
+    }
+    
+    .alt-hook-item::before {
+      content: '"';
+      font-size: 2rem;
+      position: absolute;
+      top: 10px;
+      left: 15px;
+      opacity: 0.3;
+    }
+    
+    /* Formula Sections */
+    .formula-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .formula-tab {
+      padding: 10px 20px;
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 500;
+    }
+    
+    .formula-tab:hover {
+      background: #edf2f7;
+    }
+    
+    .formula-tab.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+    
+    .formula-content {
+      display: none;
+      background: #f7fafc;
+      padding: 25px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .formula-content.active {
+      display: block;
+    }
+    
+    .formula-content pre {
+      white-space: pre-wrap;
+      font-family: 'Courier New', monospace;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      margin-top: 15px;
+    }
+    
+    /* Info Boxes */
+    .info-box {
+      background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+      border: 1px solid #0ea5e9;
       border-radius: 10px;
       padding: 20px;
-      margin: 15px 0;
+      margin: 20px 0;
     }
-    .engagement-box {
-      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    
+    .warning-box {
+      background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
       border: 1px solid #f59e0b;
       border-radius: 10px;
       padding: 20px;
-      margin: 15px 0;
+      margin: 20px 0;
     }
-    .viral-box {
-      background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    
+    .success-box {
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
       border: 1px solid #10b981;
       border-radius: 10px;
       padding: 20px;
-      margin: 15px 0;
+      margin: 20px 0;
     }
     
-    pre { 
-      white-space: pre-wrap; 
+    /* Gallery Grid */
+    .frame-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .frame-item {
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: transform 0.3s;
+    }
+    
+    .frame-item:hover {
+      transform: scale(1.05);
+    }
+    
+    .frame-item img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    
+    /* Transcript Section */
+    .transcript-box {
+      background: #f7fafc;
+      padding: 25px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .transcript-box pre {
+      white-space: pre-wrap;
       font-family: inherit;
-      margin: 0;
-      line-height: 1.6;
+      line-height: 1.8;
     }
     
-    /* Button styling */
+    /* Copy Button */
     .copy-btn {
       background: #667eea;
       color: white;
       border: none;
-      padding: 12px 24px;
+      padding: 10px 20px;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
+      font-weight: 500;
       margin-top: 15px;
-      margin-right: 10px;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
-      display: inline-block;
-      min-height: 40px;
-      min-width: 120px;
+      transition: all 0.3s;
     }
+    
     .copy-btn:hover {
       background: #5a67d8;
       transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
     }
-    .copy-btn:active {
-      transform: translateY(0);
-    }
+    
     .copy-btn.copied {
       background: #10b981;
     }
     
-    .grid { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
-      gap: 15px; 
-      margin: 20px 0;
-    }
-    .frame-card {
-      background: white;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .frame-card img { 
-      width: 100%; 
-      height: auto; 
-    }
+    /* Back Link */
     .back-link {
       display: inline-block;
-      background: rgba(255,255,255,0.2);
-      color: white;
+      background: white;
+      color: #667eea;
       text-decoration: none;
       padding: 15px 30px;
       border-radius: 30px;
-      margin-top: 30px;
-      font-weight: 500;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.3);
+      margin: 30px 0;
+      font-weight: 600;
       transition: all 0.3s;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
+    
     .back-link:hover {
-      background: rgba(255,255,255,0.3);
       transform: translateY(-2px);
-    }
-    .tag { 
-      display: inline-block; 
-      background: rgba(102, 126, 234, 0.1);
-      color: #667eea; 
-      padding: 6px 12px; 
-      border-radius: 20px; 
-      font-size: 12px; 
-      margin-right: 8px; 
-      margin-bottom: 6px;
-      border: 1px solid rgba(102, 126, 234, 0.2);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     }
     
-    /* Formula tab styling */
-    .formula-selector {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 25px;
-      border-bottom: 2px solid rgba(102, 126, 234, 0.2);
-      padding-bottom: 15px;
+    /* Details/Summary Styling */
+    details {
+      margin-top: 20px;
     }
-    .formula-tab {
-      background: rgba(102, 126, 234, 0.1);
-      color: #667eea;
-      border: 2px solid rgba(102, 126, 234, 0.3);
-      padding: 12px 20px;
-      border-radius: 25px;
+    
+    summary {
       cursor: pointer;
-      font-size: 14px;
       font-weight: 600;
-      transition: all 0.3s ease;
-      min-height: 44px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-    }
-    .formula-tab:hover {
-      background: rgba(102, 126, 234, 0.2);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
-    }
-    .formula-tab.active {
-      background: #667eea;
-      color: white;
-      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
-      border-color: #667eea;
-    }
-    .formula-content {
-      display: block
-      animation: fadeIn 0.4s ease-in;
-    }
-    .formula-content.active {
-      display: block !important;
-    }
-    .formula-content h4 {
-      margin: 0 0 15px 0;
-      color: #4a5568;
-      font-size: 1.2rem;
-      font-weight: 700;
-    }
-    .formula-text {
-      white-space: pre-wrap;
-      font-family: inherit;
-      margin: 0;
-      line-height: 1.6;
-      background: rgba(255, 255, 255, 0.6);
-      padding: 20px;
-      border-radius: 10px;
-      border: 1px solid rgba(102, 126, 234, 0.1);
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Success message styling */
-    .success-message {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #10b981;
-      color: white;
-      padding: 12px 20px;
+      color: #667eea;
+      padding: 10px;
+      background: #f7fafc;
       border-radius: 8px;
-      font-weight: 600;
-      z-index: 9999;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-      opacity: 0;
-      transform: translateX(100px);
-      transition: all 0.3s ease;
-    }
-    .success-message.show {
-      opacity: 1;
-      transform: translateX(0);
+      transition: background 0.3s;
     }
     
-    /* Analysis section tabs */
-    .analysis-tabs {
+    summary:hover {
+      background: #edf2f7;
+    }
+    
+    /* Meta Tags */
+    .meta-tags {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-bottom: 20px;
-      border-bottom: 2px solid rgba(102, 126, 234, 0.2);
-      padding-bottom: 15px;
+      margin-top: 15px;
     }
-    .analysis-tab {
-      background: rgba(102, 126, 234, 0.1);
-      color: #667eea;
-      border: 2px solid rgba(102, 126, 234, 0.3);
-      padding: 10px 18px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      user-select: none;
-    }
-    .analysis-tab:hover {
-      background: rgba(102, 126, 234, 0.2);
-    }
-    .analysis-tab.active {
-      background: #667eea;
+    
+    .meta-tag {
+      background: rgba(255,255,255,0.2);
       color: white;
-      border-color: #667eea;
+      padding: 6px 15px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.3);
     }
-
-    .analysis-content{
-      display: block;
-      animation: fadeIn 0.4s ease-in;
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+      
+      .header h1 {
+        font-size: 2rem;
+      }
+      
+      .scores-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .content-card {
+        padding: 20px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- Header -->
     <div class="header">
-      <h1>🧠 Enhanced Psychological Analysis</h1>
-      <p>Goal: {{ goal.replace('_', ' ').title() }} | Deep retention psychology insights</p>
-    </div>
-
-    <div class="meta">
-      <div><strong>📹 URL:</strong> {{ tiktok_url }}</div>
-      {% if creator_note %}<div><strong>📝 Your note:</strong> {{ creator_note }}</div>{% endif %}
-      <div style="margin-top: 12px;">
-        <span class="tag">{{ platform.title() }}</span>
-        <span class="tag">{{ target_duration }}s target</span>
-        <span class="tag">{{ frames_count | default(0) }} frames analyzed</span>
-        <span class="tag">{{ strategy.title() }} sampling</span>
-        {% if psychological_breakdown %}
-        <span class="tag" style="background: rgba(168, 85, 247, 0.2); color: #8b5cf6; border-color: rgba(168, 85, 247, 0.3);">🧠 Enhanced Analysis</span>
-        {% endif %}
+      <h1>🎯 Video Performance Analysis</h1>
+      <p>Understanding what makes content work (or not)</p>
+      <div class="meta-tags">
+        <span class="meta-tag">{{ platform.title() }}</span>
+        <span class="meta-tag">{{ target_duration }}s video</span>
+        <span class="meta-tag">Goal: {{ goal.replace('_', ' ').title() }}</span>
+        <span class="meta-tag">{{ frames_count }} frames analyzed</span>
       </div>
     </div>
 
-    {% if scores %}
-    <div class="card">
-      <h2>📊 Performance Scores</h2>
+    <!-- Performance Scores -->
+    <div class="scores-section">
+      <h2>📊 Performance Breakdown</h2>
+      <p style="color: #4a5568; margin-top: 10px;">Here's how your video scored across key viral factors:</p>
       <div class="scores-grid">
-        {% if scores.hook_strength %}
         <div class="score-card">
           <div class="score-value">{{ scores.hook_strength }}/10</div>
-          <div class="score-label">Hook Strength</div>
+          <div class="score-label">Hook Power</div>
         </div>
-        {% endif %}
-        {% if scores.promise_clarity %}
         <div class="score-card">
           <div class="score-value">{{ scores.promise_clarity }}/10</div>
-          <div class="score-label">Promise Clarity</div>
+          <div class="score-label">Clear Promise</div>
         </div>
-        {% endif %}
-        {% if scores.retention_design %}
         <div class="score-card">
           <div class="score-value">{{ scores.retention_design }}/10</div>
           <div class="score-label">Retention Design</div>
         </div>
-        {% endif %}
-        {% if scores.engagement_potential %}
         <div class="score-card">
           <div class="score-value">{{ scores.engagement_potential }}/10</div>
-          <div class="score-label">Engagement Potential</div>
+          <div class="score-label">Engagement Power</div>
         </div>
-        {% endif %}
-        {% if scores.goal_alignment %}
         <div class="score-card">
           <div class="score-value">{{ scores.goal_alignment }}/10</div>
-          <div class="score-label">Goal Alignment</div>
+          <div class="score-label">Goal Match</div>
         </div>
+      </div>
+    </div>
+
+    <!-- What's Happening in the Video -->
+    <div class="content-card">
+      <h2>🎬 What's Happening in Your Video</h2>
+      <div class="content-text">
+        {% if visual_content_analysis and visual_content_analysis.description %}
+          <p>{{ visual_content_analysis.description }}</p>
+        {% endif %}
+        
+        {% if transcript_quality and not transcript_quality.is_reliable %}
+          <div class="info-box" style="margin-top: 15px;">
+            <strong>Audio Note:</strong> {{ audio_description or "This appears to be a visual-focused video with ambient audio rather than speech." }}
+          </div>
+        {% endif %}
+        
+        <h3>The Flow:</h3>
+        <p>{{ timing_breakdown or "The video progresses through distinct phases designed to maintain viewer attention." }}</p>
+      </div>
+    </div>
+
+    <!-- Why It Did/Didn't Go Viral -->
+    <div class="content-card">
+      <h2>🚀 Viral Performance Analysis</h2>
+      <div class="content-text">
+        {% if creator_note %}
+          <div class="warning-box">
+            <strong>Your Context:</strong> {{ creator_note }}
+          </div>
+        {% endif %}
+        
+        <h3>Why This Video {{ "Worked" if overall_quality == "strong" else "Didn't Perform As Expected" }}:</h3>
+        <p>{{ analysis }}</p>
+        
+        {% if performance_prediction %}
+          <h3>Performance Prediction:</h3>
+          <p>{{ performance_prediction }}</p>
+        {% endif %}
+        
+        {% if knowledge_insights %}
+          <h3>Based on Viral Patterns:</h3>
+          <p>{{ knowledge_insights }}</p>
         {% endif %}
       </div>
     </div>
-    {% endif %}
 
-    <!-- Enhanced Psychological Analysis Section -->
-    {% if psychological_breakdown or hook_mechanics or emotional_journey %}
-    <div class="psychology-card">
-      <h2>🧠 Deep Psychological Analysis</h2>
+    <!-- Hook Analysis -->
+    <div class="content-card">
+      <h2>🎣 Hook Breakdown: The First 3 Seconds</h2>
+      <div class="content-text">
+        <p>The opening moments are everything. Here's what's happening in yours:</p>
+        
+        <div class="hooks-analysis">
+          <!-- Visual Hook -->
+          <div class="hook-card">
+            <span class="hook-type">VISUAL HOOK</span>
+            <h4>What viewers see first</h4>
+            <p>{{ visual_content_analysis.description if visual_content_analysis else "The visual opening creates the first impression through imagery and movement." }}</p>
+          </div>
+          
+          <!-- Text Hook -->
+          {% if text_sync_analysis and (text_sync_analysis.has_graphics or text_sync_analysis.has_captions) %}
+          <div class="hook-card">
+            <span class="hook-type">TEXT HOOK</span>
+            <h4>On-screen text elements</h4>
+            <p>
+              {% if text_sync_analysis.has_graphics %}
+                Graphics/overlays detected that are separate from captions - these serve as visual hooks to grab attention.
+              {% elif text_sync_analysis.has_captions %}
+                Text appears to be synchronized captions rather than standalone hook text.
+              {% endif %}
+            </p>
+          </div>
+          {% endif %}
+          
+          <!-- Verbal Hook -->
+          {% if transcript and transcript|length > 10 %}
+          <div class="hook-card">
+            <span class="hook-type">VERBAL HOOK</span>
+            <h4>What's being said</h4>
+            <p>Opening words: "{{ transcript[:100] }}..."</p>
+          </div>
+          {% endif %}
+        </div>
+        
+        <h3>Why This Hook {{ "Works" if scores.hook_strength >= 7 else "Could Be Stronger" }}:</h3>
+        <p>{{ strengths if scores.hook_strength >= 7 else improvement_areas }}</p>
+      </div>
+    </div>
+
+    <!-- Engagement Psychology -->
+    <div class="content-card">
+      <h2>💭 Why People Will (or Won't) Engage</h2>
+      <div class="content-text">
+        <h3>Share Triggers:</h3>
+        <p>{{ engagement_psychology or "Content that gets shared typically makes the sharer look good, teaches something valuable, or entertains their audience." }}</p>
+        
+        <h3>Comment Drivers:</h3>
+        <p>{{ "This content invites discussion through controversy, questions, or relatable moments." if scores.engagement_potential >= 7 else "To drive more comments, consider adding controversial takes, direct questions, or polarizing statements." }}</p>
+        
+        <h3>Save Motivations:</h3>
+        <p>{{ "The valuable information or transformation shown makes this worth saving for later." if scores.engagement_potential >= 6 else "Adding more actionable value or reference-worthy content would increase saves." }}</p>
+        
+        <h3>Rewatch Value:</h3>
+        <p>{{ viral_mechanisms if viral_mechanisms else "Videos get rewatched when they're satisfying, contain hidden details, or deliver high entertainment value in a short time." }}</p>
+      </div>
+    </div>
+
+    <!-- Viral Potential -->
+    <div class="content-card">
+      <h2>📈 Viral Potential Score</h2>
+      <div class="content-text">
+        {% set viral_score = (scores.hook_strength + scores.promise_clarity + scores.retention_design + scores.engagement_potential + scores.goal_alignment) / 5 %}
+        
+        <div class="{{ 'success-box' if viral_score >= 7 else 'warning-box' if viral_score >= 5 else 'info-box' }}">
+          <h3>Overall Viral Potential: {{ "High" if viral_score >= 7 else "Moderate" if viral_score >= 5 else "Needs Work" }}</h3>
+          <p>
+            {% if viral_score >= 7 %}
+              This content has strong viral indicators and aligns well with proven patterns. With the right timing and audience, it should perform well.
+            {% elif viral_score >= 5 %}
+              This content has potential but needs optimization in key areas. Focus on the improvements below to increase viral likelihood.
+            {% else %}
+              This content needs significant improvements to compete in the algorithm. The good news? Every suggestion below is actionable.
+            {% endif %}
+          </p>
+        </div>
+        
+        <h3>Knowledge Base Alignment:</h3>
+        <p>{{ knowledge_insights or "Comparing against proven viral patterns in our knowledge base." }}</p>
+      </div>
+    </div>
+
+    <!-- Alternative Hooks -->
+    <div class="content-card">
+      <h2>🔄 Alternative Hooks to Test</h2>
+      <p style="color: #4a5568; margin-bottom: 20px;">These aren't generic templates - they're specific to your content style:</p>
       
-      <!-- Analysis Type Tabs -->
-      <div class="analysis-tabs">
-        {% if psychological_breakdown %}
-        <button class="analysis-tab active" data-analysis="psychological">Core Psychology</button>
-        {% endif %}
-        {% if hook_mechanics %}
-        <button class="analysis-tab" data-analysis="hook">Hook Mechanics</button>
-        {% endif %}
-        {% if emotional_journey %}
-        <button class="analysis-tab" data-analysis="emotional">Emotional Journey</button>
-        {% endif %}
-        {% if authority_signals %}
-        <button class="analysis-tab" data-analysis="authority">Authority Signals</button>
-        {% endif %}
-        {% if engagement_psychology %}
-        <button class="analysis-tab" data-analysis="engagement">Engagement Psychology</button>
-        {% endif %}
-        {% if audience_psychology %}
-        <button class="analysis-tab" data-analysis="audience">Audience Psychology</button>
-        {% endif %}
-      </div>
-
-      <!-- Psychological Breakdown -->
-      {% if psychological_breakdown %}
-      <div id="psychological-analysis" class="analysis-content active">
-        <div class="psychology-box">
-          <h4>🎯 Core Psychological Mechanisms</h4>
-          <pre class="formula-text">{{ psychological_breakdown }}</pre>
-          <button class="copy-btn" data-action="copy-analysis" data-target="psychological-breakdown">Copy Analysis</button>
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- Hook Mechanics -->
-      {% if hook_mechanics %}
-      <div id="hook-analysis" class="analysis-content">
-        <div class="psychology-box">
-          <h4>🎣 Hook Psychology Breakdown</h4>
-          <pre class="formula-text">{{ hook_mechanics }}</pre>
-          <button class="copy-btn" data-action="copy-analysis" data-target="hook-mechanics">Copy Hook Analysis</button>
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- Emotional Journey -->
-      {% if emotional_journey %}
-      <div id="emotional-analysis" class="analysis-content">
-        <div class="psychology-box">
-          <h4>❤️ Viewer Emotional Journey</h4>
-          <pre class="formula-text">{{ emotional_journey }}</pre>
-          <button class="copy-btn" data-action="copy-analysis" data-target="emotional-journey">Copy Emotional Analysis</button>
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- Authority Signals -->
-      {% if authority_signals %}
-      <div id="authority-analysis" class="analysis-content">
-        <div class="psychology-box">
-          <h4>👑 Authority & Credibility Building</h4>
-          <pre class="formula-text">{{ authority_signals }}</pre>
-          <button class="copy-btn" data-action="copy-analysis" data-target="authority-signals">Copy Authority Analysis</button>
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- Engagement Psychology -->
-      {% if engagement_psychology %}
-      <div id="engagement-analysis" class="analysis-content">
-        <div class="engagement-box">
-          <h4>💬 Why People Engage</h4>
-          <pre class="formula-text">{{ engagement_psychology }}</pre>
-          <button class="copy-btn" data-action="copy-analysis" data-target="engagement-psychology">Copy Engagement Analysis</button>
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- Audience Psychology -->
-      {% if audience_psychology %}
-      <div id="audience-analysis" class="analysis-content">
-        <div class="psychology-box">
-          <h4>👥 Audience Psychology</h4>
-          <pre class="formula-text">{{ audience_psychology }}</pre>
-          <button class="copy-btn" data-action="copy-analysis" data-target="audience-psychology">Copy Audience Analysis</button>
-        </div>
-      </div>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- Viral Mechanisms -->
-    {% if viral_mechanisms %}
-    <div class="card">
-      <h2>🚀 Viral Potential Analysis</h2>
-      <div class="viral-box">
-        <pre>{{ viral_mechanisms }}</pre>
-        <button class="copy-btn" data-action="copy-text" data-target="viral-mechanisms">Copy Viral Analysis</button>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Replication Blueprint -->
-    {% if replication_blueprint %}
-    <div class="card">
-      <h2>📋 Replication Blueprint</h2>
-      <div class="formula-box">
-        <h4>🔄 Exact Elements to Preserve</h4>
-        <pre class="formula-text">{{ replication_blueprint }}</pre>
-        <button class="copy-btn" data-action="copy-text" data-target="replication-blueprint">Copy Blueprint</button>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Standard Hook Analysis -->
-    <div class="card">
-      <h2>🎣 Hook Analysis & Breakdown</h2>
-      <pre>{{ analysis }}</pre>
-    </div>
-
-    {% if timing_breakdown %}
-    <div class="card">
-      <h2>⏱️ Timing Breakdown</h2>
-      <div class="timing-box">
-        <pre>{{ timing_breakdown }}</pre>
-      </div>
-    </div>
-    {% endif %}
-
-    {% if improvement_opportunities or improvements %}
-    <div class="card">
-      <h2>🚀 Specific Improvements</h2>
-      <div class="improvements-box">
-        <pre>{{ improvement_opportunities or improvements }}</pre>
-      </div>
-    </div>
-    {% endif %}
-
-    <div class="card">
-      <h2>💡 Alternative Hooks to Test</h2>
-      {% if hooks and hooks | length > 0 %}
-        <div class="hooks-grid">
-          {% for hook in hooks %}
-            <div class="hook-item">"{{ hook }}"</div>
-          {% endfor %}
-        </div>
-        <button class="copy-btn" data-action="copy-hooks">Copy All Hooks</button>
-      {% else %}
-        <p>No alternative hooks generated.</p>
-      {% endif %}
-    </div>
-
-    {% if formula or basic_formula %}
-    <div class="card">
-      <h2>📋 Your Reusable Formulas</h2>
-      
-      <!-- Formula Type Selector -->
-      <div class="formula-selector">
-        <button class="formula-tab active" data-formula="basic">Basic Structure</button>
-        <button class="formula-tab" data-formula="timing">With Timing</button>
-        <button class="formula-tab" data-formula="template">Template Format</button>
-        <button class="formula-tab" data-formula="psychology">Psychology Framework</button>
-      </div>
-
-      <!-- Basic Structure -->
-      <div id="basic-formula" class="formula-content active">
-        <div class="formula-box">
-          <h4>📝 Basic Structure</h4>
-          <pre class="formula-text">{{ basic_formula or formula }}</pre>
-          <button class="copy-btn" data-action="copy-formula" data-target="basic-formula">Copy Basic Formula</button>
-        </div>
-      </div>
-
-      <!-- Timing-Based Formula -->
-      <div id="timing-formula" class="formula-content">
-        <div class="formula-box">
-          <h4>⏱️ Step-by-Step with Timing</h4>
-          <pre class="formula-text">{{ timing_formula or "TIMING-BASED FORMULA FOR " + goal.upper() + ":\n\n0-3 seconds: Hook with strong opener that grabs attention immediately\n3-7 seconds: Set clear promise of what they'll learn/discover by the end\nMiddle section: Build engagement with progressive reveals and retention tactics\nFinal 10 seconds: Deliver satisfying payoff that fulfills the promise\n\nKey Timing Notes:\n- Hook must grab attention in first 1-2 seconds\n- Promise clarification by 5-second mark\n- Save strongest revelation for final moments\n- End with engagement trigger (question/challenge)" }}</pre>
-          <button class="copy-btn" data-action="copy-formula" data-target="timing-formula">Copy Timing Formula</button>
-        </div>
-      </div>
-
-      <!-- Template Format -->
-      <div id="template-formula" class="formula-content">
-        <div class="formula-box">
-          <h4>📋 Template Format</h4>
-          <pre class="formula-text">{{ template_formula or "TEMPLATE FORMAT FOR " + goal.replace('_', ' ').upper() + ":\n\n\"[STRONG OPENER] + [CLEAR PROMISE] + [ENGAGING BUILD] + [SATISFYING PAYOFF] + [ENGAGEMENT HOOK]\"\n\nExample Structure:\n\"[Controversial statement] + [Promise to explain why] + [Build case with examples] + [Deliver the insight] + [Question to drive comments]\"\n\nFill in your content:\n- Strong Opener: ________________\n- Clear Promise: ________________\n- Engaging Build: ________________\n- Satisfying Payoff: ________________\n- Engagement Hook: ________________" }}</pre>
-          <button class="copy-btn" data-action="copy-formula" data-target="template-formula">Copy Template</button>
-        </div>
-      </div>
-
-      <!-- Psychology Framework -->
-      <div id="psychology-formula" class="formula-content">
-        <div class="formula-box">
-          <h4>🧠 Psychology Framework</h4>
-          <pre class="formula-text">{{ psychology_formula or "PSYCHOLOGY-BASED RETENTION FRAMEWORK:\n\n1. CURIOSITY GAP CREATION\n   → Create a question they MUST know the answer to\n   → Example: \"Why your [expertise area] isn't working\"\n\n2. PROMISE ESTABLISHMENT\n   → What will they learn/gain by watching?\n   → Time-bound commitment: \"in the next 30 seconds\"\n\n3. DELAYED GRATIFICATION TACTICS\n   → Mini-reveals that build anticipation\n   → \"But first, let me tell you about...\"\n   → Progressive disclosure of information\n\n4. SATISFYING PAYOFF DELIVERY\n   → Answer the curiosity gap completely\n   → Add bonus insight they didn't expect\n   → Emotional + practical satisfaction\n\n5. ENGAGEMENT AMPLIFICATION\n   → Question that drives comments\n   → Challenge that encourages shares\n   → Hook for follow-up content\n\nPSYCHOLOGICAL TRIGGERS:\n✓ Social proof (\"Most people don't know...\")\n✓ Authority (\"As someone who...\")\n✓ Scarcity (\"This only works if...\")\n✓ Reciprocity (\"I'm sharing this because...\")\n✓ Curiosity (\"The real reason is...\")" }}</pre>
-          <button class="copy-btn" data-action="copy-formula" data-target="psychology-formula">Copy Framework</button>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    <div class="card">
-      <h2>📜 Full Transcript</h2>
-      <pre>{{ transcript }}</pre>
-    </div>
-
-    <div class="card">
-      <h2>🖼️ Frame Analysis</h2>
-      <div class="grid">
-        {% for img in frame_gallery %}
-          <div class="frame-card"><img src="{{ img }}" alt="Video frame"></div>
+      <div class="alt-hooks-grid">
+        {% for hook in hooks %}
+          <div class="alt-hook-item">{{ hook }}</div>
         {% endfor %}
       </div>
       
-      <!-- Collapsible Frame Details -->
-      <details style="margin-top: 20px;">
-        <summary style="cursor: pointer; color: #667eea; font-weight: 600;">
-          ▶ View Frame-by-Frame Analysis (Used for AI Context)
-        </summary>
-        <div style="max-height: 300px; overflow-y: auto; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; margin-top: 10px;">
-          {% if frame_summaries and frame_summaries | length > 1 %}
-            {% for block in frame_summaries %}
-              <div style="background: rgba(255,255,255,0.1); padding: 12px; border-radius: 6px; margin: 8px 0; font-size: 0.9rem;">
-                <pre style="white-space: pre-wrap; margin: 0; font-family: inherit;">{{ block }}</pre>
-              </div>
-            {% endfor %}
-          {% else %}
-            <pre style="white-space: pre-wrap; margin: 0; font-family: inherit; font-size: 0.9rem;">{{ frame_summary | default("No frame analysis available", true) }}</pre>
-          {% endif %}
+      <button class="copy-btn" onclick="copyHooks()">Copy All Hooks</button>
+    </div>
+
+    <!-- Replication Formulas -->
+    <div class="content-card">
+      <h2>📋 Replication Formulas</h2>
+      <p style="color: #4a5568; margin-bottom: 20px;">Different ways to recreate this video's success:</p>
+      
+      <div class="formula-tabs">
+        <button class="formula-tab active" onclick="showFormula('basic')">Quick Structure</button>
+        <button class="formula-tab" onclick="showFormula('timing')">With Timing</button>
+        <button class="formula-tab" onclick="showFormula('template')">Fill-in Template</button>
+        <button class="formula-tab" onclick="showFormula('psychology')">Psychology Map</button>
+      </div>
+      
+      <div id="basic-formula" class="formula-content active">
+        <h3>Quick Structure</h3>
+        <pre>{{ basic_formula or formula or "1. Open with attention-grabbing visual\n2. State the promise clearly\n3. Build anticipation through the middle\n4. Deliver satisfying payoff\n5. End with engagement trigger" }}</pre>
+      </div>
+      
+      <div id="timing-formula" class="formula-content">
+        <h3>Timing Breakdown</h3>
+        <pre>{{ timing_formula or "0-3s: Hook with strong visual/verbal opener\n3-7s: Clarify the promise\n7-15s: Build tension/anticipation\n15-25s: Deliver core value\n25-30s: Call-to-action or loop" }}</pre>
+      </div>
+      
+      <div id="template-formula" class="formula-content">
+        <h3>Fill-in Template</h3>
+        <pre>{{ template_formula or "Hook: [Your attention grabber]\nPromise: [What they'll get]\nBuild: [How you develop interest]\nPayoff: [The valuable delivery]\nCTA: [What you want them to do]" }}</pre>
+      </div>
+      
+      <div id="psychology-formula" class="formula-content">
+        <h3>Psychology Framework</h3>
+        <pre>{{ psychology_formula or "Create Curiosity Gap → Promise Resolution → Build Anticipation → Deliver Satisfaction → Trigger Action" }}</pre>
+      </div>
+    </div>
+
+    <!-- Improvements -->
+    <div class="content-card">
+      <h2>💡 Specific Improvements</h2>
+      <div class="content-text">
+        <h3>Quick Wins:</h3>
+        <p>{{ improvements or "Focus on strengthening your hook and clarifying your promise for immediate impact." }}</p>
+        
+        <h3>Bigger Changes:</h3>
+        <p>{{ improvement_areas or "Consider restructuring your content flow to better match viral patterns from the knowledge base." }}</p>
+      </div>
+    </div>
+
+    <!-- Transcript -->
+    <div class="content-card">
+      <h2>📝 Full Transcript</h2>
+      <div class="transcript-box">
+        <pre>{{ transcript or "(No verbal content - visual-only video)" }}</pre>
+      </div>
+    </div>
+
+    <!-- Frames -->
+    <div class="content-card">
+      <h2>🎞️ Analyzed Frames</h2>
+      <div class="frame-gallery">
+        {% for img in frame_gallery %}
+          <div class="frame-item">
+            <img src="{{ img }}" alt="Frame from video" loading="lazy">
+          </div>
+        {% endfor %}
+      </div>
+      
+      <details>
+        <summary>View detailed frame-by-frame analysis</summary>
+        <div class="transcript-box" style="margin-top: 15px;">
+          <pre>{{ frame_summary }}</pre>
         </div>
       </details>
     </div>
 
-    <a href="/" class="back-link">← Analyze Another Video</a>
+    <center>
+      <a href="/" class="back-link">← Analyze Another Video</a>
+    </center>
   </div>
 
-
+  <script>
+    // Formula tab switching
+    function showFormula(type) {
+      // Hide all formulas
+      document.querySelectorAll('.formula-content').forEach(el => {
+        el.classList.remove('active');
+      });
+      
+      // Remove active from all tabs
+      document.querySelectorAll('.formula-tab').forEach(el => {
+        el.classList.remove('active');
+      });
+      
+      // Show selected formula
+      document.getElementById(type + '-formula').classList.add('active');
+      
+      // Mark tab as active
+      event.target.classList.add('active');
+    }
+    
+    // Copy hooks function
+    function copyHooks() {
+      const hooks = [];
+      document.querySelectorAll('.alt-hook-item').forEach(el => {
+        hooks.push(el.textContent);
+      });
+      
+      navigator.clipboard.writeText(hooks.join('\n\n')).then(() => {
+        event.target.textContent = '✓ Copied!';
+        event.target.classList.add('copied');
+        
+        setTimeout(() => {
+          event.target.textContent = 'Copy All Hooks';
+          event.target.classList.remove('copied');
+        }, 2000);
+      });
+    }
+  </script>
 </body>
 </html>
