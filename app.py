@@ -35,10 +35,11 @@ def validate_dependencies():
     """Check if all required dependencies are available"""
     missing_deps = []
     
+    # FIXED: Check for pypdf instead of PyPDF2
     try:
-        import PyPDF2
+        from pypdf import PdfReader  # ✅ Correct import
     except ImportError:
-        missing_deps.append("PyPDF2 (for PDF processing)")
+        missing_deps.append("pypdf (for PDF processing)")
     
     try:
         from openai import OpenAI
@@ -104,11 +105,11 @@ def parse_knowledge_folder(knowledge_path="knowledge"):
                         print(f"[LOADED] {filename} ({len(content)} chars)")
                 
                 elif filename.lower().endswith('.pdf'):
-                    # Try to read PDFs using PyPDF2 or similar
+                    # FIXED: Use pypdf instead of PyPDF2 to match requirements.txt
                     try:
-                        import PyPDF2
+                        from pypdf import PdfReader  # ✅ Correct import
                         with open(file_path, 'rb') as f:
-                            pdf_reader = PyPDF2.PdfReader(f)
+                            pdf_reader = PdfReader(f)
                             pdf_text = ""
                             for page in pdf_reader.pages:
                                 pdf_text += page.extract_text() + "\n"
@@ -119,7 +120,7 @@ def parse_knowledge_folder(knowledge_path="knowledge"):
                             else:
                                 print(f"[SKIP] {filename} - no readable text found")
                     except ImportError:
-                        print(f"[SKIP] {filename} - PyPDF2 not installed, can't read PDFs")
+                        print(f"[SKIP] {filename} - pypdf not installed, can't read PDFs")
                     except Exception as pdf_e:
                         print(f"[ERROR] Reading {filename}: {pdf_e}")
                 
