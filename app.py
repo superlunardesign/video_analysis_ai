@@ -25,7 +25,7 @@ _ensure_dirs
 )
 from rag_helper import retrieve_context, retrieve_all_context
 
-os.environ.setdefault("KMP_DUPLICATE_LIB_OK”, “TRUE”)
+on.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 app = Flask(**name**)
 client = OpenAI(api_key=os.getenv(“OPENAI_API_KEY”), timeout=600.0)
