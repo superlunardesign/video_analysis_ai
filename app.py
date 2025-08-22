@@ -766,7 +766,61 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
 # MAIN ANALYSIS FUNCTION - BALANCED & COMPREHENSIVE
 # ==============================
 
-# Build the performance analysis text without backslashes in f-string
+def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
+    """Comprehensive analysis that handles all video types - with/without sound, high/low performing."""
+    
+    # Determine video type and performance level
+    has_speech = transcript_text and len(transcript_text.strip()) > 20 and not any(
+        indicator in transcript_text.lower() 
+        for indicator in ['music', 'sound', 'noise', 'audio', 'background', 'ambient']
+    )
+    
+    # Check performance indicators from creator note
+    is_high_performing = False
+    performance_indicators = []
+    if creator_note:
+        note_lower = creator_note.lower()
+        if any(word in note_lower for word in ['million', 'viral', 'blew up', 'exploded']):
+            is_high_performing = True
+            # Extract specific numbers if mentioned
+            import re
+            numbers = re.findall(r'(\d+\.?\d*)\s*(million|m|k|thousand)', note_lower)
+            if numbers:
+                performance_indicators.append(f"{numbers[0][0]}{numbers[0][1]}")
+        elif any(word in note_lower for word in ['low', 'poor', 'didn\'t work', 'no views', 'flopped']):
+            is_high_performing = False
+            performance_indicators.append("underperformed")
+    
+    # Build knowledge context section
+    knowledge_section = ""
+    if knowledge_context.strip():
+        knowledge_section = f"""
+PROVEN VIRAL STRATEGIES FROM KNOWLEDGE BASE:
+{knowledge_context}
+
+CRITICAL: Use these patterns to explain EXACTLY why this video succeeded or failed compared to proven examples.
+"""
+    
+    # Adjust prompt based on video type
+    video_type_context = ""
+    if not has_speech:
+        video_type_context = """
+This is a VISUAL-ONLY or AMBIENT AUDIO video. Focus analysis on:
+- Visual hooks and progression
+- On-screen text vs captions (are they different?)
+- Visual satisfaction elements (transformations, processes, reveals)
+- Color, movement, and pacing
+- How visuals alone tell the story
+"""
+    else:
+        video_type_context = """
+This video has VERBAL CONTENT. Analyze:
+- How verbal and visual elements work together
+- Whether on-screen text reinforces or adds to spoken content
+- The relationship between what's said and what's shown
+"""
+
+    # Build the performance analysis text without backslashes in f-string
     if performance_indicators:
         perf_text = f"This video {performance_indicators[0]} because..."
     else:
@@ -1235,35 +1289,6 @@ def create_enhanced_fallback_analysis(transcript_text, frames_summaries_text, cr
             "video_has_speech": True,
             "detected_performance": "unknown"
         }
-
-
-def run_main_analysis_safe(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
-    """Wrapper for main analysis with better error handling"""
-    try:
-        result = run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context)
-        
-        # Validate result structure
-        if not isinstance(result, dict):
-            raise ValueError("Analysis did not return expected dictionary format")
-        
-        # Ensure required fields exist
-        required_fields = ['analysis', 'hooks', 'scores']
-        for field in required_fields:
-            if field not in result:
-                raise ValueError(f"Missing required field: {field}")
-        
-        return result
-        
-    except Exception as e:
-        print(f"Main analysis failed: {e}")
-        import traceback
-        traceback.print_exc()
-        
-        # Return comprehensive fallback
-        return create_visual_enhanced_fallback(frames_summaries_text, {
-            'transcript': transcript_text,
-            'is_reliable': len(transcript_text.strip()) > 50
-        }, goal)
 
 
 def run_main_analysis_safe(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
