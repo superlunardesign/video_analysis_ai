@@ -1266,6 +1266,61 @@ def create_enhanced_fallback_analysis(transcript_text, frames_summaries_text, cr
             "video_has_speech": True,
             "detected_performance": "unknown"
         }
+    else:
+        # Standard video with speech fallback
+        return {
+            "analysis": f"This video combines verbal and visual elements. {transcript_text[:100]}...",
+            "video_type_analysis": "This video uses both speech and visuals to deliver its message.",
+            "performance_analysis": f"Based on content structure, this video {'shows promise' if is_high_performing else 'has areas for improvement'}.",
+            "hooks": [
+                "here's what nobody tells you about...",
+                "I discovered something that changes everything",
+                "stop what you're doing and watch this",
+                "this one thing made all the difference",
+                "you've been doing it wrong this whole time"
+            ],
+            "scores": {
+                "hook_strength": 7 if is_high_performing else 5,
+                "promise_clarity": 7 if is_high_performing else 5,
+                "retention_design": 6 if is_high_performing else 5,
+                "engagement_potential": 6 if is_high_performing else 4,
+                "goal_alignment": 7 if is_high_performing else 5
+            },
+            "score_explanations": {
+                "hook_strength": "The opening creates curiosity through verbal and visual elements",
+                "promise_clarity": "The value proposition is communicated through words and imagery",
+                "retention_design": "Pacing and structure maintain viewer attention",
+                "engagement_potential": "Content triggers for comments and shares",
+                "goal_alignment": f"Alignment with {goal} objective"
+            },
+            "exact_hook_breakdown": {
+                "first_second": "0:00 - Opening establishes context",
+                "second_second": "0:01 - Hook develops",
+                "third_second": "0:02 - Attention locked",
+                "visual_hook": "Visual elements support the message",
+                "text_hook": "Text reinforces key points",
+                "audio_hook": f"Opening: {transcript_text[:50]}...",
+                "why_it_works_or_not": "The combination of elements creates engagement"
+            },
+            "engagement_psychology": "Engagement comes from value delivery and emotional connection",
+            "viral_mechanisms": "Viral potential through shareability and value",
+            "audience_psychology": f"{audience} seeks content that provides value",
+            "strengths": "Clear message delivery",
+            "improvement_areas": "Optimize opening hook and pacing",
+            "basic_formula": "1. Strong opening\n2. Clear value\n3. Call to action",
+            "timing_formula": "0-3s: Hook\n3-15s: Setup\n15-25s: Value\n25-30s: CTA",
+            "visual_formula": "Visual support for verbal message",
+            "text_formula": "Reinforcement text for key points",
+            "psychology_formula": "Curiosity → Value → Action",
+            "timing_breakdown": "Progressive value delivery",
+            "performance_prediction": "Performance depends on hook strength and value clarity",
+            "knowledge_insights": "Successful content delivers clear value quickly",
+            "why_viral_or_not": "Performance tied to value delivery and engagement triggers",
+            "knowledge_context_used": False,
+            "overall_quality": "moderate",
+            "video_has_speech": True,
+            "detected_performance": "unknown"
+        }
         return result
         
     except Exception as e:
