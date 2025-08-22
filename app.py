@@ -872,7 +872,7 @@ Don't say "good hook" - explain:
 - "The jarring cut from dark to bright at 0:01 creates pattern interrupt"
 - "The text 'wait for it' is overused and creates skepticism rather than curiosity"
 - "The satisfying peeling motion triggers ASMR-like response"
-- "Opening with 'hey guys' wastes precious first seconds"
+- "Opening with 'hey guys' wastes precious first seconds/"
 
 4. CONTENT-TYPE SPECIFIC ANALYSIS
 
@@ -896,7 +896,7 @@ FOR ENTERTAINMENT/COMEDY:
 
 5. ENGAGEMENT PSYCHOLOGY (Specific to This Video)
 Explain the EXACT mechanisms:
-- Comments: "The $200 high-frequency wand is controversial - dermatologists debate it"
+- Comments: "The $200 high-frequency wand is controversial - dermatologists debate it/"
 - Shares: "People share to seem knowledgeable about insider beauty secrets"
 - Saves: "The specific 3-step routine is reference material for bedtime"
 - Rewatches: "The satisfying application process creates visual ASMR"
@@ -925,6 +925,86 @@ Include ALL of these:
 For HIGH performers: "This worked because X, test Y to push further"
 For LOW performers: "Replace X with Y because [specific reason]"
 For UNKNOWN: "Based on patterns, X should improve performance because..."
+
+# In your run_main_analysis function, find this section:
+
+# 8. IMPROVEMENTS (Even for Successful Videos)
+# For HIGH performers: "This worked because X, test Y to push further"
+# For LOW performers: "Replace X with Y because [specific reason]"
+# For UNKNOWN: "Based on patterns, X should improve performance because..."
+
+# ADD THIS RIGHT AFTER SECTION 8:
+
+9. VIRAL AUDIO + VISUAL TIMING ANALYSIS (CRITICAL FOR TRENDING CONTENT)
+
+If this uses popular/viral audio, analyze the sophisticated timing mechanics:
+
+VIRAL SOUND DETECTION:
+- Is this transcript from trending audio, TV/movie clips, or viral sounds?
+- Does the audio feel designed to be reused with different visuals?
+- Are there clear emotional beats that work across contexts?
+
+PROMISE VS PAYOFF STRUCTURE:
+- What does the opening promise? ("Male dog Vs" = anticipation for comparison)
+- How does each audio line set up the next visual moment?
+- What's the satisfying twist/punchline/revelation?
+
+EXACT AUDIO-VISUAL TIMING MAP:
+Break down second-by-second how audio syncs with visuals:
+- Opening audio: "[exact quote]" + Visual: [what's shown] = [emotional effect]
+- Build-up audio: "[exact quote]" + Visual: [what's shown] = [anticipation created]  
+- Punchline audio: "[exact quote]" + Visual: [what's shown] = [payoff delivered]
+
+VIRAL MECHANICS ANALYSIS:
+- Character contrast (sweet vs judgmental, etc.)
+- Relatable relationship dynamics
+- Universal human truths being expressed
+- Why people want to recreate this format
+- Tag-worthy moments ("this is literally us")
+
+REPLICATION FORMULA:
+- What makes this audio reusable with other subjects?
+- How does the timing create maximum impact?
+- What relationship dynamics does this expose?
+- Why is the contrast funny/relatable?
+
+# Then in your JSON response template, ADD these fields:
+
+  "viral_audio_analysis": {
+    "is_viral_sound": "[Yes/No - identify if this uses trending/popular audio]",
+    "audio_source": "[TV show, movie, original, trending sound, etc.]",
+    "audio_visual_timing": {
+      "setup_moment": "Audio: '[quote]' + Visual: [description] = [creates expectation]",
+      "build_moment": "Audio: '[quote]' + Visual: [description] = [builds anticipation]",
+      "payoff_moment": "Audio: '[quote]' + Visual: [description] = [delivers twist/humor]"
+    },
+    "promise_structure": "[What the opening promises vs how it delivers]",
+    "viral_mechanics": "[Why this audio+visual combo is shareable/relatable]",
+    "relationship_dynamic": "[What human truth/relationship pattern this exposes]"
+  },
+  
+  "timing_mastery_analysis": "[How the creator uses precise timing for maximum impact]",
+  
+  "viral_replication_potential": "[Why others want to recreate this format and how]",
+
+# EXAMPLE of what this would output for your dog video:
+
+  "viral_audio_analysis": {
+    "is_viral_sound": "Yes - appears to be from a TV show or popular audio about relationships",
+    "audio_source": "TV show dialogue or trending relationship audio",
+    "audio_visual_timing": {
+      "setup_moment": "Audio: 'You're beautiful and pretty, I like talking with you' + Visual: Male dog looking sweet = Creates expectation of sweetness",
+      "build_moment": "Audio: 'So what did you like about me?' + Visual: Transition to female dog = Builds anticipation for response",
+      "payoff_moment": "Audio: 'You look fat in that' + Visual: Female dog's judgy expression = Delivers humorous contrast/relatability"
+    },
+    "promise_structure": "'Male dog Vs' promises a comparison, delivers on relationship stereotype humor",
+    "viral_mechanics": "Relatable gender dynamic, shareable because people tag partners, replicable format",
+    "relationship_dynamic": "Sweet male vs judgmental female - plays on familiar relationship patterns"
+  },
+  
+  "timing_mastery_analysis": "Creator perfectly syncs sweet audio with sweet dog visuals, then times the harsh punchline with judgmental dog expression for maximum comedic impact",
+  
+  "viral_replication_potential": "High - others can use same audio with their pets, partners, or other comparative subjects"
 
 Respond with COMPREHENSIVE analysis in JSON:
 {{
