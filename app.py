@@ -766,59 +766,28 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
 # MAIN ANALYSIS FUNCTION - BALANCED & COMPREHENSIVE
 # ==============================
 
-def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
-    """Comprehensive analysis that handles all video types - with/without sound, high/low performing."""
-    
-    # Determine video type and performance level
-    has_speech = transcript_text and len(transcript_text.strip()) > 20 and not any(
-        indicator in transcript_text.lower() 
-        for indicator in ['music', 'sound', 'noise', 'audio', 'background', 'ambient']
-    )
-    
-    # Check performance indicators from creator note
-    is_high_performing = False
-    performance_indicators = []
-    if creator_note:
-        note_lower = creator_note.lower()
-        if any(word in note_lower for word in ['million', 'viral', 'blew up', 'exploded']):
-            is_high_performing = True
-            # Extract specific numbers if mentioned
-            import re
-            numbers = re.findall(r'(\d+\.?\d*)\s*(million|m|k|thousand)', note_lower)
-            if numbers:
-                performance_indicators.append(f"{numbers[0][0]}{numbers[0][1]}")
-        elif any(word in note_lower for word in ['low', 'poor', 'didn\'t work', 'no views', 'flopped']):
-            is_high_performing = False
-            performance_indicators.append("underperformed")
-    
-    # Build knowledge context section
-    knowledge_section = ""
-    if knowledge_context.strip():
-        knowledge_section = f"""
-PROVEN VIRAL STRATEGIES FROM KNOWLEDGE BASE:
-{knowledge_context}
-
-CRITICAL: Use these patterns to explain EXACTLY why this video succeeded or failed compared to proven examples.
-"""
-    
-    # Adjust prompt based on video type
-    video_type_context = ""
-    if not has_speech:
-        video_type_context = """
-This is a VISUAL-ONLY or AMBIENT AUDIO video. Focus analysis on:
-- Visual hooks and progression
-- On-screen text vs captions (are they different?)
-- Visual satisfaction elements (transformations, processes, reveals)
-- Color, movement, and pacing
-- How visuals alone tell the story
-"""
+# Build the performance analysis text without backslashes in f-string
+    if performance_indicators:
+        perf_text = f"This video {performance_indicators[0]} because..."
     else:
-        video_type_context = """
-This video has VERBAL CONTENT. Analyze:
-- How verbal and visual elements work together
-- Whether on-screen text reinforces or adds to spoken content
-- The relationship between what's said and what's shown
-"""
+        perf_text = "Based on the structure, this video likely..."
+    
+    # Build the analysis intro text
+    if is_high_performing:
+        analysis_intro = "why this exploded"
+    elif not is_high_performing:
+        analysis_intro = "what happened here"
+    else:
+        analysis_intro = "what I'm seeing"
+    
+    # Build the video type description
+    video_type_desc = "visual-focused" if not has_speech else "verbal + visual"
+    
+    # Build improvement text
+    if is_high_performing and performance_indicators:
+        improvement_text = f"Even at {performance_indicators[0]}, you could..."
+    else:
+        improvement_text = "To improve performance: "
     
     prompt = f"""
 You are analyzing a {platform} video. Creator context: {creator_note if creator_note else "No specific performance data provided"}. 
@@ -928,32 +897,32 @@ For UNKNOWN: "Based on patterns, X should improve performance because..."
 
 Respond with COMPREHENSIVE analysis in JSON:
 {{
-  "analysis": "Let me break down {'why this exploded' if is_high_performing else 'what happened here' if not is_high_performing else 'what I\'m seeing'}. [Detailed, specific, conversational explanation that teaches while analyzing. Reference specific moments, quote exact text, describe exact visuals]",
+  "analysis": "Let me break down {analysis_intro}. [Detailed, specific, conversational explanation that teaches while analyzing. Reference specific moments, quote exact text, describe exact visuals]",
   
-  "video_type_analysis": "This is a {'visual-focused' if not has_speech else 'verbal + visual'} video that [explain how this type works, what makes it effective or not]",
+  "video_type_analysis": "This is a {video_type_desc} video that [explain how this type works, what makes it effective or not]",
   
   "exact_hook_breakdown": {{
     "first_second": "0:00 - [EXACT description of what appears/happens]",
     "second_second": "0:01 - [EXACT description including any text/changes]",
     "third_second": "0:02 - [EXACT description of action/progression]",
     "visual_hook": "[Detailed description of visual elements that grab attention]",
-    "text_hook": "[EXACT text if it appears] - {'This is a hook because...' or 'This appears to be captions because it matches the audio'}",
-    "audio_hook": "{'Opening words: [quote]' if speech else 'Audio: [describe sounds/music]'}",
+    "text_hook": "[EXACT text if it appears] - [This is a hook because... or This appears to be captions because it matches the audio]",
+    "audio_hook": "[Opening words: quote if speech else Audio: describe sounds/music]",
     "why_it_works_or_not": "[Specific explanation of hook psychology, what works, what doesn't]"
   }},
   
-  "performance_analysis": "{'This video ' + performance_indicators[0] + ' because...' if performance_indicators else 'Based on the structure, this video likely...'} [Detailed explanation comparing to known patterns]",
+  "performance_analysis": "{perf_text} [Detailed explanation comparing to known patterns]",
   
   "hooks": [
     "5 natural hooks specific to this content type and platform"
   ],
   
   "scores": {{
-    "hook_strength": {"8-10 if high performing, 3-6 if low performing, else evaluate objectively"},
-    "promise_clarity": {"similar logic"},
-    "retention_design": {"similar logic"},
-    "engagement_potential": {"similar logic"},
-    "goal_alignment": {"similar logic"}
+    "hook_strength": "[8-10 if high performing, 3-6 if low performing, else evaluate objectively]",
+    "promise_clarity": "[similar logic]",
+    "retention_design": "[similar logic]",
+    "engagement_potential": "[similar logic]",
+    "goal_alignment": "[similar logic]"
   }},
   
   "score_explanations": {{
@@ -964,23 +933,23 @@ Respond with COMPREHENSIVE analysis in JSON:
     "goal_alignment": "[X]/10 - For {goal}, this [achieves/misses] because..."
   }},
   
-  "visual_satisfaction_analysis": "{'For this visual content: ' + visual satisfaction analysis if not has_speech else 'Visual elements contribute by...'}",
+  "visual_satisfaction_analysis": "[For this visual content: + visual satisfaction analysis if not has_speech else Visual elements contribute by...]",
   
   "engagement_psychology": "Here's what drives engagement: [Specific to this video's content, not generic]",
   
-  "viral_mechanisms": "The {'viral success' if is_high_performing else 'performance'} comes from [specific mechanisms, patterns, triggers]",
+  "viral_mechanisms": "The [viral success if is_high_performing else performance] comes from [specific mechanisms, patterns, triggers]",
   
   "audience_psychology": "Your {audience} audience specifically responds to [preferences]. This video [does/doesn't] tap into these because...",
   
   "strengths": "What's genuinely working: [Specific elements with explanations]",
   
-  "improvement_areas": "{'Even at ' + performance_indicators[0] + ', you could...' if is_high_performing else 'To improve performance: '} [Specific, actionable suggestions]",
+  "improvement_areas": "{improvement_text} [Specific, actionable suggestions]",
   
   "timing_breakdown": "Full journey: 0-3s: [Hook phase], 3-10s: [Development], 10-20s: [Core content], 20-[end]: [Resolution]",
   
   "formulas": {{
-    "basic_formula": "Step 1: [Specific action]\nStep 2: [Specific action]\nStep 3: [Specific action]",
-    "timing_formula": "0-1s: [Do this]\n1-3s: [Do this]\n3-7s: [Do this]\n7-15s: [Do this]",
+    "basic_formula": "Step 1: [Specific action]\\nStep 2: [Specific action]\\nStep 3: [Specific action]",
+    "timing_formula": "0-1s: [Do this]\\n1-3s: [Do this]\\n3-7s: [Do this]\\n7-15s: [Do this]",
     "visual_formula": "[Visual element] → [Visual element] → [Visual element]",
     "text_formula": "[Formula for on-screen text that works]",
     "psychology_formula": "Create [emotion] → Build [anticipation] → Deliver [satisfaction]"
