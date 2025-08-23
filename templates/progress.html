@@ -1,59 +1,442 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Processing Video...</title>
+    <title>Analyzing Your Video...</title>
     <style>
-        .progress-container {
-            width: 80%;
-            margin: 100px auto;
-            background: #f3f3f3;
-            border-radius: 20px;
-            overflow: hidden;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .progress-bar {
-            height: 30px;
-            width: 0%;
-            background: linear-gradient(to right, #4cafef, #2196F3);
-            text-align: center;
-            line-height: 30px;
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .time-estimate {
+            text-align: center;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .stage-container {
+            margin-bottom: 40px;
+        }
+        
+        .stage {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+        
+        .stage.active {
+            opacity: 1;
+        }
+        
+        .stage.completed {
+            opacity: 0.8;
+        }
+        
+        .stage-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .stage.active .stage-icon {
+            background: white;
+            color: #667eea;
+            animation: pulse 2s infinite;
+        }
+        
+        .stage.completed .stage-icon {
+            background: #4caf50;
+            color: white;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+        
+        .stage-info {
+            flex: 1;
+        }
+        
+        .stage-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+        
+        .stage-description {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .stage-time {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85em;
+            margin-left: auto;
+        }
+        
+        .progress-bar-container {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+        
+        .overall-progress {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .overall-progress-bar {
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 15px;
+            position: relative;
+        }
+        
+        .overall-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #0099ff, #0066ff);
+            border-radius: 15px;
+            transition: width 0.5s ease;
+            width: 0%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-weight: bold;
-            transition: width 0.4s ease;
+            font-size: 0.9em;
+        }
+        
+        .fun-facts {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .fun-fact {
+            font-style: italic;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        .video-suggestion {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .video-container {
+            margin-top: 15px;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+        }
+        
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #results {
+            display: none;
+        }
+        
+        .spinner {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <h2 style="text-align:center;">Analyzing your video...</h2>
-    <div class="progress-container">
-        <div class="progress-bar" id="progressBar">0%</div>
+    <div class="container">
+        <h1>🎬 Analyzing Your Video</h1>
+        <div class="time-estimate">Estimated time: <span id="timeEstimate">5-7 minutes</span></div>
+        
+        <div class="stage-container">
+            <div class="stage" id="stage1">
+                <div class="stage-icon">📥</div>
+                <div class="stage-info">
+                    <div class="stage-title">Downloading Video</div>
+                    <div class="stage-description">Fetching your TikTok video...</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress1"></div>
+                    </div>
+                </div>
+                <div class="stage-time">~15s</div>
+            </div>
+            
+            <div class="stage" id="stage2">
+                <div class="stage-icon">🎞️</div>
+                <div class="stage-info">
+                    <div class="stage-title">Extracting Frames</div>
+                    <div class="stage-description">Capturing key moments for analysis...</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress2"></div>
+                    </div>
+                </div>
+                <div class="stage-time">~30s</div>
+            </div>
+            
+            <div class="stage" id="stage3">
+                <div class="stage-icon">🔍</div>
+                <div class="stage-info">
+                    <div class="stage-title">Analyzing Visual Content</div>
+                    <div class="stage-description">Understanding each frame with AI vision...</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress3"></div>
+                    </div>
+                </div>
+                <div class="stage-time">~3-4 min</div>
+            </div>
+            
+            <div class="stage" id="stage4">
+                <div class="stage-icon">🎵</div>
+                <div class="stage-info">
+                    <div class="stage-title">Processing Audio</div>
+                    <div class="stage-description">Transcribing and analyzing audio elements...</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress4"></div>
+                    </div>
+                </div>
+                <div class="stage-time">~20s</div>
+            </div>
+            
+            <div class="stage" id="stage5">
+                <div class="stage-icon">📚</div>
+                <div class="stage-info">
+                    <div class="stage-title">Searching Knowledge Base</div>
+                    <div class="stage-description">Finding relevant patterns and strategies...</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress5"></div>
+                    </div>
+                </div>
+                <div class="stage-time">~10s</div>
+            </div>
+            
+            <div class="stage" id="stage6">
+                <div class="stage-icon">🧠</div>
+                <div class="stage-info">
+                    <div class="stage-title">Deep Psychological Analysis</div>
+                    <div class="stage-description">Generating comprehensive insights...</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress6"></div>
+                    </div>
+                </div>
+                <div class="stage-time">~45s</div>
+            </div>
+            
+            <div class="stage" id="stage7">
+                <div class="stage-icon">✨</div>
+                <div class="stage-info">
+                    <div class="stage-title">Finalizing Report</div>
+                    <div class="stage-description">Preparing your personalized analysis...</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress7"></div>
+                    </div>
+                </div>
+                <div class="stage-time">~10s</div>
+            </div>
+        </div>
+        
+        <div class="overall-progress">
+            <div style="text-align: center; font-weight: 600; margin-bottom: 5px;">Overall Progress</div>
+            <div class="overall-progress-bar">
+                <div class="overall-progress-fill" id="overallProgress">0%</div>
+            </div>
+        </div>
+        
+        <div class="fun-facts" id="funFacts">
+            <div class="fun-fact" id="currentFact">💡 Did you know? Videos with strong hooks in the first 3 seconds get 5x more watch time!</div>
+        </div>
+        
+        <!-- Optional: Entertainment video while waiting -->
+        <div class="video-suggestion" style="display: none;" id="videoSuggestion">
+            <div>While you wait, here's something interesting:</div>
+            <div class="video-container">
+                <iframe id="waitVideo" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+        </div>
     </div>
-    <div id="status" style="text-align:center;margin-top:20px;">Starting analysis...</div>
-
-    <div id="results" style="display:none;margin-top:40px;"></div>
+    
+    <div id="results"></div>
 
     <script>
+        // Pass form data
         const formData = new FormData();
         const passedData = {{ form_data|tojson }};
         for (let key in passedData) {
             formData.append(key, passedData[key]);
         }
-
-        let progress = 0;
-        const bar = document.getElementById("progressBar");
-        const statusText = document.getElementById("status");
-
-        // Fake progress logic
-        const interval = setInterval(() => {
-            if (progress < 70) {
-                progress += Math.random() * 3; // faster at start
-            } else if (progress < 90) {
-                progress += Math.random() * 0.5; // slower creep
-            }
-            if (progress > 90) progress = 90;
-            bar.style.width = progress + "%";
-            bar.textContent = Math.floor(progress) + "%";
-        }, 1000);
-
+        
+        // Stage timing configuration (in seconds)
+        const stages = [
+            { id: 'stage1', duration: 15, start: 0 },      // Download
+            { id: 'stage2', duration: 30, start: 15 },     // Extract frames
+            { id: 'stage3', duration: 210, start: 45 },    // Analyze frames (3.5 min)
+            { id: 'stage4', duration: 20, start: 255 },    // Process audio
+            { id: 'stage5', duration: 10, start: 275 },    // Search knowledge
+            { id: 'stage6', duration: 45, start: 285 },    // Deep analysis
+            { id: 'stage7', duration: 10, start: 330 }     // Finalize
+        ];
+        
+        const totalDuration = 340; // ~5.7 minutes
+        let startTime = Date.now();
+        let currentStage = 0;
+        
+        // Fun facts to rotate through
+        const funFacts = [
+            "💡 Did you know? Videos with strong hooks in the first 3 seconds get 5x more watch time!",
+            "🎯 Top performers use pattern interrupts every 3-7 seconds to maintain attention.",
+            "🔄 The best TikToks are rewatchable - viewers loop them 2-3 times on average.",
+            "📊 Videos with text overlays get 38% more engagement than those without.",
+            "🎵 Using trending audio can increase your reach by up to 300%!",
+            "⏱️ The ideal TikTok length is 21-34 seconds for maximum completion rate.",
+            "👁️ Visual-only content with satisfying processes gets 2x more shares.",
+            "🎬 Videos that promise transformation see 73% higher save rates.",
+            "💭 Controversial opinions in the first sentence boost comments by 420%.",
+            "✨ Process videos (like art or cooking) have the highest rewatch rates.",
+            "📱 60% of viral videos are filmed vertically with good lighting.",
+            "🎪 Platform-native content outperforms polished content by 2.5x.",
+            "🔥 Videos that deliver value in under 7 seconds see exponential growth.",
+            "💫 The 'curiosity gap' technique increases watch time by 89%.",
+            "🎨 Color psychology: Bright, contrasting colors stop scrolls 45% more effectively."
+        ];
+        
+        let factIndex = 0;
+        
+        // Entertainment videos (6-7 minute clips)
+        const entertainmentVideos = [
+            "https://www.youtube.com/embed/dQw4w9WgXcQ", // Classic
+            "https://www.youtube.com/embed/jNQXAC9IVRw", // Me at the zoo
+            "https://www.youtube.com/embed/9bZkp7q19f0", // Gangnam Style
+            // Add more 5-7 minute educational/entertaining videos
+        ];
+        
+        function updateStageProgress() {
+            const elapsed = (Date.now() - startTime) / 1000; // in seconds
+            const overallPercent = Math.min((elapsed / totalDuration) * 100, 100);
+            
+            // Update overall progress
+            const overallBar = document.getElementById('overallProgress');
+            overallBar.style.width = overallPercent + '%';
+            overallBar.textContent = Math.floor(overallPercent) + '%';
+            
+            // Update stages
+            stages.forEach((stage, index) => {
+                const stageEl = document.getElementById(stage.id);
+                const progressBar = document.getElementById('progress' + (index + 1));
+                
+                if (elapsed >= stage.start) {
+                    if (elapsed < stage.start + stage.duration) {
+                        // Currently active
+                        stageEl.classList.add('active');
+                        stageEl.classList.remove('completed');
+                        const stageProgress = ((elapsed - stage.start) / stage.duration) * 100;
+                        progressBar.style.width = Math.min(stageProgress, 100) + '%';
+                    } else {
+                        // Completed
+                        stageEl.classList.remove('active');
+                        stageEl.classList.add('completed');
+                        progressBar.style.width = '100%';
+                        // Change icon to checkmark
+                        if (!stageEl.querySelector('.stage-icon').textContent.includes('✓')) {
+                            stageEl.querySelector('.stage-icon').textContent = '✓';
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Rotate fun facts
+        setInterval(() => {
+            factIndex = (factIndex + 1) % funFacts.length;
+            const factEl = document.getElementById('currentFact');
+            factEl.style.animation = 'none';
+            setTimeout(() => {
+                factEl.textContent = funFacts[factIndex];
+                factEl.style.animation = 'fadeIn 0.5s forwards';
+            }, 100);
+        }, 8000); // Change fact every 8 seconds
+        
+        // Update progress animation
+        const progressInterval = setInterval(updateStageProgress, 500);
+        
+        // Optional: Show entertainment video after 30 seconds
+        setTimeout(() => {
+            // Uncomment to enable entertainment videos
+            // document.getElementById('videoSuggestion').style.display = 'block';
+            // const randomVideo = entertainmentVideos[Math.floor(Math.random() * entertainmentVideos.length)];
+            // document.getElementById('waitVideo').src = randomVideo;
+        }, 30000);
+        
         // Start actual processing
         fetch("/process", {
             method: "POST",
@@ -61,13 +444,31 @@
         })
         .then(res => res.text())
         .then(html => {
-            clearInterval(interval);
-            progress = 100;
-            bar.style.width = "100%";
-            bar.textContent = "100%";
-            statusText.textContent = "Analysis complete!";
-            document.getElementById("results").innerHTML = html;
-            document.getElementById("results").style.display = "block";
+            clearInterval(progressInterval);
+            
+            // Complete all stages
+            stages.forEach((stage, index) => {
+                const stageEl = document.getElementById(stage.id);
+                const progressBar = document.getElementById('progress' + (index + 1));
+                stageEl.classList.remove('active');
+                stageEl.classList.add('completed');
+                progressBar.style.width = '100%';
+                stageEl.querySelector('.stage-icon').textContent = '✓';
+            });
+            
+            // Set overall to 100%
+            const overallBar = document.getElementById('overallProgress');
+            overallBar.style.width = '100%';
+            overallBar.textContent = '100%';
+            
+            // Show results
+            setTimeout(() => {
+                document.body.innerHTML = html;
+            }, 1000);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('currentFact').textContent = '❌ An error occurred. Please try again.';
         });
     </script>
 </body>
