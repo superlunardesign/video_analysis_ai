@@ -570,10 +570,13 @@ The key is how quickly you deliver value and create curiosity in those first 3 s
         "goal_alignment": 6 if performance_level in ['good', 'viral'] else 5
     }
     
+    # FIX: Don't nest f-strings, use a conditional expression instead
+    content_type_display = f"a {content_type.replace('_', ' ')}" if content_type else 'your'
+    
     return {
         "analysis": analysis,
         "content_type_detected": content_type,
-        "video_type_analysis": f"This is {f'a {content_type.replace("_", " ")}' if content_type else 'your'} video optimized for {audience}",
+        "video_type_analysis": f"This is {content_type_display} video optimized for {audience}",
         "performance_analysis": f"{f'With {view_count},' if view_count else 'Your video'} shows {f'successful execution' if performance_level in ['good', 'viral'] else 'opportunity for growth'}",
         
         "hooks": [
@@ -613,6 +616,17 @@ The key is how quickly you deliver value and create curiosity in those first 3 s
             "is_viral_sound": False,
             "explanation": "Using original audio/speech"
         },
+        
+        "content_analysis": {
+            "type": content_type,
+            "key_insights": "Focus on immediate hook optimization",
+            "optimization_opportunities": ["Stronger opening", "Clearer value proposition", "Faster payoff"]
+        },
+        
+        # Additional compatibility fields
+        "formula": "1. Strong hook\n2. Quick value\n3. Clear payoff",
+        "improvements": "Focus on hook optimization and faster value delivery",
+        "template_formula": "Visual hook → Development → Payoff",
         
         "knowledge_context_used": False,
         "overall_quality": "moderate",
