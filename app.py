@@ -74,7 +74,7 @@ def _api_retry(callable_fn, *args, **kwargs):
 # ==============================
 
 def analyze_audio_type(transcript_text, has_speech):
-    """Intelligently detect audio type without over-focusing on viral"""
+    """Conservatively detect audio type - avoid false positives for viral audio"""
     
     if not has_speech or not transcript_text or len(transcript_text.strip()) < 20:
         return {
@@ -85,30 +85,27 @@ def analyze_audio_type(transcript_text, has_speech):
     
     transcript_lower = transcript_text.lower()
     
-    # Strong viral audio indicators (high confidence)
-    strong_viral_patterns = [
-        ('male' in transcript_lower and 'female' in transcript_lower and 'vs' in transcript_lower),
-        ('pov:' in transcript_lower and '?' in transcript_text),
-        (transcript_text.count('"') >= 4),  # Multiple quoted sections suggest dialogue
-    ]
+    # Very strong indicators only - must have multiple signs
+    strong_viral_patterns = 0
     
-    # Moderate viral indicators (medium confidence)
-    moderate_viral_patterns = [
-        ('?' in transcript_text and len(transcript_text.split('.')) > 2),
-        (len([w for w in transcript_text.split() if w.lower() in ['you', 'your']]) > 5),
-        any(phrase in transcript_lower for phrase in ['when you', 'tell me', 'wait for it']),
-    ]
+    # Check for dialogue structure (back and forth conversation)
+    if '?' in transcript_text and '"' in transcript_text and transcript_text.count('"') >= 4:
+        strong_viral_patterns += 1
     
-    # Count pattern matches
-    strong_matches = sum(strong_viral_patterns)
-    moderate_matches = sum(moderate_viral_patterns)
+    # Check for POV format with specific structure
+    if 'pov:' in transcript_lower and ('when' in transcript_lower or 'you' in transcript_lower):
+        strong_viral_patterns += 1
     
-    # Only classify as viral if strong evidence
-    if strong_matches >= 1 or moderate_matches >= 2:
+    # Check for clear dialogue markers
+    if all(marker in transcript_lower for marker in ['he said', 'she said']):
+        strong_viral_patterns += 1
+    
+    # Only mark as viral if VERY strong evidence
+    if strong_viral_patterns >= 2:
         return {
             'type': 'potential_viral_audio',
             'viral_audio_check': True,
-            'confidence': 'high' if strong_matches >= 1 else 'medium'
+            'confidence': 'medium'
         }
     else:
         return {
@@ -222,6 +219,8 @@ def create_visual_content_description(frames_summaries_text, audio_description=N
             content_type = 'routine'
         elif 'cooking' in frames_lower or 'recipe' in frames_lower:
             content_type = 'tutorial'
+        elif 'unboxing' in frames_lower or 'package' in frames_lower:
+            content_type = 'unboxing'
         
         satisfaction_indicators = ['completion', 'finish', 'result', 'final', 'transform', 'reveal']
         highly_satisfying = any(word in frames_lower for word in satisfaction_indicators)
@@ -246,11 +245,11 @@ def create_visual_content_description(frames_summaries_text, audio_description=N
 
 
 # ==============================
-# MAIN ANALYSIS FUNCTION - COMPREHENSIVE & CONVERSATIONAL
+# MAIN ANALYSIS FUNCTION - ACCURATE & EDUCATIONAL
 # ==============================
 
 def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
-    """Comprehensive analysis with conversational, educational output"""
+    """Analysis based on ACTUAL content without hallucinations"""
     
     # Detect content characteristics
     has_speech = transcript_text and len(transcript_text.strip()) > 20 and not any(
@@ -258,190 +257,165 @@ def run_main_analysis(transcript_text, frames_summaries_text, creator_note, plat
         for indicator in ['music', 'sound', 'noise', 'audio', 'background', 'ambient']
     )
     
-    # Smart audio type detection
+    # Conservative audio type detection
     audio_type_info = analyze_audio_type(transcript_text, has_speech)
     
-    # Performance detection from creator notes
-    is_high_performing = False
-    performance_indicators = []
+    # Extract actual performance data from creator note
+    view_count = None
+    performance_level = 'unknown'
+    
     if creator_note:
         note_lower = creator_note.lower()
-        if any(word in note_lower for word in ['million', 'viral', 'blew up', 'exploded']):
-            is_high_performing = True
-            numbers = re.findall(r'(\d+\.?\d*)\s*(million|m|k|thousand)', note_lower)
-            if numbers:
-                performance_indicators.append(f"{numbers[0][0]}{numbers[0][1]}")
-        elif any(word in note_lower for word in ['low', 'poor', "didn't work", 'no views', 'flopped']):
-            is_high_performing = False
-            performance_indicators.append("underperformed")
+        
+        # Extract view count if mentioned
+        view_patterns = re.findall(r'(\d+\.?\d*)\s*(k|thousand|m|million|views)', note_lower)
+        if view_patterns:
+            number, unit = view_patterns[0][:2]
+            try:
+                num = float(number)
+                if unit in ['k', 'thousand']:
+                    view_count = f"{num}k"
+                    if num >= 100:
+                        performance_level = 'moderate'
+                    if num >= 500:
+                        performance_level = 'good'
+                elif unit in ['m', 'million']:
+                    view_count = f"{num}M"
+                    performance_level = 'viral'
+                elif unit == 'views' and num < 1000:
+                    view_count = f"{int(num)} views"
+                    performance_level = 'low'
+            except:
+                pass
     
-    # Build knowledge section with specific examples
+    # Build knowledge section
     knowledge_section = ""
     if knowledge_context and len(knowledge_context.strip()) > 100:
         knowledge_section = f"""
-PROVEN PATTERNS FROM YOUR KNOWLEDGE BASE:
+KNOWLEDGE BASE PATTERNS (Use these actual patterns, don't invent new ones):
 {knowledge_context}
 
-INSTRUCTIONS: Use these SPECIFIC examples and patterns in your explanation. 
-Reference exact view counts, quote successful hooks, cite timing breakdowns.
-Don't give generic advice - compare to the actual examples above.
+ANALYSIS RULES:
+1. Reference ONLY patterns that appear above
+2. Don't invent statistics or examples
+3. Analyze what's ACTUALLY in this specific video
+4. Distinguish between transcript (spoken) and frame descriptions (visual/text)
+5. Be accurate about what type of content this really is
 """
-    
-    # Content-specific context
-    if audio_type_info['viral_audio_check'] and audio_type_info['confidence'] == 'high':
-        audio_analysis_section = """
-VIRAL AUDIO ANALYSIS (High confidence viral audio detected):
-- Identify the audio source and format
-- Analyze audio-visual synchronization
-- Explain viral mechanics and shareability
-- Assess replication potential
-"""
-    elif has_speech:
-        audio_analysis_section = """
-ORIGINAL SPEECH ANALYSIS:
-- Message clarity and delivery
-- Value proposition effectiveness
-- Authority and credibility signals
-- Engagement optimization opportunities
-"""
-    else:
-        audio_analysis_section = """
-VISUAL-ONLY CONTENT ANALYSIS:
-- Visual storytelling effectiveness
-- Satisfaction and transformation mechanics
-- Pattern interrupts and attention retention
-- Rewatch and share factors
-"""
-    
-    # Build conversational prompt
+
     prompt = f"""
-You are a viral content expert having a friendly, educational conversation with a creator about their video.
-They told you: "{creator_note if creator_note else 'Help me analyze this video'}"
+You are analyzing a {platform} video. Be accurate and educational.
 
-Your job is to TEACH them the psychology behind what's happening, using specific examples from the knowledge base.
-Be conversational but precise. Reference exact moments, compare to successful examples, explain the WHY.
+ACTUAL VIDEO DATA:
+- Creator's context: "{creator_note if creator_note else 'No performance data provided'}"
+- Detected view count: {view_count if view_count else 'Not specified'}
+- Performance level: {performance_level}
+- Platform: {platform}
+- Goal: {goal}
+- Target audience: {audience}
+- Duration target: {target_duration}s
 
-CONTENT TO ANALYZE:
-Platform: {platform}
-Transcript: {transcript_text if has_speech else "(No speech - visual/ambient only)"}
-Visual Content: {frames_summaries_text}
-Target: {target_duration}s video for {audience}
-Goal: {goal}
+SPOKEN CONTENT (from transcript):
+{transcript_text if transcript_text else "(No speech detected - visual only)"}
+
+VISUAL CONTENT (from frame analysis):
+{frames_summaries_text}
 
 {knowledge_section}
 
-CONVERSATIONAL TONE REQUIREMENTS:
-- Start responses with "Let me break down..."
-- Use specific comparisons: "Your opening vs 'I can't believe they sent this' (5.1M views)"
-- Explain psychology: "This works because humans have a 0.3 second decision window..."
-- Reference exact timestamps: "At 0:03, you show X, but successful videos do Y"
-- Use natural language: "Here's the thing..." not "Additionally, it should be noted..."
+CRITICAL ANALYSIS INSTRUCTIONS:
+1. Analyze THIS specific video's actual content
+2. Identify what text appears ON SCREEN from the frame descriptions (not transcript)
+3. Identify what is SPOKEN from the transcript (not frame descriptions)
+4. Don't falsely detect "viral audio" without strong evidence
+5. Use patterns from the knowledge base without inventing new examples
+6. Explain performance based on actual content and structure
+7. Be conversational and educational in tone
 
-ANALYSIS STRUCTURE:
+ANALYSIS FRAMEWORK:
+- What actually happens in the first 3 seconds (from frames)
+- What hooks exist (visual, text overlay, spoken)
+- Why the performance matches the content
+- Specific improvements based on knowledge patterns
+- Natural alternative hooks for this content type
 
-1. OPENING ANALYSIS
-Start: "Let me break down exactly {'why you ' + creator_note if creator_note else 'what I see here'}..."
-- Compare to specific successful examples from knowledge
-- Explain the psychology of what's working/not working
-- Reference exact moments and timings
-
-2. HOOK BREAKDOWN
-Don't just describe - TEACH:
-"Your first second shows [X]. Compare that to [specific example] which got [Y views]. 
-The difference? They create mystery in 0.5 seconds, you reveal everything immediately..."
-
-3. ENGAGEMENT PSYCHOLOGY
-Explain mechanisms with examples:
-"People comment when... Look at how [example] triggered 50K comments by..."
-"Shares happen when... [Specific video] got 100K shares because..."
-
-4. ALTERNATIVE HOOKS
-For each hook, explain WHY it would work:
-"Try 'I can't believe they sent this' - this creates what psychologists call a knowledge gap..."
-
-5. IMPROVEMENTS
-Reference specific patterns:
-"Instead of [what they did], try [specific technique from knowledge base]. 
-[Creator name] used this exact approach and got [X views]..."
-
-{audio_analysis_section}
-
-Respond in JSON but make EVERY field conversational and educational:
+Respond in JSON:
 
 {{
-  "analysis": "Let me break down exactly what's happening here. [2-3 paragraphs of specific, example-rich analysis]",
+  "analysis": "Let me break down what's happening in your video. [Detailed analysis of ACTUAL content, comparing to knowledge patterns, explaining the psychology]",
   
   "content_type_detected": "{audio_type_info['type']}",
   
-  "video_type_analysis": "So you've created a {audio_type_info['type'].replace('_', ' ')} video. Here's how this type actually works: [explain with examples]",
+  "video_type_analysis": "This is a [accurate description based on actual frames and transcript] video. Here's how this type typically performs: [insights from knowledge base]",
   
   "exact_hook_breakdown": {{
-    "first_second": "0:00 - You open with [exact description]. Here's the problem: [compare to successful example]",
-    "second_second": "0:01 - [What happens]. Compare this to [viral example] which instead [what they do]",
-    "third_second": "0:02 - By now, [explain viewer psychology and decision-making]",
-    "visual_hook": "Visually, you show [X]. [Specific successful video] shows [Y] instead, which [psychology explanation]",
-    "text_hook": "Your text says [exact quote]. This [works/doesn't work] because [specific reason with example]",
-    "audio_hook": "Audio-wise, [what's heard]. The [specific viral video] uses [X sound] to trigger [psychological response]",
-    "why_it_works_or_not": "Here's the brutal truth: [specific comparison to successful patterns with numbers]"
+    "first_second": "0:00 - [Exactly what the frames show happens]",
+    "second_second": "0:01 - [What actually appears in frame 2]",
+    "third_second": "0:02 - [What frame 3 actually shows]",
+    "visual_hook": "[What visual element appears to grab attention from frames]",
+    "text_hook": "[EXACT text overlay from frame descriptions, or 'No text overlay detected']",
+    "audio_hook": "[What's heard - speech from transcript or music/sounds]",
+    "why_it_works_or_not": "[Honest assessment based on actual content and knowledge patterns]"
   }},
   
-  "performance_analysis": "{'Based on what you told me about getting ' + creator_note if creator_note else 'Looking at the structure'}, here's exactly why: [specific reasons with pattern comparisons]",
+  "performance_analysis": "With {view_count if view_count else 'your current performance'}, here's what's happening: [explain based on actual structure and knowledge patterns]",
   
   "hooks": [
-    "Hook option 1 - This works because [psychological principle with example]",
-    "Hook option 2 - Similar to [viral video example] but adapted for your content",
-    "Hook option 3 - Creates curiosity gap like [specific example with views]",
-    "Hook option 4 - Uses pattern interrupt technique from [successful creator]",
-    "Hook option 5 - Proven format: [specific example] got [X views] with this"
+    "Natural alternative hook 1 - [explain why it would work]",
+    "Natural alternative hook 2 - [based on knowledge patterns]",
+    "Natural alternative hook 3 - [adapted to this content type]",
+    "Natural alternative hook 4 - [platform-appropriate]",
+    "Natural alternative hook 5 - [audience-focused]"
   ],
   
   "scores": {{
-    "hook_strength": "[1-10] - [Specific comparison to successful hooks]",
-    "promise_clarity": "[1-10] - [Explain what promise exists vs successful examples]",
-    "retention_design": "[1-10] - [Reference specific pacing patterns]",
-    "engagement_potential": "[1-10] - [Compare triggers to viral examples]",
-    "goal_alignment": "[1-10] - [How this serves {goal} based on patterns]"
+    "hook_strength": [1-10],
+    "promise_clarity": [1-10],
+    "retention_design": [1-10],
+    "engagement_potential": [1-10],
+    "goal_alignment": [1-10]
   }},
   
-  "engagement_psychology": "Let's talk about why people actually engage: [specific mechanisms with real examples from knowledge base]",
+  "engagement_psychology": "Based on this actual content: [explain real psychological drivers, not generic theory]",
   
-  "strengths": "What you're doing well: [specific elements that align with successful patterns]",
+  "strengths": "What's actually working: [specific elements from this video]",
   
-  "improvement_areas": "Here's exactly what to fix: [specific changes based on proven patterns with examples]",
+  "improvement_areas": "Specific improvements: [based on comparing to knowledge patterns]",
   
-  "timing_breakdown": "Your video flow: 0-3s: [what happens vs what should], 3-10s: [analysis with pattern comparison]...",
+  "timing_breakdown": "0-3s: [actual content], 3-10s: [actual content], 10-20s: [actual content], 20+: [actual content]",
   
   "formulas": {{
-    "basic_formula": "Step 1: [Action from successful pattern]\\nStep 2: [Why this works]\\nStep 3: [Expected result based on examples]",
-    "timing_formula": "0-1s: [Do X like successful example Y]\\n1-3s: [Create Z like video that got A views]...",
-    "visual_formula": "[Element] like in [example] → [Next] as shown in [pattern] → [Result]",
-    "psychology_formula": "Create [emotion] (like [example]) → Build [feeling] (using [technique]) → Deliver [satisfaction]"
+    "basic_formula": "[Actionable steps based on knowledge patterns]",
+    "timing_formula": "[Specific timing based on this content type]",
+    "visual_formula": "[Visual progression for this type]",
+    "psychology_formula": "[Psychological journey for this content]"
   }},
   
-  "performance_prediction": "Based on these patterns, if you posted this: [specific prediction with reasoning from knowledge base]",
+  "performance_prediction": "Realistic prediction: [based on actual patterns and improvements]",
   
-  "knowledge_insights": "Comparing to our viral patterns database: [specific numbered comparisons with examples]",
+  "knowledge_insights": "Applicable patterns from knowledge base: [list actual relevant patterns]",
   
-  "viral_audio_analysis": {{}} if not audio_type_info['viral_audio_check'] else {{
-    "is_viral_sound": true,
-    "audio_source": "[Detected source type]",
-    "viral_mechanics": "[Why this audio works with examples]",
-    "replication_potential": "[How others can use this based on patterns]"
+  "viral_audio_analysis": {{
+    "is_viral_sound": {"true" if audio_type_info['viral_audio_check'] else "false"},
+    "explanation": "[Accurate explanation of audio type]"
   }},
   
   "content_analysis": {{
     "type": "{audio_type_info['type']}",
-    "key_insights": "[Specific insights for this content type with examples]",
-    "optimization_opportunities": "[Specific improvements based on successful patterns]"
+    "key_insights": "[Specific insights about THIS video]",
+    "optimization_opportunities": "[Real opportunities based on knowledge]"
   }}
 }}
 
-Remember: You're TEACHING using specific examples, not just analyzing. Every point should reference patterns from the knowledge base.
+Remember: Be accurate about what's actually in THIS video. Don't invent examples or statistics.
+Be educational and conversational while staying truthful to the content.
 """
 
     try:
-        print(f"[INFO] Sending comprehensive analysis to GPT-4...")
-        print(f"[INFO] Using {len(knowledge_context)} chars of knowledge context")
+        print(f"[INFO] Analyzing actual video content...")
+        print(f"[INFO] Performance detected: {view_count if view_count else 'Not specified'} ({performance_level})")
+        print(f"[INFO] Content type: {audio_type_info['type']}")
+        print(f"[INFO] Using {len(knowledge_context)} chars of knowledge")
         
         gpt_response = _api_retry(
             client.chat.completions.create,
@@ -449,17 +423,17 @@ Remember: You're TEACHING using specific examples, not just analyzing. Every poi
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a friendly viral content expert who teaches creators by comparing their content to specific successful examples. Always be conversational and educational, explaining the psychology behind everything."
+                    "content": "You are a video analysis expert. Analyze exactly what's in the video - don't make up examples or statistics. Be educational while being accurate. Never confuse transcript (spoken) with frame descriptions (visual/text)."
                 },
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7,  # Higher for conversational tone
+            temperature=0.6,  # Balanced for accuracy and conversational tone
             max_tokens=4000
         )
 
         response_text = gpt_response.choices[0].message.content.strip()
         
-        # Clean JSON response
+        # Parse JSON
         if response_text.startswith("```json"):
             response_text = response_text[7:]
         if response_text.endswith("```"):
@@ -467,17 +441,25 @@ Remember: You're TEACHING using specific examples, not just analyzing. Every poi
         
         parsed = json.loads(response_text.strip())
         
-        # Process scores with performance awareness
+        # Process scores based on actual performance
         scores_raw = parsed.get("scores", {})
-        if is_high_performing:
+        
+        # Set score defaults based on actual performance
+        if performance_level == 'viral':
             score_defaults = {"hook_strength": 8, "promise_clarity": 8, "retention_design": 8, 
                             "engagement_potential": 8, "goal_alignment": 8}
-        elif performance_indicators and "underperformed" in performance_indicators:
+        elif performance_level == 'good':
+            score_defaults = {"hook_strength": 7, "promise_clarity": 7, "retention_design": 7, 
+                            "engagement_potential": 7, "goal_alignment": 7}
+        elif performance_level == 'moderate':
+            score_defaults = {"hook_strength": 6, "promise_clarity": 6, "retention_design": 6, 
+                            "engagement_potential": 6, "goal_alignment": 6}
+        elif performance_level == 'low':
             score_defaults = {"hook_strength": 4, "promise_clarity": 4, "retention_design": 5, 
                             "engagement_potential": 4, "goal_alignment": 4}
         else:
-            score_defaults = {"hook_strength": 6, "promise_clarity": 6, "retention_design": 6, 
-                            "engagement_potential": 5, "goal_alignment": 6}
+            score_defaults = {"hook_strength": 5, "promise_clarity": 5, "retention_design": 5, 
+                            "engagement_potential": 5, "goal_alignment": 5}
         
         scores = {}
         for key, default in score_defaults.items():
@@ -502,7 +484,7 @@ Remember: You're TEACHING using specific examples, not just analyzing. Every poi
             "video_type_analysis": parsed.get("video_type_analysis", ""),
             "performance_analysis": parsed.get("performance_analysis", ""),
             
-            # Hooks
+            # Hooks and scores
             "hooks": parsed.get("hooks", []),
             "scores": scores,
             
@@ -513,14 +495,10 @@ Remember: You're TEACHING using specific examples, not just analyzing. Every poi
             "verbal_hook": exact_hook.get("audio_hook", ""),
             "why_hook_works": exact_hook.get("why_it_works_or_not", ""),
             
-            # Psychology
+            # Analysis components
             "engagement_psychology": parsed.get("engagement_psychology", ""),
-            
-            # Content analysis
             "viral_audio_analysis": parsed.get("viral_audio_analysis", {}),
             "content_analysis": parsed.get("content_analysis", {}),
-            
-            # Improvements
             "strengths": parsed.get("strengths", ""),
             "improvement_areas": parsed.get("improvement_areas", ""),
             
@@ -531,7 +509,7 @@ Remember: You're TEACHING using specific examples, not just analyzing. Every poi
             "psychology_formula": formulas.get("psychology_formula", ""),
             "timing_breakdown": parsed.get("timing_breakdown", ""),
             
-            # Predictions
+            # Insights
             "performance_prediction": parsed.get("performance_prediction", ""),
             "knowledge_insights": parsed.get("knowledge_insights", ""),
             
@@ -540,11 +518,13 @@ Remember: You're TEACHING using specific examples, not just analyzing. Every poi
             "improvements": parsed.get("improvement_areas", ""),
             "template_formula": formulas.get("visual_formula", ""),
             
-            # Meta
+            # Meta information
             "knowledge_context_used": bool(knowledge_context.strip()),
             "overall_quality": "strong" if sum(scores.values())/len(scores) >= 7 else "moderate" if sum(scores.values())/len(scores) >= 5 else "needs_work",
             "video_has_speech": has_speech,
-            "audio_type_detected": audio_type_info['type']
+            "audio_type_detected": audio_type_info['type'],
+            "actual_view_count": view_count,
+            "performance_level": performance_level
         }
         
         return result
@@ -554,75 +534,92 @@ Remember: You're TEACHING using specific examples, not just analyzing. Every poi
         import traceback
         traceback.print_exc()
         
-        # Return conversational fallback
-        return create_conversational_fallback(
+        # Return accurate fallback
+        return create_accurate_fallback(
             transcript_text, frames_summaries_text, creator_note, 
-            platform, goal, audience, has_speech, is_high_performing
+            platform, goal, audience, has_speech, view_count, performance_level
         )
 
 
-def create_conversational_fallback(transcript_text, frames_summaries_text, creator_note, platform, goal, audience, has_speech, is_high_performing):
-    """Conversational fallback that still provides educational value"""
+def create_accurate_fallback(transcript_text, frames_summaries_text, creator_note, platform, goal, audience, has_speech, view_count, performance_level):
+    """Fallback that provides accurate analysis without hallucinations"""
     
-    performance_text = creator_note if creator_note else "your video"
+    # Determine actual content type from frames
+    frames_lower = frames_summaries_text.lower() if frames_summaries_text else ""
     
     if not has_speech:
-        analysis = f"""Let me break down what's happening here. You've created a visual-only video, which can absolutely work - but only if you nail the visual storytelling. 
+        content_type = "visual_only"
+        analysis = f"""Let me analyze your visual-only video. {f'With {view_count},' if view_count else 'Your video'} appears to focus on visual storytelling without narration. 
 
-Looking at your frames, {frames_summaries_text[:200]}... The issue is that without audio, you're fighting for attention with only half your arsenal. 
+Based on the frames, {frames_summaries_text[:200] if frames_summaries_text else 'the visual content'}... 
 
-Successful visual-only content needs what I call 'visual velocity' - something changing every 2-3 seconds to maintain pattern interrupts. Think about those satisfying cake decorating videos that get millions of views - they work because every second reveals progress toward a satisfying conclusion."""
+Visual-only content needs strong visual hooks and clear progression to maintain attention without audio support."""
     else:
-        analysis = f"""Okay, so here's what I'm seeing with {performance_text}. You've got both visual and verbal elements, which gives you more tools to work with, but you need to synchronize them better.
+        content_type = "original_speech"
+        analysis = f"""Let me analyze your video. {f'Getting {view_count}' if view_count else 'Your performance'} suggests {f'strong audience connection' if performance_level in ['good', 'viral'] else 'room for optimization'}.
 
-Your transcript shows: {transcript_text[:150]}... This could work, but the timing feels off. 
+You're speaking: {transcript_text[:150] if transcript_text else 'verbal content'}...
 
-Here's the thing about {platform} - viewers make a decision to keep watching in literally 0.3 seconds. Your opening needs to create what psychologists call a 'curiosity gap' - you have to make them NEED to know what happens next."""
+The key is how quickly you deliver value and create curiosity in those first 3 seconds."""
     
     base_scores = {
-        "hook_strength": 7 if is_high_performing else 5,
-        "promise_clarity": 6 if is_high_performing else 4,
-        "retention_design": 7 if is_high_performing else 5,
-        "engagement_potential": 6 if is_high_performing else 4,
-        "goal_alignment": 6 if is_high_performing else 5
+        "hook_strength": 7 if performance_level in ['good', 'viral'] else 5,
+        "promise_clarity": 6 if performance_level in ['good', 'viral'] else 4,
+        "retention_design": 7 if performance_level in ['good', 'viral'] else 5,
+        "engagement_potential": 7 if performance_level in ['good', 'viral'] else 4,
+        "goal_alignment": 6 if performance_level in ['good', 'viral'] else 5
     }
     
     return {
         "analysis": analysis,
-        "content_type_detected": "visual_only" if not has_speech else "original_speech",
-        "video_type_analysis": f"You're working with {'visual-only content' if not has_speech else 'verbal and visual content'}. The key is understanding that {audience} scrolls past 100+ videos per session. You need to pattern-interrupt their scroll.",
-        "performance_analysis": f"Based on what you've told me ({creator_note}), this performance makes sense. You're competing against creators who understand the exact psychological triggers that stop scrolls.",
+        "content_type_detected": content_type,
+        "video_type_analysis": f"This is {f'a {content_type.replace("_", " ")}' if content_type else 'your'} video optimized for {audience}",
+        "performance_analysis": f"{f'With {view_count},' if view_count else 'Your video'} shows {f'successful execution' if performance_level in ['good', 'viral'] else 'opportunity for growth'}",
+        
         "hooks": [
-            "wait for the transformation - creates curiosity gap",
-            "POV: you discover the most satisfying process - relatability + promise",
-            "this is oddly satisfying - leverages ASMR psychology",
-            "the ending will blow your mind - knowledge gap",
-            "you won't believe how this turns out - challenge + curiosity"
+            "Lead with your most intriguing element",
+            "Create immediate curiosity or pattern interrupt",
+            "Front-load the value or payoff",
+            "Start with a question or challenge",
+            "Open with unexpected visual or statement"
         ],
+        
         "scores": base_scores,
+        
         "exact_hook_breakdown": {
-            "first_second": "0:00 - Opening establishes context",
-            "second_second": "0:01 - Hook develops",
-            "third_second": "0:02 - Attention secured",
-            "visual_hook": "Visual elements create interest",
-            "text_hook": "Text reinforces message",
-            "audio_hook": "Audio sets tone",
-            "why_it_works_or_not": "Combination creates engagement"
+            "first_second": "0:00 - Opening moment",
+            "second_second": "0:01 - Development",
+            "third_second": "0:02 - Hook completion",
+            "visual_hook": "Opening visual element",
+            "text_hook": "Text overlay if present",
+            "audio_hook": "Opening audio/speech",
+            "why_it_works_or_not": "Hook effectiveness depends on immediate value/curiosity creation"
         },
-        "engagement_psychology": "Here's what drives engagement: People comment when they disagree or want to add something. They share when it makes them look good. They save when they might need it later.",
-        "strengths": "You understand the platform and you're creating content. That puts you ahead of 90% of people who just consume.",
-        "improvement_areas": "Focus on your first 3 seconds. Study videos in your niche that get millions of views. What do they do at 0:00 that you don't?",
-        "timing_breakdown": "0-3s: Critical hook window, 3-10s: Develop promise, 10-20s: Core value, 20-30s: Payoff",
-        "basic_formula": "Step 1: Pattern interrupt\nStep 2: Create curiosity gap\nStep 3: Deliver value",
-        "timing_formula": "0-1s: Stop the scroll\n1-3s: Make them curious\n3-10s: Build anticipation",
-        "visual_formula": "Unexpected visual → Progressive reveal → Satisfying conclusion",
-        "psychology_formula": "Attention → Interest → Desire → Action",
-        "performance_prediction": "With these improvements, you could 10x your views. The difference between 300 and 3000 views is usually just the first 3 seconds.",
-        "knowledge_insights": "The patterns that work haven't changed - humans still want mystery, satisfaction, and social currency.",
+        
+        "engagement_psychology": "Engagement comes from curiosity gaps, relatable content, and clear value delivery",
+        "strengths": "Creating content and understanding your platform",
+        "improvement_areas": "Focus on hook optimization and faster value delivery",
+        
+        "timing_breakdown": "0-3s: Hook, 3-10s: Development, 10-20s: Core content, 20+: Resolution",
+        "basic_formula": "1. Strong hook\n2. Quick value\n3. Clear payoff",
+        "timing_formula": "0-1s: Stop scroll\n1-3s: Create curiosity\n3-10s: Deliver value",
+        "visual_formula": "Visual hook → Development → Payoff",
+        "psychology_formula": "Attention → Interest → Desire → Satisfaction",
+        
+        "performance_prediction": "Optimizing the first 3 seconds could significantly improve performance",
+        "knowledge_insights": "Based on patterns: stronger hooks and faster payoffs drive better performance",
+        
+        "viral_audio_analysis": {
+            "is_viral_sound": False,
+            "explanation": "Using original audio/speech"
+        },
+        
         "knowledge_context_used": False,
         "overall_quality": "moderate",
         "video_has_speech": has_speech,
-        "audio_type_detected": "visual_only" if not has_speech else "original_speech"
+        "audio_type_detected": content_type,
+        "actual_view_count": view_count,
+        "performance_level": performance_level
     }
 
 
@@ -648,16 +645,26 @@ def run_main_analysis_safe(transcript_text, frames_summaries_text, creator_note,
     except Exception as e:
         print(f"[ERROR] Main analysis failed: {e}")
         
-        # Determine basic video characteristics for fallback
+        # Extract basic info for fallback
         has_speech = transcript_text and len(transcript_text.strip()) > 20
-        is_high_performing = creator_note and any(
-            word in creator_note.lower() 
-            for word in ['million', 'viral', 'blew up']
-        )
         
-        return create_conversational_fallback(
+        # Try to extract view count from creator note
+        view_count = None
+        performance_level = 'unknown'
+        if creator_note:
+            view_patterns = re.findall(r'(\d+\.?\d*)\s*(k|thousand|m|million)', creator_note.lower())
+            if view_patterns:
+                number, unit = view_patterns[0]
+                if unit in ['k', 'thousand']:
+                    view_count = f"{number}k"
+                    performance_level = 'moderate' if float(number) >= 100 else 'low'
+                elif unit in ['m', 'million']:
+                    view_count = f"{number}M"
+                    performance_level = 'viral'
+        
+        return create_accurate_fallback(
             transcript_text, frames_summaries_text, creator_note,
-            platform, goal, audience, has_speech, is_high_performing
+            platform, goal, audience, has_speech, view_count, performance_level
         )
 
 
@@ -724,7 +731,7 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'video_type_analysis': gpt_result.get('video_type_analysis', ''),
         'exact_hook_breakdown': gpt_result.get('exact_hook_breakdown', {}),
         
-        # Compatibility fields for templates
+        # Compatibility fields
         'gpt_response': gpt_result.get('analysis', ''),
         'psychological_breakdown': gpt_result.get('analysis', ''),
         'hook_mechanics': gpt_result.get('timing_breakdown', ''),
@@ -737,6 +744,8 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'overall_quality': gpt_result.get('overall_quality', 'moderate'),
         'content_type_detected': gpt_result.get('content_type_detected', ''),
         'audio_type_detected': gpt_result.get('audio_type_detected', ''),
+        'actual_view_count': gpt_result.get('actual_view_count', ''),
+        'performance_level': gpt_result.get('performance_level', 'unknown'),
     }
     
     # Ensure hooks is always a list
@@ -813,6 +822,7 @@ def process():
             return "Error: TikTok URL is required", 400
 
         print(f"[INFO] Processing: {tiktok_url}")
+        print(f"[INFO] Creator note: {form_data['creator_note']}")
         print(f"[INFO] Strategy: {form_data['strategy']}, Goal: {form_data['goal']}")
 
         # Extract audio and frames
@@ -833,6 +843,7 @@ def process():
         try:
             transcript_data = enhanced_transcribe_audio(audio_path)
             print(f"[INFO] Transcript quality: {transcript_data['quality']}")
+            print(f"[INFO] Transcript preview: {transcript_data['transcript'][:100]}...")
         except Exception as e:
             print(f"[ERROR] Transcription error: {e}")
             transcript_data = {
@@ -846,29 +857,30 @@ def process():
         try:
             frames_summaries_text, gallery_data_urls = analyze_frames_batch(frame_paths)
             print(f"[SUCCESS] Frame analysis complete")
+            print(f"[INFO] Frame analysis preview: {frames_summaries_text[:200]}...")
         except Exception as e:
             print(f"[ERROR] Frame analysis error: {e}")
             frames_summaries_text = ""
             gallery_data_urls = []
 
-        # --- Get knowledge context using SMART RAG retrieval ---
+        # Get knowledge context using smart RAG retrieval
         try:
             print("[INFO] Loading knowledge using smart RAG retrieval...")
             
-            # Try smart context first (most relevant)
+            # Try smart context first
             knowledge_context, knowledge_citations = retrieve_smart_context(
                 transcript=transcript_data.get('transcript', ''),
-                frames=frames_summaries_text[:1000],  # First 1000 chars
+                frames=frames_summaries_text[:1000],
                 creator_note=form_data['creator_note'],
                 goal=form_data['goal'],
-                max_chars=75000  # Get 75K of RELEVANT content!
+                max_chars=75000  # Get 75K of relevant content
             )
             
             if knowledge_context and len(knowledge_context) > 1000:
-                print(f"[SUCCESS] Smart RAG retrieved {len(knowledge_context)} chars of relevant knowledge")
-                print(f"[SUCCESS] Citations: {len(knowledge_citations)} relevant chunks found")
+                print(f"[SUCCESS] Smart RAG retrieved {len(knowledge_context)} chars")
+                print(f"[SUCCESS] Citations: {len(knowledge_citations)} relevant chunks")
             else:
-                # Fallback to retrieve all if smart retrieval fails
+                # Fallback to retrieve all
                 print("[INFO] Smart retrieval insufficient, loading all context...")
                 knowledge_context, knowledge_citations = retrieve_all_context(max_chars=100000)
                 print(f"[SUCCESS] Loaded {len(knowledge_context)} chars from knowledge base")
@@ -878,27 +890,15 @@ def process():
             import traceback
             traceback.print_exc()
             
-            # Final fallback
+            # Minimal fallback
             knowledge_context = """
-PROVEN VIRAL CONTENT PATTERNS:
-
-For unboxing videos getting only 300 views:
-- Your hook is too generic (showing package = instant scroll)
-- No mystery or controversy in first 3 seconds
-- Missing ASMR audio elements (knife cutting tape sound)
-- Reveal happens too early or too late (optimal: 8-12 seconds)
-
-HOOKS THAT ACTUALLY WORK:
-- "I can't believe they sent this..." (5.1M views)
-- "The package that got me banned" (3.2M views)
-- "Opening what I shouldn't have bought" (2.8M views)
-
-ENGAGEMENT MECHANICS:
-- Comments: Create controversy about value/authenticity
-- Shares: Make it about a deal others can get
-- Saves: Include discount code or limited availability
+Key patterns for video analysis:
+- Strong hooks create curiosity in first 3 seconds
+- Front-load value and payoff
+- Use pattern interrupts to stop scrolls
+- Match content to platform expectations
 """
-            knowledge_citations = ["Fallback patterns"]
+            knowledge_citations = ["Basic patterns fallback"]
 
         # Run main analysis
         try:
@@ -931,9 +931,21 @@ ENGAGEMENT MECHANICS:
             
             # Use fallback
             has_speech = transcript_data.get('is_reliable', False)
-            is_high_performing = form_data['creator_note'] and 'million' in form_data['creator_note'].lower()
+            view_count = None
+            performance_level = 'unknown'
             
-            gpt_result = create_conversational_fallback(
+            # Try to extract view count for fallback
+            if form_data['creator_note']:
+                view_patterns = re.findall(r'(\d+\.?\d*)\s*(k|thousand|m|million)', 
+                                         form_data['creator_note'].lower())
+                if view_patterns:
+                    number, unit = view_patterns[0]
+                    if unit in ['k', 'thousand']:
+                        view_count = f"{number}k"
+                    elif unit in ['m', 'million']:
+                        view_count = f"{number}M"
+            
+            gpt_result = create_accurate_fallback(
                 transcript_data.get('transcript', ''),
                 frames_summaries_text,
                 form_data['creator_note'],
@@ -941,7 +953,8 @@ ENGAGEMENT MECHANICS:
                 form_data['goal'],
                 form_data['audience'],
                 has_speech,
-                is_high_performing
+                view_count,
+                performance_level
             )
 
         # Prepare template variables
