@@ -139,9 +139,9 @@ def parse_knowledge_folder(knowledge_path="knowledge"):
         total_content = "\n".join(knowledge_content)
         print(f"[SUCCESS] Loaded {len(knowledge_content)} documents, {len(total_content)} total characters")
         
-        if len(total_content) > 15000:
-            print(f"[INFO] Truncating knowledge content from {len(total_content)} to 15000 chars")
-            total_content = total_content[:15000] + "\n\n[Content truncated...]"
+        if len(total_content) > 68000:
+            print(f"[INFO] Truncating knowledge content from {len(total_content)} to 70000 chars")
+            total_content = total_content[:70000] + "\n\n[Content truncated...]"
         
         return total_content
         
@@ -171,7 +171,7 @@ def get_knowledge_context_robust():
         print("[INFO] Trying RAG retrieval...")
         all_context = retrieve_all_context()
         if all_context and len(str(all_context)) > 500:
-            knowledge_content = str(all_context)[:15000]
+            knowledge_content = str(all_context)[:70000]
             knowledge_citations = ["Retrieved from full knowledge base"]
             print(f"[SUCCESS] RAG retrieval: {len(knowledge_content)} chars")
             return knowledge_content, knowledge_citations
