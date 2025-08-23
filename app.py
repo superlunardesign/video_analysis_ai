@@ -504,7 +504,7 @@ ANALYSIS REQUIREMENTS:
    - Psychology formula
    - Basic step-by-step process
 
-Provide SPECIFIC, NUANCED analysis. Reference exact moments, quote text, describe visuals precisely.
+Provide SPECIFIC, NUANCED analysis thats very explanatory even to someone who doesn't understand short form content or retention. Reference exact moments, quote text, describe visuals precisely and conversationally in a way that explains. Don't be afraid to be verbose. Be sure to line up any transcript with frames to better understand how speech and visuals are working together.
 
 Respond in JSON format:
 {{
