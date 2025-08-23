@@ -451,8 +451,14 @@ This video has VERBAL CONTENT. Analyze:
 - Speech delivery effectiveness and clarity
 """
 
+    # Build the performance message separately to avoid f-string issues
+    if performance_level == 'viral':
+        performance_message = f"This video went VIRAL with {view_count} - analyze WHY it succeeded."
+    else:
+        performance_message = f"This video got {view_count if view_count else 'certain performance'} - analyze what's working and what could improve."
+    
     prompt = f"""
-You are a video psychology expert analyzing a {platform} video. {"This video went VIRAL with " + view_count + " - analyze WHY it succeeded." if performance_level == 'viral' else f"This video got {view_count if view_count else 'certain performance'} - analyze what's working and what could improve."}
+You are a video psychology expert analyzing a {platform} video. {performance_message}
 
 CRITICAL CONTEXT:
 - Platform: {platform}
@@ -480,7 +486,7 @@ VISUAL ANALYSIS:
 {knowledge_section}
 
 COMPREHENSIVE ANALYSIS INSTRUCTIONS:
-{"Since this went VIRAL, identify the EXACT psychological triggers and viral mechanics." if performance_level == 'viral' else "Identify opportunities for improvement based on proven patterns."}
+{f"Since this went VIRAL, identify the EXACT psychological triggers and viral mechanics." if performance_level == 'viral' else "Identify opportunities for improvement based on proven patterns."}
 
 1. FIRST 3 SECONDS BREAKDOWN:
    - Frame by frame: What EXACTLY appears?
@@ -490,7 +496,7 @@ COMPREHENSIVE ANALYSIS INSTRUCTIONS:
    - Rate the hook strength and explain WHY
 
 2. PERFORMANCE MECHANICS:
-   {"- What specific elements made this shareable?\n   - What psychological triggers drove the viral spread?\n   - How did it tap into platform algorithms?\n   - What made people watch to completion?" if performance_level == 'viral' else "- What's preventing viral growth?\n   - Which psychological triggers are missing?\n   - How could platform algorithms be better leveraged?\n   - Where do viewers likely drop off?"}
+   {f"- What specific elements made this shareable?{chr(10)}   - What psychological triggers drove the viral spread?{chr(10)}   - How did it tap into platform algorithms?{chr(10)}   - What made people watch to completion?" if performance_level == 'viral' else f"- What's preventing viral growth?{chr(10)}   - Which psychological triggers are missing?{chr(10)}   - How could platform algorithms be better leveraged?{chr(10)}   - Where do viewers likely drop off?"}
 
 3. CONTENT STRUCTURE ANALYSIS:
    - Hook mechanism (0-3s): How does it stop scrolling?
@@ -511,9 +517,9 @@ COMPREHENSIVE ANALYSIS INSTRUCTIONS:
 Respond in JSON with DEEP, SPECIFIC insights:
 
 {{
-  "analysis": "{'This video achieved viral status because...' if performance_level == 'viral' else 'This video shows potential but...'} [2-3 paragraphs of DEEP psychological and structural analysis. Explain the WHY behind everything. Reference specific moments. Note that audio is {audio_type_info.get('audio_description', 'ambient')} not random animal sounds.]",
+  "analysis": "{f'This video achieved viral status because...' if performance_level == 'viral' else 'This video shows potential but...'} [2-3 paragraphs of DEEP psychological and structural analysis. Explain the WHY behind everything. Reference specific moments. Note that audio is {audio_type_info.get('audio_description', 'ambient')} not random animal sounds.]",
   
-  "viral_mechanics": "{'Here are the specific viral triggers: ' if performance_level == 'viral' else 'To achieve viral potential: '}[Detailed explanation of psychological mechanisms, sharing triggers, algorithm optimization]",
+  "viral_mechanics": "{f'Here are the specific viral triggers: ' if performance_level == 'viral' else 'To achieve viral potential: '}[Detailed explanation of psychological mechanisms, sharing triggers, algorithm optimization]",
   
   "exact_hook_breakdown": {{
     "first_frame": "0:00 - [EXACTLY what appears in frame 1]",
@@ -527,7 +533,7 @@ Respond in JSON with DEEP, SPECIFIC insights:
     "hook_reasoning": "[Specific reasoning for the score based on proven patterns]"
   }},
   
-  "performance_deep_dive": "{'With ' + view_count + ', this demonstrates...' if view_count else 'The performance indicates...'}[3-4 sentences explaining the specific reasons for this performance level, referencing actual content elements and psychological principles]",
+  "performance_deep_dive": "{f'With {view_count}, this demonstrates...' if view_count else 'The performance indicates...'}[3-4 sentences explaining the specific reasons for this performance level, referencing actual content elements and psychological principles]",
   
   "content_type_analysis": {{
     "detected_type": "{visual_content_analysis.get('content_type', 'general')}",
@@ -552,7 +558,7 @@ Respond in JSON with DEEP, SPECIFIC insights:
   }},
   
   "hooks": [
-    "{'Even better hook: ' if performance_level == 'viral' else 'Improved hook 1: '}[Specific, natural language hook with explanation]",
+    "{f'Even better hook: ' if performance_level == 'viral' else 'Improved hook 1: '}[Specific, natural language hook with explanation]",
     "Alternative angle: [Different psychological approach with reasoning]",
     "Pattern-based hook: [Hook using proven pattern from knowledge base]",
     "Visual-first hook: [Hook that leverages visual element]",
@@ -585,9 +591,9 @@ Respond in JSON with DEEP, SPECIFIC insights:
     "platform_formula": "[{platform}-specific optimization formula]"
   }},
   
-  "improvement_opportunities": "{'Even this viral video could improve by: ' if performance_level == 'viral' else 'Key improvements: '}[Specific, actionable improvements with psychological reasoning]",
+  "improvement_opportunities": "{f'Even this viral video could improve by: ' if performance_level == 'viral' else 'Key improvements: '}[Specific, actionable improvements with psychological reasoning]",
   
-  "performance_prediction": "{'This video succeeded because: ' if performance_level == 'viral' else 'With improvements, this could achieve: '}[Specific prediction with reasoning]",
+  "performance_prediction": "{f'This video succeeded because: ' if performance_level == 'viral' else 'With improvements, this could achieve: '}[Specific prediction with reasoning]",
   
   "knowledge_patterns_applied": [
     "[Pattern 1 from knowledge base]: [How it applies to this video]",
