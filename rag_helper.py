@@ -31,6 +31,10 @@ def get_baseline_knowledge(mat, meta, max_chars: int = 30000) -> Tuple[str, List
     ALWAYS retrieve fundamental video psychology knowledge
     These patterns apply to ALL videos regardless of type
     """
+    # Check if we have valid data
+    if mat is None or meta is None:
+        return "", []
+    
     # Core concepts that EVERY video needs
     baseline_queries = [
         "hook first 3 seconds opening attention scroll stopping",
@@ -110,6 +114,9 @@ def get_specific_knowledge(
     Retrieve knowledge specific to this video's context
     More targeted than baseline, but still comprehensive
     """
+    # Check if we have valid data
+    if mat is None or meta is None:
+        return "", []
     
     specific_queries = []
     
@@ -244,7 +251,9 @@ def retrieve_smart_context(
     
     mat, meta = _load_matrix_and_meta()
     if mat is None:
-        return "", []
+        # Fallback to retrieve_all_context if embeddings don't exist
+        print("[WARNING] No embeddings found, trying fallback to all context")
+        return retrieve_all_context(max_chars)
     
     # Step 1: Get baseline knowledge (30K chars)
     baseline_text, baseline_cits = get_baseline_knowledge(
@@ -281,44 +290,99 @@ def retrieve_all_context(max_chars: int = 100000) -> Tuple[str, List[dict]]:
     Returns ALL knowledge organized by importance
     First baseline, then everything else
     """
+    # First try with embeddings for better organization
     mat, meta = _load_matrix_and_meta()
-    if mat is None:
+    
+    if mat is not None and meta is not None:
+        # Get baseline first using embeddings
+        baseline_text, baseline_cits = get_baseline_knowledge(
+            mat, meta, max_chars=40000
+        )
+        
+        # Then get remaining content
+        with open(META_PATH, "rb") as f:
+            meta_full = pickle.load(f)
+        
+        from collections import defaultdict
+        by_file = defaultdict(list)
+        
+        # Collect all chunks not in baseline
+        baseline_chunk_ids = {c["chunk_id"] for c in baseline_cits}
+        
+        for idx, m in meta_full.items():
+            if m["chunk_id"] not in baseline_chunk_ids:
+                by_file[m["file"]].append((m["chunk_id"], m["text"]))
+        
+        for k in by_file:
+            by_file[k].sort(key=lambda x: x[0])
+        
+        additional_parts = []
+        additional_citations = []
+        total = len(baseline_text)
+        
+        for file_name, chunks in sorted(by_file.items()):
+            if total >= max_chars:
+                break
+                
+            header = f"\n\n=== {file_name} ===\n"
+            if total + len(header) > max_chars:
+                break
+            additional_parts.append(header)
+            total += len(header)
+            
+            for chunk_id, text in chunks:
+                segment = (text or "").strip() + "\n\n"
+                if not segment.strip():
+                    continue
+                if total + len(segment) > max_chars:
+                    break
+                additional_parts.append(segment)
+                total += len(segment)
+            
+            additional_citations.append({
+                "file": file_name,
+                "type": "additional"
+            })
+        
+        combined = f"""
+=== FUNDAMENTAL PRINCIPLES ===
+{baseline_text}
+
+=== ADDITIONAL KNOWLEDGE ===
+{"".join(additional_parts)}
+""".strip()
+        
+        all_citations = baseline_cits + additional_citations
+        
+        print(f"[RAG ALL] Retrieved {len(combined)} chars total")
+        return combined, all_citations
+    
+    # Fallback: Just load metadata and return all text if no embeddings
+    if not os.path.exists(META_PATH):
+        print("[WARNING] No metadata found. Run ingest_knowledge.py first.")
         return "", []
     
-    # Get baseline first
-    baseline_text, baseline_cits = get_baseline_knowledge(
-        mat, meta, max_chars=40000
-    )
-    
-    # Then get remaining content
     with open(META_PATH, "rb") as f:
         meta_full = pickle.load(f)
     
     from collections import defaultdict
     by_file = defaultdict(list)
-    
-    # Collect all chunks not in baseline
-    baseline_chunk_ids = {c["chunk_id"] for c in baseline_cits}
-    
     for idx, m in meta_full.items():
-        if m["chunk_id"] not in baseline_chunk_ids:
-            by_file[m["file"]].append((m["chunk_id"], m["text"]))
+        by_file[m["file"]].append((m["chunk_id"], m["text"]))
     
     for k in by_file:
         by_file[k].sort(key=lambda x: x[0])
     
-    additional_parts = []
-    additional_citations = []
-    total = len(baseline_text)
+    ctx_parts = []
+    citations = []
+    total = 0
+    rank = 1
     
     for file_name, chunks in sorted(by_file.items()):
-        if total >= max_chars:
-            break
-            
         header = f"\n\n=== {file_name} ===\n"
         if total + len(header) > max_chars:
             break
-        additional_parts.append(header)
+        ctx_parts.append(header)
         total += len(header)
         
         for chunk_id, text in chunks:
@@ -327,26 +391,21 @@ def retrieve_all_context(max_chars: int = 100000) -> Tuple[str, List[dict]]:
                 continue
             if total + len(segment) > max_chars:
                 break
-            additional_parts.append(segment)
+            ctx_parts.append(segment)
             total += len(segment)
         
-        additional_citations.append({
+        citations.append({
+            "rank": rank,
             "file": file_name,
-            "type": "additional"
+            "chunk_id": "all",
+            "preview": f"{file_name} (multiple chunks)"
         })
+        rank += 1
+        if total >= max_chars:
+            break
     
-    combined = f"""
-=== FUNDAMENTAL PRINCIPLES ===
-{baseline_text}
-
-=== ADDITIONAL KNOWLEDGE ===
-{"".join(additional_parts)}
-""".strip()
-    
-    all_citations = baseline_cits + additional_citations
-    
-    print(f"[RAG ALL] Retrieved {len(combined)} chars total")
-    return combined, all_citations
+    print(f"[RAG ALL - Fallback] Retrieved {total} chars from {rank-1} files")
+    return "".join(ctx_parts).strip(), citations
 
 def retrieve_context(query: str, top_k: int = 30, max_chars: int = 75000) -> Tuple[str, List[dict]]:
     """
