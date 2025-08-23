@@ -60,4 +60,45 @@ def main():
         glob.glob("knowledge/*.pdf")
         + glob.glob("knowledge/*.docx")
         + glob.glob("knowledge/*.txt")
-        + glob.glob("knowledge
+        + glob.glob("knowledge/*.md")  # Fixed: added the missing closing quote and file extension
+    )
+    
+    if not files:
+        print("No files found in knowledge/ directory")
+        return
+    
+    all_chunks = []
+    all_meta = []
+    
+    for fpath in files:
+        print(f"Processing: {fpath}")
+        try:
+            content = load_file(fpath)
+            content = clean_text(content)
+            chunks = chunk_text(content)
+            
+            for i, chunk in enumerate(chunks):
+                all_chunks.append(chunk)
+                all_meta.append({
+                    "file": fpath,
+                    "chunk_id": i,
+                    "text": chunk
+                })
+        except Exception as e:
+            print(f"Error processing {fpath}: {e}")
+    
+    if all_chunks:
+        print(f"Embedding {len(all_chunks)} chunks...")
+        embeddings = embed_batch(all_chunks)
+        embeddings_array = np.array(embeddings)
+        
+        np.save(EMB_PATH, embeddings_array)
+        with open(META_PATH, 'wb') as f:
+            pickle.dump(all_meta, f)
+        
+        print(f"Saved {len(all_chunks)} chunks to {EMB_PATH} and {META_PATH}")
+    else:
+        print("No chunks to process")
+
+if __name__ == "__main__":
+    main()
