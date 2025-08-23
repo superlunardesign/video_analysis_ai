@@ -139,9 +139,9 @@ def parse_knowledge_folder(knowledge_path="knowledge"):
         total_content = "\n".join(knowledge_content)
         print(f"[SUCCESS] Loaded {len(knowledge_content)} documents, {len(total_content)} total characters")
         
-        if len(total_content) > 68000:
-            print(f"[INFO] Truncating knowledge content from {len(total_content)} to 70000 chars")
-            total_content = total_content[:70000] + "\n\n[Content truncated...]"
+        if len(total_content) > 680000:
+            print(f"[INFO] Truncating knowledge content from {len(total_content)} to 700000 chars")
+            total_content = total_content[:700000] + "\n\n[Content truncated...]"
         
         return total_content
         
@@ -171,7 +171,7 @@ def get_knowledge_context_robust():
         print("[INFO] Trying RAG retrieval...")
         all_context = retrieve_all_context()
         if all_context and len(str(all_context)) > 500:
-            knowledge_content = str(all_context)[:70000]
+            knowledge_content = str(all_context)[:700000]
             knowledge_citations = ["Retrieved from full knowledge base"]
             print(f"[SUCCESS] RAG retrieval: {len(knowledge_content)} chars")
             return knowledge_content, knowledge_citations
@@ -473,10 +473,10 @@ GOAL: {goal}
 
 ANALYSIS REQUIREMENTS:
 1. EXACT HOOK BREAKDOWN (0-3 seconds)
-   - Describe EXACTLY what happens each second
-   - Identify visual, text, and audio hooks
-   - Distinguish between captions and hook text
-   - Explain why it works or doesn't
+   - Describe & explain EXACTLY what happens each second
+   - Identify visual, text, and audio hooks and explain why they work or don't work for the goal
+   - Distinguish between captions and hook text 
+   - Explain in a descriptive and educational way why it works or doesn't
 
 2. PERFORMANCE ANALYSIS
    {performance_context}
