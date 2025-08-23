@@ -6,7 +6,12 @@ import numpy as np
 from pypdf import PdfReader
 from docx import Document as DocxDocument
 from openai import OpenAI
-from config import OPENAI_API_KEY
+
+import os
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# Make sure client initialization uses it:
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 INDEX_DIR  = "knowledge"
 EMB_PATH   = f"{INDEX_DIR}/embeddings.npy"
