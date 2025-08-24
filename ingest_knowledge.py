@@ -7,7 +7,7 @@ from pypdf import PdfReader
 from docx import Document as DocxDocument
 from openai import OpenAI
 
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     print("[ERROR] OPENAI_API_KEY environment variable not set!")
     exit(1)
