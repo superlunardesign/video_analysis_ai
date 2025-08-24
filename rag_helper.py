@@ -3,6 +3,7 @@ import os, pickle
 from typing import List, Tuple, Dict
 import numpy as np
 from openai import OpenAI
+from collections import defaultdict
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
@@ -30,220 +31,7 @@ def _embed_query(q: str) -> np.ndarray:
     v = v / (np.linalg.norm(v) + 1e-12)
     return v
 
-def get_baseline_knowledge(mat, meta, max_chars: int = 30000) -> Tuple[str, List[dict]]:
-    """
-    ALWAYS retrieve fundamental video psychology knowledge
-    These patterns apply to ALL videos regardless of type
-    """
-    # Check if we have valid data
-    if mat is None or meta is None:
-        return "", []
-    
-    # Core concepts that EVERY video needs
-    baseline_queries = [
-        "hook first 3 seconds opening attention scroll stopping",
-        "retention watch time completion rate drop off points",
-        "engagement psychology curiosity gaps pattern interrupts",
-        "viral mechanics shareable moments social triggers", 
-        "visual storytelling frame composition text overlays",
-        "promise payoff satisfaction completion desire",
-        "psychological triggers emotional response viewer state",
-        "platform algorithm optimization signals metrics",
-        "content structure timing pacing rhythm flow",
-        "audience psychology attention spans viewing behavior"
-    ]
-    
-    baseline_chunks = []
-    baseline_citations = []
-    seen_chunks = set()  # Avoid duplicates
-    total_chars = 0
-    
-    for query in baseline_queries:
-        if total_chars >= max_chars:
-            break
-            
-        v = _embed_query(query)
-        sims = mat @ v
-        top_idxs = np.argsort(-sims)[:5]  # Top 5 for each concept
-        
-        for idx in top_idxs:
-            if total_chars >= max_chars:
-                break
-                
-            # Skip if we've seen this chunk
-            chunk_key = int(idx)
-            if chunk_key in seen_chunks:
-                continue
-                
-            m = meta.get(chunk_key)
-            if not m:
-                continue
-                
-            snippet = (m["text"] or "").strip()
-            if not snippet:
-                continue
-                
-            # Only include highly relevant baseline knowledge
-            if sims[idx] < 0.3:
-                continue
-                
-            piece = f"{snippet}\n\n"
-            if total_chars + len(piece) > max_chars:
-                break
-                
-            baseline_chunks.append(piece)
-            seen_chunks.add(chunk_key)
-            total_chars += len(piece)
-            
-            baseline_citations.append({
-                "type": "baseline",
-                "concept": query.split()[0],  # First word as concept label
-                "file": m["file"],
-                "chunk_id": m["chunk_id"],
-                "similarity": float(sims[idx])
-            })
-    
-    print(f"[BASELINE RAG] Retrieved {len(baseline_chunks)} fundamental chunks ({total_chars} chars)")
-    return "".join(baseline_chunks).strip(), baseline_citations
-
-def get_specific_knowledge(
-    mat, meta, 
-    transcript: str, 
-    frames: str, 
-    creator_note: str,
-    goal: str,
-    max_chars: int = 45000
-) -> Tuple[str, List[dict]]:
-    """
-    Retrieve knowledge specific to this video's context
-    More targeted than baseline, but still comprehensive
-    """
-    # Check if we have valid data
-    if mat is None or meta is None:
-        return "", []
-    
-    specific_queries = []
-    
-    # Performance-based queries (CRITICAL)
-    if creator_note:
-        note_lower = creator_note.lower()
-        
-        # Extract view count for targeted search
-        import re
-        view_patterns = re.findall(r'(\d+\.?\d*)\s*(k|m|million|thousand)', note_lower)
-        
-        if view_patterns:
-            number, unit = view_patterns[0]
-            num = float(number)
-            
-            if unit in ['m', 'million'] or (unit in ['k', 'thousand'] and num >= 500):
-                # High performing - learn what worked
-                specific_queries.extend([
-                    "viral success patterns million views breakthrough",
-                    "what makes videos explode viral triggers mechanics",
-                    "high performing content successful examples"
-                ])
-            elif unit in ['k', 'thousand'] and num < 100:
-                # Low performing - learn fixes
-                specific_queries.extend([
-                    "low performing videos common mistakes fixes",
-                    "weak hooks poor retention problems solutions",
-                    "underperforming content improvements optimization"
-                ])
-    
-    # Content type queries (but not too specific)
-    combined = f"{transcript} {frames}".lower()
-    
-    # Broader content categories
-    if any(word in combined for word in ["product", "unbox", "package", "review"]):
-        specific_queries.append("product reveals unboxing reviews demonstrations")
-    
-    if any(word in combined for word in ["routine", "morning", "night", "daily", "skincare", "beauty"]):
-        specific_queries.append("routines processes daily habits lifestyle content")
-    
-    if any(word in combined for word in ["cook", "recipe", "food", "kitchen", "bake"]):
-        specific_queries.append("cooking food tutorials process videos recipes")
-    
-    if any(word in combined for word in ["diy", "craft", "make", "build", "create"]):
-        specific_queries.append("DIY crafts making building creative process")
-    
-    # Visual-only detection
-    if not transcript or len(transcript.strip()) < 20:
-        specific_queries.append("visual only content no speech satisfying ASMR ambient")
-    
-    # Goal-based queries
-    goal_queries = {
-        "viral_reach": "viral growth explosive reach millions shareable",
-        "follower_growth": "building audience followers community loyalty retention",
-        "sales": "selling conversion buyers psychology purchasing decisions",
-        "engagement": "comments interaction discussion community response"
-    }
-    if goal in goal_queries:
-        specific_queries.append(goal_queries[goal])
-    
-    # Process type queries (from frames analysis)
-    if "drawing" in combined or "art" in combined:
-        specific_queries.append("art process creative visual satisfaction completion")
-    
-    if "transform" in combined or "before" in combined or "after" in combined:
-        specific_queries.append("transformation before after reveal dramatic change")
-    
-    # Now retrieve specific knowledge
-    specific_chunks = []
-    specific_citations = []
-    seen_chunks = set()
-    total_chars = 0
-    
-    for query in specific_queries:
-        if total_chars >= max_chars:
-            break
-            
-        v = _embed_query(query)
-        sims = mat @ v
-        top_idxs = np.argsort(-sims)[:8]  # Top 8 for each specific query
-        
-        for idx in top_idxs:
-            if total_chars >= max_chars:
-                break
-                
-            chunk_key = int(idx)
-            if chunk_key in seen_chunks:
-                continue
-                
-            m = meta.get(chunk_key)
-            if not m:
-                continue
-                
-            snippet = (m["text"] or "").strip()
-            if not snippet:
-                continue
-                
-            # Slightly lower threshold for specific content
-            if sims[idx] < 0.65:
-                continue
-                
-            piece = f"{snippet}\n\n"
-            if total_chars + len(piece) > max_chars:
-                break
-                
-            specific_chunks.append(piece)
-            seen_chunks.add(chunk_key)
-            total_chars += len(piece)
-            
-            specific_citations.append({
-                "type": "specific",
-                "query": query[:30],
-                "file": m["file"],
-                "chunk_id": m["chunk_id"],
-                "similarity": float(sims[idx])
-            })
-    
-    print(f"[SPECIFIC RAG] Retrieved {len(specific_chunks)} context chunks ({total_chars} chars)")
-    return "".join(specific_chunks).strip(), specific_citations
-
-# In rag_helper.py, find the retrieve_smart_context function and replace it with this:
-
-def get_baseline_knowledge(meta, max_chars: int = 30000):
+def get_baseline_knowledge(meta, max_chars: int = 30000) -> Tuple[str, List[dict]]:
     """
     ALWAYS include viral/retention essentials for ALL videos
     These are the foundation of ANY successful video
@@ -286,57 +74,188 @@ def get_baseline_knowledge(meta, max_chars: int = 30000):
             total_chars += len(text)
     
     print(f"[BASELINE] Loaded {len(baseline_chunks)} essential chunks ({total_chars} chars)")
+    essential_files = list(set(c["file"] for c in baseline_citations))
+    print(f"[BASELINE] Files: {', '.join(essential_files)}")
+    
     return "\n\n".join(baseline_chunks), baseline_citations
 
-def get_specific_knowledge(meta, mat, transcript, frames, creator_note, goal, max_chars: int = 45000):
+def get_specific_knowledge(meta, mat, transcript, frames, creator_note, goal, max_chars: int = 45000) -> Tuple[str, List[dict]]:
     """
     Add goal-specific and context-aware knowledge ON TOP of essentials
     """
-    # [Copy the entire get_specific_knowledge function from above]
-    # ... (the full function code)
-
-def retrieve_smart_context(transcript: str, frames: str, creator_note: str, goal: str, max_chars: int = 75000) -> Tuple[str, List[
-) -> Tuple[str, List[dict]]:
-    """
-    IMPROVED: Baseline + Specific knowledge retrieval
-    Always includes fundamental principles + context-specific insights
-    """
+    specific_chunks = []
+    specific_citations = []
+    total_chars = 0
     
+    # GOAL-BASED DOCUMENT SELECTION
+    goal_document_map = {
+        "sales": [
+            "buyer_psychology_tiktoks.txt",
+            "sales-psychology.txt",
+            "sales_backed_content.txt",
+            "messaging_to_sell_your_offer.txt",
+            "overcoming_objections.txt",
+            "types_of_buyers_and_how_to_sell.txt",
+            "what_makes_them_buy.txt",
+            "specificity_sells.txt",
+            "example_scripts_for_growth_and_sales.txt"
+        ],
+        "lead_generation": [
+            "how_to_warm_up_your_audience.txt",
+            "buyer_psychology_tiktoks.txt",
+            "messaging_to_sell_your_offer.txt",
+            "example_scripts_for_growth_and_sales.txt"
+        ],
+        "follower_growth": [
+            "Audience_Strategies.txt",
+            "jazmedia_framework.txt",
+            "example_scripts_for_growth_and_sales.txt"
+        ],
+        "viral_reach": [
+            "jazmedia_framework.txt",
+            "Audience_Strategies.txt"
+        ],
+        "engagement": [
+            "Audience_Strategies.txt",
+            "how_to_warm_up_your_audience.txt"
+        ]
+    }
+    
+    # Load goal-specific documents
+    if goal in goal_document_map:
+        print(f"[SPECIFIC] Loading {goal} knowledge")
+        target_docs = goal_document_map[goal]
+        
+        for target_file in target_docs:
+            if total_chars >= max_chars * 0.7:  # Use 70% for goal docs
+                break
+                
+            # Get all chunks from this file
+            file_chunks = []
+            for idx, m in meta.items():
+                if m["file"] == target_file:
+                    file_chunks.append((m["chunk_id"], m["text"]))
+            
+            # Sort and add
+            file_chunks.sort(key=lambda x: x[0])
+            for chunk_id, text in file_chunks:
+                if total_chars + len(text) > max_chars * 0.7:
+                    break
+                specific_chunks.append(f"[{goal.replace('_', ' ').title()}: {target_file}]\n{text}")
+                specific_citations.append({
+                    "file": target_file,
+                    "type": f"{goal}_specific",
+                    "chunk_id": chunk_id
+                })
+                total_chars += len(text)
+    
+    # Use remaining space for contextual semantic search if mat is available
+    if mat is not None and total_chars < max_chars:
+        remaining_chars = max_chars - total_chars
+        combined_context = f"{transcript} {frames} {creator_note}".lower()
+        
+        # Build intelligent context queries
+        context_queries = []
+        
+        # Add queries based on detected content type
+        if "unbox" in combined_context or "package" in combined_context:
+            context_queries.append("unboxing reveal surprise product review")
+        
+        if "tutorial" in combined_context or "how to" in combined_context:
+            context_queries.append("educational tutorial teaching guide")
+        
+        if goal in ["sales", "lead_generation"]:
+            context_queries.append("conversion selling services client acquisition")
+        
+        # Semantic search for additional relevant content
+        for query in context_queries:
+            if remaining_chars <= 0:
+                break
+                
+            v = _embed_query(query)
+            sims = mat @ v
+            top_idxs = np.argsort(-sims)[:3]  # Top 3 per query
+            
+            for idx in top_idxs:
+                if remaining_chars <= 0:
+                    break
+                    
+                if sims[idx] < 0.4:
+                    continue
+                    
+                m = meta.get(int(idx))
+                if m:
+                    # Check if we already have this chunk
+                    already_added = any(
+                        c["file"] == m["file"] and c["chunk_id"] == m["chunk_id"] 
+                        for c in specific_citations
+                    )
+                    
+                    if not already_added:
+                        chunk_text = f"[Contextual: {m['file']}]\n{m['text']}"
+                        if len(chunk_text) <= remaining_chars:
+                            specific_chunks.append(chunk_text)
+                            specific_citations.append({
+                                "file": m["file"],
+                                "type": "contextual",
+                                "chunk_id": m["chunk_id"],
+                                "similarity": float(sims[idx])
+                            })
+                            remaining_chars -= len(chunk_text)
+    
+    print(f"[SPECIFIC] Loaded {len(specific_chunks)} goal/context chunks ({total_chars} chars)")
+    return "\n\n".join(specific_chunks), specific_citations
+
+def retrieve_smart_context(transcript: str, frames: str, creator_note: str, goal: str, max_chars: int = 75000) -> Tuple[str, List[dict]]:
+    """
+    ALWAYS: Hooks + Virality + Retention (30K)
+    PLUS: Goal-specific knowledge (45K)
+    """
     mat, meta = _load_matrix_and_meta()
-    if mat is None:
-        # Fallback to retrieve_all_context if embeddings don't exist
+    if mat is None or meta is None:
         print("[WARNING] No embeddings found, trying fallback to all context")
         return retrieve_all_context(max_chars)
     
-    # Step 1: Get baseline knowledge (30K chars)
-    baseline_text, baseline_cits = get_baseline_knowledge(
-        mat, meta, max_chars=30000
-    )
+    # Step 1: ALWAYS get hooks, virality, retention (30K chars)
+    baseline_text, baseline_cits = get_baseline_knowledge(meta, 30000)
     
-    # Step 2: Get specific knowledge (45K chars)
+    # Step 2: Add goal-specific knowledge (45K chars)
     specific_text, specific_cits = get_specific_knowledge(
-        mat, meta, transcript, frames, creator_note, goal, max_chars=45000
+        meta, mat, transcript, frames, creator_note, goal, 45000
     )
     
-    # Combine with clear sections
-    combined_knowledge = f"""
-=== FUNDAMENTAL VIDEO PRINCIPLES (Apply to ALL content) ===
+    # Determine section label based on goal
+    specific_label = {
+        "sales": "SALES & CONVERSION STRATEGIES",
+        "lead_generation": "LEAD GENERATION & WARMING",
+        "follower_growth": "AUDIENCE GROWTH TACTICS",
+        "viral_reach": "VIRAL AMPLIFICATION STRATEGIES",
+        "engagement": "ENGAGEMENT OPTIMIZATION"
+    }.get(goal, "TARGETED STRATEGIES")
+    
+    combined = f"""
+=== ESSENTIAL VIDEO FOUNDATIONS (ALWAYS APPLY) ===
+Every video needs strong hooks, retention mechanics, and viral principles:
+
 {baseline_text}
 
-=== SPECIFIC PATTERNS FOR THIS CONTENT ===
+=== {specific_label} ===
+Specific strategies for your {goal.replace('_', ' ')} goal:
+
 {specific_text}
 """.strip()
     
-    # Combine citations
     all_citations = baseline_cits + specific_cits
     
-    # Trim if over max_chars
-    if len(combined_knowledge) > max_chars:
-        combined_knowledge = combined_knowledge[:max_chars]
+    # Summary output
+    essential_files = set(c["file"] for c in baseline_cits if c["type"] == "universal_essential")
+    specific_files = set(c["file"] for c in specific_cits)
     
-    print(f"[SMART RAG TOTAL] {len(combined_knowledge)} chars ({len(baseline_cits)} baseline + {len(specific_cits)} specific chunks)")
+    print(f"[SMART RAG] Essential docs: {len(essential_files)} files")
+    print(f"[SMART RAG] Goal-specific docs: {len(specific_files)} files for '{goal}'")
+    print(f"[SMART RAG TOTAL] {len(combined)} chars ({len(baseline_cits)} essential + {len(specific_cits)} specific chunks)")
     
-    return combined_knowledge, all_citations
+    return combined[:max_chars], all_citations
 
 def retrieve_all_context(max_chars: int = 100000) -> Tuple[str, List[dict]]:
     """
@@ -347,23 +266,17 @@ def retrieve_all_context(max_chars: int = 100000) -> Tuple[str, List[dict]]:
     mat, meta = _load_matrix_and_meta()
     
     if mat is not None and meta is not None:
-        # Get baseline first using embeddings
-        baseline_text, baseline_cits = get_baseline_knowledge(
-            mat, meta, max_chars=40000
-        )
+        # Get baseline first using file-based approach
+        baseline_text, baseline_cits = get_baseline_knowledge(meta, 40000)
         
         # Then get remaining content
-        with open(META_PATH, "rb") as f:
-            meta_full = pickle.load(f)
-        
-        from collections import defaultdict
         by_file = defaultdict(list)
         
         # Collect all chunks not in baseline
-        baseline_chunk_ids = {c["chunk_id"] for c in baseline_cits}
+        baseline_chunk_ids = {(c["file"], c["chunk_id"]) for c in baseline_cits}
         
-        for idx, m in meta_full.items():
-            if m["chunk_id"] not in baseline_chunk_ids:
+        for idx, m in meta.items():
+            if (m["file"], m["chunk_id"]) not in baseline_chunk_ids:
                 by_file[m["file"]].append((m["chunk_id"], m["text"]))
         
         for k in by_file:
@@ -418,7 +331,6 @@ def retrieve_all_context(max_chars: int = 100000) -> Tuple[str, List[dict]]:
     with open(META_PATH, "rb") as f:
         meta_full = pickle.load(f)
     
-    from collections import defaultdict
     by_file = defaultdict(list)
     for idx, m in meta_full.items():
         by_file[m["file"]].append((m["chunk_id"], m["text"]))
@@ -466,15 +378,13 @@ def retrieve_context(query: str, top_k: int = 30, max_chars: int = 75000) -> Tup
     But now includes baseline knowledge automatically
     """
     mat, meta = _load_matrix_and_meta()
-    if mat is None:
+    if mat is None or meta is None:
         return "", []
     
     # Get baseline first (20K)
-    baseline_text, baseline_cits = get_baseline_knowledge(
-        mat, meta, max_chars=20000
-    )
+    baseline_text, baseline_cits = get_baseline_knowledge(meta, 20000)
     
-    # Then get query-specific (55K)
+    # Then get query-specific (55K) using semantic search
     v = _embed_query(query)
     sims = mat @ v
     
@@ -487,11 +397,11 @@ def retrieve_context(query: str, top_k: int = 30, max_chars: int = 75000) -> Tup
     query_cits = []
     total = len(baseline_text)
     
-    seen_baseline = {c["chunk_id"] for c in baseline_cits}
+    seen_baseline = {(c["file"], c["chunk_id"]) for c in baseline_cits}
     
     for rank, idx in enumerate(idxs, start=1):
         m = meta.get(int(idx))
-        if not m or m["chunk_id"] in seen_baseline:
+        if not m or (m["file"], m["chunk_id"]) in seen_baseline:
             continue
             
         snippet = (m["text"] or "").strip()
