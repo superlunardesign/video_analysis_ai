@@ -241,12 +241,61 @@ def get_specific_knowledge(
     print(f"[SPECIFIC RAG] Retrieved {len(specific_chunks)} context chunks ({total_chars} chars)")
     return "".join(specific_chunks).strip(), specific_citations
 
-def retrieve_smart_context(
-    transcript: str, 
-    frames: str, 
-    creator_note: str, 
-    goal: str,
-    max_chars: int = 75000
+# In rag_helper.py, find the retrieve_smart_context function and replace it with this:
+
+def get_baseline_knowledge(meta, max_chars: int = 30000):
+    """
+    ALWAYS include viral/retention essentials for ALL videos
+    These are the foundation of ANY successful video
+    """
+    # ESSENTIAL for ALL videos - hooks, virality, retention
+    universal_essentials = [
+        "50_Hook_Examples.pdf",
+        "HookWritingGuide_Download.pdf", 
+        "Trial Reels Guide.pdf",
+        "x8u4vlfmj1n62gdem7rbpyq52jcg.pdf",
+        "video_retention.txt",
+        "architecture_of_retention.txt"
+    ]
+    
+    baseline_chunks = []
+    baseline_citations = []
+    total_chars = 0
+    
+    # GUARANTEE these documents are loaded first
+    for target_file in universal_essentials:
+        # Get all chunks from this essential file
+        file_chunks = []
+        for idx, m in meta.items():
+            if m["file"] == target_file:
+                file_chunks.append((m["chunk_id"], m["text"]))
+        
+        # Sort by chunk_id to maintain document flow
+        file_chunks.sort(key=lambda x: x[0])
+        
+        # Add all chunks from this essential file
+        for chunk_id, text in file_chunks:
+            if total_chars + len(text) > max_chars:
+                break
+            baseline_chunks.append(f"[Essential: {target_file}]\n{text}")
+            baseline_citations.append({
+                "file": target_file,
+                "type": "universal_essential",
+                "chunk_id": chunk_id
+            })
+            total_chars += len(text)
+    
+    print(f"[BASELINE] Loaded {len(baseline_chunks)} essential chunks ({total_chars} chars)")
+    return "\n\n".join(baseline_chunks), baseline_citations
+
+def get_specific_knowledge(meta, mat, transcript, frames, creator_note, goal, max_chars: int = 45000):
+    """
+    Add goal-specific and context-aware knowledge ON TOP of essentials
+    """
+    # [Copy the entire get_specific_knowledge function from above]
+    # ... (the full function code)
+
+def retrieve_smart_context(transcript: str, frames: str, creator_note: str, goal: str, max_chars: int = 75000) -> Tuple[str, List[
 ) -> Tuple[str, List[dict]]:
     """
     IMPROVED: Baseline + Specific knowledge retrieval
