@@ -437,7 +437,7 @@ DEEP ANALYSIS REQUIREMENTS:
 This is a VISUAL-ONLY or AMBIENT AUDIO video with {audio_type_info.get('likely_sound_source', 'ambient sounds')}.
 Focus analysis on:
 - Visual hooks and progression
-- On-screen text vs auto-captions
+- EXACT On-screen text vs auto-captions
 - Visual satisfaction elements: {visual_content_analysis.get('satisfaction_analysis', {}).get('satisfaction_elements', {})}
 - Promise/delivery structure: {visual_content_analysis.get('visual_promise_delivery', {})}
 - How {audio_type_info.get('likely_sound_source', 'ambient audio')} enhances the visual experience
@@ -490,9 +490,9 @@ COMPREHENSIVE ANALYSIS INSTRUCTIONS:
 
 1. FIRST 3 SECONDS BREAKDOWN:
    - Frame by frame: What EXACTLY appears and why was it successful or unsuccessful?
-   - What text overlays are shown (from frames, not transcript)?
+   - What EXACT texts on the screen are shown (from frames, not transcript)?
    - What's the audio (speech from transcript, or {audio_type_info.get('likely_sound_source', 'sounds')})?
-   - What visual hooks grab attention?
+   - Is there a visual hooks grab attention? If so, what?
    - Rate the hook strength and explain WHY while educating on how to improve or how to replicate if its already good.
 
 2. PERFORMANCE MECHANICS:
@@ -517,7 +517,7 @@ COMPREHENSIVE ANALYSIS INSTRUCTIONS:
 MANDATORY: Every formula and hook suggestion MUST include:
 1. A specific example from the knowledge base (reference the pattern by name/number)
 2. How to adapt it to different niches
-3. The exact psychological principle it leverages
+3. The exact psychological principles it leverages
 4. Expected performance metrics based on similar content
 
 Example output format:
@@ -539,7 +539,7 @@ Respond in JSON with DEEP, SPECIFIC insights:
     "second_moment": "0:01 - [EXACTLY what happens in second 1]",
     "third_second": "0:02 - [EXACTLY what occurs by second 3]",
     "visual_elements": "[Specific visual hooks from frames]",
-    "text_overlays": "[EXACT text shown on screen from frame descriptions]",
+    "text_overlays": "[EXACT text shown on screen from frames]",
     "audio_element": "[{audio_type_info.get('audio_description', 'Audio type')}]",
     "hook_psychology": "[Deep explanation of why this hook works/doesn't work psychologically]",
     "hook_score": [1-10],
@@ -571,13 +571,13 @@ Respond in JSON with DEEP, SPECIFIC insights:
   }},
   
 
-  "hooks": {{
+  "hooks":[
     "Hook 1 - Controversial angle: [Specific controversial statement that challenges common beliefs, like 'Everyone's doing skincare wrong and here's proof']",
     "Hook 2 - Personal story: [Relatable personal angle like 'The night routine that fixed my skin after trying everything']",
     "Hook 3 - Curiosity gap: [Create specific mystery like 'The 3 products dermatologists use but never talk about']",
     "Hook 4 - Pattern interrupt: [Unexpected opening like starting mid-action with 'Wait, don't wash your face yet']",
     "Hook 5 - Social proof: [Leverage authority like 'This routine gave me glass skin in 2 weeks (with receipts)']"
-    }},
+    ],
 
 
 "improvement_opportunities": "[SPECIFIC improvements with examples: 'Add text overlay at 0:02 saying exactly [suggested text]. Show [suggested object] to the screen in the first 3 seconds. Replace generic music with trending audio [specific audio name]. Include B-roll of [specific visual] at 0:15 to maintain retention...']",
