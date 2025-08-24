@@ -489,11 +489,11 @@ COMPREHENSIVE ANALYSIS INSTRUCTIONS:
 {f"Since this went VIRAL, identify the EXACT psychological triggers and viral mechanics." if performance_level == 'viral' else "Identify opportunities for improvement based on proven patterns."}
 
 1. FIRST 3 SECONDS BREAKDOWN:
-   - Frame by frame: What EXACTLY appears?
+   - Frame by frame: What EXACTLY appears and why was it successful or unsuccessful?
    - What text overlays are shown (from frames, not transcript)?
    - What's the audio (speech from transcript, or {audio_type_info.get('likely_sound_source', 'sounds')})?
    - What visual hooks grab attention?
-   - Rate the hook strength and explain WHY
+   - Rate the hook strength and explain WHY while educating on how to improve or how to replicate if its already good.
 
 2. PERFORMANCE MECHANICS:
    {f"- What specific elements made this shareable?{chr(10)}   - What psychological triggers drove the viral spread?{chr(10)}   - How did it tap into platform algorithms?{chr(10)}   - What made people watch to completion?" if performance_level == 'viral' else f"- What's preventing viral growth?{chr(10)}   - Which psychological triggers are missing?{chr(10)}   - How could platform algorithms be better leveraged?{chr(10)}   - Where do viewers likely drop off?"}
@@ -513,6 +513,19 @@ COMPREHENSIVE ANALYSIS INSTRUCTIONS:
    - Which proven patterns from the knowledge base apply?
    - How well does it execute these patterns?
    - What patterns could be better implemented?
+   
+MANDATORY: Every formula and hook suggestion MUST include:
+1. A specific example from the knowledge base (reference the pattern by name/number)
+2. How to adapt it to different niches
+3. The exact psychological principle it leverages
+4. Expected performance metrics based on similar content
+
+Example output format:
+"Hook 1 - Controversial angle: 'Your skincare routine is aging you faster (here's why)' 
+- Based on Hook Example #23: Controversial Truth pattern
+- Adaptation: For fitness: 'Your workouts are making you weaker', For cooking: 'Your healthy meals are nutrient-dead'
+- Psychology: Challenges existing beliefs, creating cognitive dissonance that demands resolution
+- Expected CTR: 2.3x baseline based on controversial hook performance"
 
 Respond in JSON with DEEP, SPECIFIC insights:
 
@@ -557,13 +570,17 @@ Respond in JSON with DEEP, SPECIFIC insights:
     "satisfaction_contribution": "[Does audio add to satisfaction?]"
   }},
   
-  "hooks": [
-    "{f'Even better hook: ' if performance_level == 'viral' else 'Improved hook 1: '}[Specific, natural language hook with explanation]",
-    "Alternative angle: [Different psychological approach with reasoning]",
-    "Pattern-based hook: [Hook using proven pattern from knowledge base]",
-    "Visual-first hook: [Hook that leverages visual element]",
-    "Audio-enhanced hook: [Hook that uses sound effectively]"
-  ],
+
+  "hooks": {{
+    "Hook 1 - Controversial angle: [Specific controversial statement that challenges common beliefs, like 'Everyone's doing skincare wrong and here's proof']",
+    "Hook 2 - Personal story: [Relatable personal angle like 'The night routine that fixed my skin after trying everything']",
+    "Hook 3 - Curiosity gap: [Create specific mystery like 'The 3 products dermatologists use but never talk about']",
+    "Hook 4 - Pattern interrupt: [Unexpected opening like starting mid-action with 'Wait, don't wash your face yet']",
+    "Hook 5 - Social proof: [Leverage authority like 'This routine gave me glass skin in 2 weeks (with receipts)']"
+    }},
+
+
+"improvement_opportunities": "[SPECIFIC improvements with examples: 'Add text overlay at 0:02 saying exactly [suggested text]. Show [suggested object] to the screen in the first 3 seconds. Replace generic music with trending audio [specific audio name]. Include B-roll of [specific visual] at 0:15 to maintain retention...']",
   
   "scores": {{
     "hook_strength": [1-10 based on actual effectiveness],
@@ -584,12 +601,12 @@ Respond in JSON with DEEP, SPECIFIC insights:
   }},
   
   "formulas": {{
-    "viral_formula": "[Step-by-step formula based on this video's success/potential]",
-    "hook_formula": "[Specific hook construction method]",
-    "satisfaction_formula": "[How to create satisfaction for {visual_content_analysis.get('content_type', 'this type')}]",
-    "audio_visual_formula": "[How to sync audio and visual for maximum impact]",
-    "platform_formula": "[{platform}-specific optimization formula]"
-  }},
+    "quick_formula": "[1-sentence replication guide]",
+    "detailed_formula": "[Step-by-step breakdown with timing: 0-3s: Do X to create Y effect, 3-7s: Show Z to maintain attention...]",
+    "script_template": "[Complete fill-in-the-blank script: 'Start with [your controversial statement about your niche]. At 0:03 show [your transformation moment]. At 0:07 say [your credibility marker]...']",
+    "psychology_formula": "[Deep psychological framework: Use curiosity gap by withholding [specific info] until [timestamp], trigger completion desire by showing [incomplete action] at [timestamp]...]",
+    "example_adaptation": "[Concrete example in same niche or check creator notes to identify new niche: 'For cooking content: Start by showing the burnt disaster dish, then rewind to show the technique that prevents it. For fitness: Show the injury first, then the form correction...']"
+    }},
   
   "improvement_opportunities": "{f'Even this viral video could improve by: ' if performance_level == 'viral' else 'Key improvements: '}[Specific, actionable improvements with psychological reasoning]",
   
@@ -635,7 +652,7 @@ CRITICAL:
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=4500
+            max_tokens=6000
         )
 
         response_text = gpt_response.choices[0].message.content.strip()
@@ -1164,7 +1181,7 @@ def process():
             knowledge_context = """
 Key patterns for video analysis:
 - Strong hooks create curiosity in first 3 seconds
-- Front-load value and payoff
+- Front-load value and leave payoff till the end
 - Use pattern interrupts to stop scrolls
 - Match content to platform expectations
 - Visual satisfaction drives completion
