@@ -997,38 +997,6 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'content_analysis': gpt_result.get('content_analysis', {}),
         'psychological_breakdown': gpt_result.get('psychological_breakdown', {}),
         'replication_framework': gpt_result.get('replication_framework', {}),
-        
-        # Performance and predictions
-        'performance_prediction': gpt_result.get('performance_prediction', ''),
-        'performance_analysis': gpt_result.get('performance_analysis', ''),
-        'performance_deep_dive': gpt_result.get('performance_deep_dive', ''),
-        'viral_mechanics': gpt_result.get('viral_mechanics', ''),
-        
-        # Knowledge and insights
-        'knowledge_insights': gpt_result.get('knowledge_insights', ''),
-        'knowledge_patterns_applied': gpt_result.get('knowledge_patterns_applied', []),
-        
-        # Video type and hook analysis
-        'video_type_analysis': gpt_result.get('video_type_analysis', ''),
-        'exact_hook_breakdown': gpt_result.get('exact_hook_breakdown', {}),
-        'visual_hook': gpt_result.get('visual_hook', ''),
-        'text_hook': gpt_result.get('text_hook', ''),
-        'verbal_hook': gpt_result.get('verbal_hook', ''),
-        'why_hook_works': gpt_result.get('why_hook_works', ''),
-        
-        # Compatibility fields
-        'gpt_response': gpt_result.get('analysis', ''),
-        'engagement_psychology': gpt_result.get('engagement_psychology', ''),
-        
-        # Meta information
-        'knowledge_context_used': gpt_result.get('knowledge_context_used', False),
-        'overall_quality': gpt_result.get('overall_quality', 'moderate'),
-        'content_type_detected': gpt_result.get('content_type_detected', ''),
-        'audio_type_detected': gpt_result.get('audio_type_detected', ''),
-        'actual_view_count': gpt_result.get('actual_view_count', ''),
-        'performance_level': gpt_result.get('performance_level', 'unknown'),
-        'video_has_speech': gpt_result.get('video_has_speech', False),
-    }
     
     # Ensure hooks is always a list
     if isinstance(template_vars['hooks'], str):
