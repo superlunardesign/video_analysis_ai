@@ -455,7 +455,7 @@ This video has VERBAL CONTENT. Analyze:
     if performance_level == 'viral':
         performance_message = f"This video went VIRAL with {view_count} - analyze WHY it succeeded."
     else:
-        performance_message = f"This video got {view_count if view_count else 'certain performance'} - analyze what's working and what could improve."
+        performance_message = f"This video got {view_count if view_count else 'certain performance'} - analyze what's working and what needs to improve to achieve higher success in relation to the chosen goal."
     
     prompt = f"""
 You are a video psychology expert analyzing a {platform} video. {performance_message}
@@ -572,11 +572,11 @@ Respond in JSON with DEEP, SPECIFIC insights:
   
 
   "hooks":[
-    "Hook 1 - Controversial angle: [Specific controversial statement that challenges common beliefs, like 'Everyone's doing skincare wrong and here's proof']",
-    "Hook 2 - Personal story: [Relatable personal angle like 'The night routine that fixed my skin after trying everything']",
-    "Hook 3 - Curiosity gap: [Create specific mystery like 'The 3 products dermatologists use but never talk about']",
-    "Hook 4 - Pattern interrupt: [Unexpected opening like starting mid-action with 'Wait, don't wash your face yet']",
-    "Hook 5 - Social proof: [Leverage authority like 'This routine gave me glass skin in 2 weeks (with receipts)']"
+    "Hook 1 - Controversial angle: [Specific controversial statement that challenges common beliefs, like 'Everyone's doing skincare wrong and here's proof' but adapt for this specific video's context]",
+    "Hook 2 - Personal story: [Relatable personal angle like 'The night routine that fixed my skin after trying everything'] but adapt for this specific video's context",
+    "Hook 3 - Curiosity gap: [Create specific mystery like 'The 3 products dermatologists use but never talk about'] but adapt for this specific video's context",
+    "Hook 4 - Pattern interrupt: [Unexpected opening like starting mid-action with 'Wait, don't wash your face yet'] but adapt for this specific video's context",
+    "Hook 5 - Social proof: [Leverage authority like 'This routine gave me glass skin in 2 weeks (with receipts)'] but adapt for this specific video's context"
     ],
 
 
@@ -619,10 +619,10 @@ Respond in JSON with DEEP, SPECIFIC insights:
   ],
   
   "replication_framework": {{
-    "core_principles": "[What makes this replicable]",
+    "core_principles": "[What makes this replicable or how can we adjust to make it better]",
     "adaptation_guide": "[How to apply to different niches]",
-    "success_factors": "[Critical elements to maintain]",
-    "common_mistakes": "[What to avoid when replicating]"
+    "success_factors": "[Critical elements to maintain or improve for more virality or retention]",
+    "common_mistakes": "[What to avoid when replicating or what was in this video that needs to be taken out to improve next time]"
   }}
 }}
 
@@ -751,7 +751,7 @@ CRITICAL:
             "performance_analysis": parsed.get("performance_deep_dive", ""),
             "video_type_analysis": f"Deep analysis of {visual_content_analysis.get('content_type', 'content')} with {audio_type_info.get('audio_description', 'audio')}",
             "engagement_psychology": parsed.get("psychological_breakdown", {}).get("sharing_psychology", ""),
-            "strengths": f"Working elements: {parsed.get('viral_mechanics', '')[:200]}",
+            "strengths": f"Working elements: {parsed.get('viral_mechanics', '')}",
             "improvement_areas": parsed.get("improvement_opportunities", ""),
             "improvements": parsed.get("improvement_opportunities", ""),
             
