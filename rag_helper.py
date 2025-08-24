@@ -3,7 +3,11 @@ import os, pickle
 from typing import List, Tuple, Dict
 import numpy as np
 from openai import OpenAI
-from config import OPENAI_API_KEY
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    print("[ERROR] OPENAI_API_KEY environment variable not set!")
+    exit(1)
 
 EMB_PATH   = "knowledge/embeddings.npy"
 META_PATH  = "knowledge/meta.pkl"
