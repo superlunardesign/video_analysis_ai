@@ -515,17 +515,20 @@ COMPREHENSIVE ANALYSIS INSTRUCTIONS:
    - What patterns could be better implemented?
    
 MANDATORY: Every formula and hook suggestion MUST include:
-1. A specific example from the knowledge base (reference the pattern by name/number)
+1. A specific example INSPIRED BY the knowledge base, no need to adhere too strictly as long as it fits the criteria for a strong hook
 2. How to adapt it to different niches
 3. The exact psychological principles it leverages
 4. Expected performance metrics based on similar content
 
 Example output format:
 "Hook 1 - Controversial angle: 'Your skincare routine is aging you faster (here's why)' 
-- Based on Hook Example #23: Controversial Truth pattern
 - Adaptation: For fitness: 'Your workouts are making you weaker', For cooking: 'Your healthy meals are nutrient-dead'
 - Psychology: Challenges existing beliefs, creating cognitive dissonance that demands resolution
 - Expected CTR: 2.3x baseline based on controversial hook performance"
+
+Example output format for formulas:
+This video would do well being readapted to [recommended formula]. Here is how I'd do it for maximum success in [goal]:
+[reformat video into recommended video format based off your experise and the supporting knowledge]
 
 Respond in JSON with DEEP, SPECIFIC insights:
 
