@@ -80,7 +80,7 @@ def get_baseline_knowledge(mat, meta, max_chars: int = 30000) -> Tuple[str, List
                 continue
                 
             # Only include highly relevant baseline knowledge
-            if sims[idx] < 0.7:
+            if sims[idx] < 0.3:
                 continue
                 
             piece = f"{snippet}\n\n"
