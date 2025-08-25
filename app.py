@@ -486,7 +486,7 @@ VISUAL ANALYSIS:
 {knowledge_section}
 
 COMPREHENSIVE ANALYSIS INSTRUCTIONS:
-{f"Since this went VIRAL, identify the EXACT psychological triggers and viral mechanics." if performance_level == 'viral' else "Identify opportunities for improvement based on proven patterns."}
+{f"Since this went VIRAL, identify the EXACT psychological triggers and viral mechanics." if performance_level == 'viral' else "Identify opportunities for this specific video that can help improve based on or inspired by proven patterns. Give 2-3 ideas and examples. Instead of saying something like 'enhance visual storytelling' explain to them how they might do that thing and provide strong examples"}
 
 1. FIRST 3 SECONDS BREAKDOWN:
    - Frame by frame: What EXACTLY appears and why was it successful or unsuccessful?
@@ -516,7 +516,7 @@ COMPREHENSIVE ANALYSIS INSTRUCTIONS:
    
 MANDATORY: Every formula and hook suggestion MUST include:
 1. A specific example INSPIRED BY the knowledge base, no need to adhere too strictly as long as it fits the criteria for a strong hook
-2. How to adapt it to different niches
+2. How to adapt it to either the same niche or 'audience'
 3. The exact psychological principles it leverages
 4. Expected performance metrics based on similar content
 
@@ -541,15 +541,15 @@ Respond in JSON with DEEP, SPECIFIC insights:
     "first_frame": "0:00 - [EXACTLY what appears in frame 1]",
     "second_moment": "0:01 - [EXACTLY what happens in second 1]",
     "third_second": "0:02 - [EXACTLY what occurs by second 3]",
-    "visual_elements": "[Specific visual hooks from frames]",
-    "text_overlays": "[EXACT text shown on screen from frames]",
+    "visual_elements": "[Specific visual hooks from frames and how they are or are not effective hooks]",
+    "text_overlays": "[EXACT text shown on screen from frames and how they are or are not effective hooks]",
     "audio_element": "[{audio_type_info.get('audio_description', 'Audio type')}]",
     "hook_psychology": "[Deep explanation of why this hook works/doesn't work psychologically]",
     "hook_score": [1-10],
     "hook_reasoning": "[Specific reasoning for the score based on proven patterns]"
   }},
   
-  "performance_deep_dive": "{f'With {view_count}, this demonstrates...' if view_count else 'The performance indicates...'}[3-4 sentences explaining the specific reasons for this performance level, referencing actual content elements and psychological principles]",
+  "performance_deep_dive": "{f'With {view_count}, this demonstrates...' if view_count else 'The performance indicates...'}[3-4 sentences explaining the specific reasons for this performance level, referencing actual content elements, video retention principles, and psychological principles. Explain specific examples that can be applied to improve the video's performance that are specific to the video's context itself. Explain why this the examples would help improve the video in terms of psychological principles and viewer retention.]",
   
   "content_type_analysis": {{
     "detected_type": "{visual_content_analysis.get('content_type', 'general')}",
@@ -575,15 +575,15 @@ Respond in JSON with DEEP, SPECIFIC insights:
   
 
   "hooks":[
-    "Hook 1 - Controversial angle: [Specific controversial statement that challenges common beliefs, like 'Everyone's doing skincare wrong and here's proof' but adapt for this specific video's context]",
-    "Hook 2 - Personal story: [Relatable personal angle like 'The night routine that fixed my skin after trying everything'] but adapt for this specific video's context",
-    "Hook 3 - Curiosity gap: [Create specific mystery like 'The 3 products dermatologists use but never talk about'] but adapt for this specific video's context",
-    "Hook 4 - Pattern interrupt: [Unexpected opening like starting mid-action with 'Wait, don't wash your face yet'] but adapt for this specific video's context",
-    "Hook 5 - Social proof: [Leverage authority like 'This routine gave me glass skin in 2 weeks (with receipts)'] but adapt for this specific video's context"
+    "[Specific controversial statement that challenges common beliefs, like 'Everyone's doing skincare wrong and here's proof' but adapt for this specific video's context]",
+    "[Relatable personal angle like 'The night routine that fixed my skin after trying everything'( but adapt for this specific video's context)]",
+    "[Create specific mystery like 'The 3 products dermatologists use but never talk about' ( but adapt for this specific video's context)]",
+    "[Unexpected opening like starting mid-action with 'Wait, don't wash your face yet' ( but adapt for this specific video's context)]",
+    "[Leverage authority like 'This routine gave me glass skin in 2 weeks (with receipts)'but adapt for this specific video's context] "
     ],
 
 
-"improvement_opportunities": "[SPECIFIC improvements with examples: 'Add text overlay at 0:02 saying exactly [suggested text]. Show [suggested object] to the screen in the first 3 seconds. Replace generic music with trending audio [specific audio name]. Include B-roll of [specific visual] at 0:15 to maintain retention...']",
+"improvement_opportunities": "[SPECIFIC improvements with examples like: 'Add text overlay at 0:02 saying exactly [suggested text]. Show [suggested object] to the screen in the first 3 seconds. [Anything else that would help the video improve with getting more views and longer watch time]",
   
   "scores": {{
     "hook_strength": [1-10 based on actual effectiveness],
@@ -648,7 +648,7 @@ CRITICAL:
             client.chat.completions.create,
             model="gpt-4o",
             messages=[
-                {
+                {xf
                     "role": "system",
                     "content": "You are an expert in viral psychology and content analysis. Provide DEEP, specific insights about why content succeeds or fails. Always explain the psychological mechanisms. Never give surface-level observations. Correctly interpret audio based on visual context - if someone is drawing, sounds are likely marker/pen sounds, not animal noises."
                 },
