@@ -490,6 +490,78 @@ VISUAL ANALYSIS:
 COMPREHENSIVE ANALYSIS INSTRUCTIONS:
 {f"Since this went VIRAL, identify the EXACT psychological triggers and viral mechanics." if performance_level == 'viral' else "Identify opportunities for this specific video that can help improve based on or inspired by proven patterns. Give 2-3 ideas and examples. Instead of saying something like 'enhance visual storytelling' explain to them how they might do that thing and provide strong examples"}
 
+
+#### View Count Context Matters
+**DO NOT judge sales or conversion videos by entertainment metrics!**
+
+**Entertainment Content:**
+- 10K views = Low
+- 100K views = Moderate  
+- 500K+ views = Good
+- 1M+ views = Viral
+
+**B2B/Service Provider Content:**
+- 10K views = Solid
+- 50K views = Excellent
+- 90K+ views = HIGHLY SUCCESSFUL
+- 200K+ views = Exceptional
+
+**WHY THE DIFFERENCE:**
+B2B content with 90K views generating multiple inquiries is worth more than entertainment content with 1M views generating nothing. ALWAYS consider:
+- Niche size (designers vs general public)
+- Conversion value (one client = $5-50K)
+- Business impact (inquiries, not just views)
+
+BUT there is also a world where a video MEANT to sell only amassed many views and didn't generate sales. We need to explain in the output why this happened and what sales psychology tactics are missing and then HOW to implement them.
+
+**IF A VIDEO SEEMS TO BE ABOUT ANY TYPE OF SELLING/SERVICE/PRODUCT**
+START WITH: "This video achieved strong performance because..."
+NOT: "This video shows potential but..."
+IDENTIFY: What psychological triggers drove success
+
+For videos with 50K+ views in B2C/B2B/service niches:
+Trust building
+Objection handling
+Authority demonstration
+Problem-solving display
+
+THEN SUGGEST: Amplifications to go even bigger
+
+"To reach 200K+, consider..."
+"To maximize inquiries, add..."
+"To increase conversion, include..."
+
+### NICHE-SPECIFIC VIEW EXPECTATIONS
+
+**Design/Creative Services:**
+- 20K views = Good
+- 50K views = Excellent
+- 90K+ views = Outstanding
+
+**Consulting/Coaching:**
+- 10K views = Good
+- 30K views = Excellent
+- 50K+ views = Outstanding
+
+**Real Estate/Local Services:**
+- 5K views = Good
+- 20K views = Excellent
+- 40K+ views = Outstanding
+
+**E-commerce/Products:**
+- 50K views = Good
+- 200K views = Excellent
+- 500K+ views = Outstanding
+
+### CRITICAL REMINDERS
+
+1. **90K views generating business = MASSIVE SUCCESS**
+2. **One inquiry worth $10K > 100K views worth $0**
+3. **Trust-building > Entertainment for B2B**
+4. **Process content > Portfolio content for conversion**
+5. **Vulnerability = Relatability = Inquiries**
+
+
 1. FIRST 3 SECONDS BREAKDOWN:
    - Frame by frame: What EXACTLY appears and why was it successful or unsuccessful?
    - What EXACT texts on the screen are shown (from frames, not transcript)?

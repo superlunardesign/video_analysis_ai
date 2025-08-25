@@ -44,6 +44,9 @@ def get_baseline_knowledge(meta, max_chars: int = 30000) -> Tuple[str, List[dict
         "x8u4vlfmj1n62gdem7rbpyq52jcg.pdf",
         "video_retention.txt",
         "architecture_of_retention.txt"
+        "hook_mechanisms.txt"
+        "thisvsthat.txt"
+        "failuretofix.txt"
     ]
     
     baseline_chunks = []
