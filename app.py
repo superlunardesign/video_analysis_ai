@@ -608,7 +608,7 @@ Respond in JSON with DEEP, SPECIFIC insights:
     "detailed_formula": "[Step-by-step breakdown with timing: 0-3s: Do X to create Y effect, 3-7s: Show Z to maintain attention...]",
     "script_template": "[Complete fill-in-the-blank script: 'Start with [your controversial statement about your niche]. At 0:03 show [your transformation moment]. At 0:07 say [your credibility marker]...']",
     "psychology_formula": "[Deep psychological framework: Use curiosity gap by withholding [specific info] until [timestamp], trigger completion desire by showing [incomplete action] at [timestamp]...]",
-    "example_adaptation": "[Concrete example in same niche or check creator notes to identify new niche: 'For cooking content: Start by showing the burnt disaster dish, then rewind to show the technique that prevents it. For fitness: Show the injury first, then the form correction...']"
+    "example_adaptation": "[Concrete example with recommended improved formula in same niche. Include example script using improved hook, improved 3-7 seconds, using the improved formula. Explain why this will work better for the given goal.]"
     }},
   
   "improvement_opportunities": "{f'Even this viral video could improve by: ' if performance_level == 'viral' else 'Key improvements: '}[Specific, actionable improvements with psychological reasoning]",

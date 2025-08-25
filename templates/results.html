@@ -537,14 +537,14 @@
       {% if viral_mechanics %}
       <div class="formula-box">
         <div class="formula-title">VIRAL MECHANICS</div>
-        <pre>{{ psychology_formula }}</pre>
+        <pre>{{ viral_mechanics }}</pre>
       </div>
       {% endif %}
       
-      {% if basic_formula %}
+      {% if psychology_formula %}
       <div class="formula-box">
         <div class="formula-title">📝 STEP-BY-STEP PROCESS</div>
-        <pre>{{ basic_formula }}</pre>
+        <pre>{{ psychology_formula }}</pre>
       </div>
       {% endif %}
     </div>
@@ -562,6 +562,7 @@
     <div class="section">
       <h2>📊 Performance Prediction</h2>
       <p>{{ performance_prediction }}</p>
+        <pre>{{ example_adaptation }}</pre>
     </div>
     {% endif %}
 
