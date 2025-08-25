@@ -648,7 +648,7 @@ CRITICAL:
             client.chat.completions.create,
             model="gpt-4o",
             messages=[
-                {xf
+                {
                     "role": "system",
                     "content": "You are an expert in viral psychology and content analysis. Provide DEEP, specific insights about why content succeeds or fails. Always explain the psychological mechanisms. Never give surface-level observations. Correctly interpret audio based on visual context - if someone is drawing, sounds are likely marker/pen sounds, not animal noises."
                 },
