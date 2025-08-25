@@ -458,7 +458,9 @@ This video has VERBAL CONTENT. Analyze:
         performance_message = f"This video got {view_count if view_count else 'certain performance'} - analyze what's working and what needs to improve to achieve higher success in relation to the chosen goal."
     
     prompt = f"""
-You are a video psychology expert analyzing a {platform} video. {performance_message}
+You are a video psychology expert analyzing transcribed and extracted data from a {platform} video. 
+You have been provided with frame-by-frame descriptions and audio transcription below.
+You are NOT being asked to view a video directly - you are analyzing the provided text data. {performance_message}
 
 CRITICAL CONTEXT:
 - Platform: {platform}
