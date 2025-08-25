@@ -90,7 +90,6 @@ def get_specific_knowledge(meta, mat, transcript, frames, creator_note, goal, ma
     # GOAL-BASED DOCUMENT SELECTION
     goal_document_map = {
         "sales_conversions": [
-            "buyer_psychology_tiktoks.txt",
             "sales-psychology.txt",
             "sales_backed_content.txt",
             "messaging_to_sell_your_offer.txt",
@@ -102,7 +101,6 @@ def get_specific_knowledge(meta, mat, transcript, frames, creator_note, goal, ma
         ],
         "lead_generation": [
             "how_to_warm_up_your_audience.txt",
-            "buyer_psychology_tiktoks.txt",
             "messaging_to_sell_your_offer.txt",
             "example_scripts_for_growth_and_sales.txt"
         ],

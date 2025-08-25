@@ -1,77 +1,0 @@
- Problem Aware Content
-Description: This content should highlight a problem the audience is unaware of or misunderstanding. The goal is to make them aware of their emotional symptoms related to a brand or website issue. We’ll challenge misconceptions and explain why their current approach isn't working, or even that the problem they think they have isn’t the actual problem.
-Example Script Outlines:
-	•	Misconception Reveal "If you're [experiencing symptom] because you're putting time and effort into [activity/effort], but it's not getting you [desired outcome], I bet it's because you're [misconception]. When you try to [attempted solution], all it does is [negative consequence], which leaves you feeling [emotional symptom] and ends up making you [undesirable result]. What you should really be doing is [solution]."
-	•	Confronting the Misconception "If you think [misconception] will bring you [desire], I have some bad news, but don't worry, I'll tell you the real way to get [desire]. All doing [misconception] is gets you [symptom/problem]. You need [desire], and how you get that is by doing [solution]."
-	•	Emotional Connection with Example "If you're feeling [emotional symptom] by trying to do [misconception], you're probably creating [problem], which is getting you [pain point]. You need [solution] in order to get [desired outcome]. Here's an example of how I did it."
-
-Problem Aware Content Examples (These may not have perfectly followed the outlined structure due to previous lack of clarity, but they help set the tone.)
-Example 1: "Let me show you what it looks like when I land on your website..."
-	•	LOUD symbolizing large logo "business name"
-	•	“You gonna buy my stuff?”
-	•	Quiet, symbolizing small logo “business name”
-	•	“Giving you the solution to the problems that you're currently experiencing when you land on this page."
-	•	“Book a call today to find a solution for you”
-	•	"If you cannot meet your customer where they're at when they land on your page, you were never gonna sell your stuff. This is why I always advise people to get a brand strategy, strong brand design, and a strong website design for their business to be completely optimized for sales. And I do all of those things."
-Example 2: "The reason that people are not obsessed with your brand like you see in your competitor spaces is because you're not doing this stuff and they are..."
-	•	"A lot of you think branding is just visuals—things like your logos, your typefaces or fonts, brand icons, colors, and overall design style. All of these things create something you really need: visual consistency."
-	•	"That visual consistency makes it so when people continuously see any part of your brand that's out there—on the internet, in print, on a billboard—it all consistently refers back to your overall brand."
-	•	"Next is purpose: who you serve, why you serve them, what you solve, and how you specifically solve it. This is usually what you're missing if you're having trouble attracting an audience that's willing to pay you your prices or even people who don’t know what you’re doing."
-	•	"Your brand's purpose is how you get a super aligned audience of people who are really willing to work with you. This is one of the biggest parts of being magnetic."
-	•	"Your brand experience is usually how you get people to stay and keep coming back to work with you. This is anything like your website, the process in which they work with you, how much you take care of them, etc."
-	•	"And the last thing is longevity. This is how you keep your brand staying relevant and top of mind for people. It's about continual research, competitor research, and staying on top of your audience's evolving needs."
-	•	"I teach exactly how to do all of this. My Magnetic Brand members are learning how to develop a brand strategy for themselves that can give them all of that and help them execute it, so people are becoming obsessed with their brand and their brand is becoming truly magnetic."
-Example 3: "You don't have a brand strategy, and here's how I can tell..."
-	•	"You're posting things like 'three accounting tips to help you prepare for tax season,' and you're doing this as an accountant, trying to get paid for accounting work. But you haven't done any of the work to even help people understand how they identify that they need accounting help in the first place."
-	•	"And giving them three free tips isn’t going to help them know that."
-	•	"Your brand messaging, which is what this is, has to start with your target audience. And yet a lot of you will only define your target audience as women aged 25 to 45 who live in the Midwest. That's not enough to know how to speak to them on a deeper level."
-	•	"You need brand strategy work to figure out how you can position yourself in front of them, as well as additional target audience research to understand what they're thinking, what their desires are, and what problems they're having that you can help solve."
-	•	"You need to get a brand strategy."
-
-Agitation Content
-Description: Agitation content aims to stir frustration and highlight the consequences of not addressing the real problem. It should further irritate viewers by emphasizing that their current actions will only perpetuate negative emotions or lead to undesirable outcomes. The tone should be blunt and confrontational.
-Example Script Outlines:
-	•	Direct Confrontation with Misconception "If you’re still doing [misconception], thinking it will bring you [desired result], you’re missing out on [benefit] from [symptom]. You have to stop doing [misconception] and start doing [solution]."
-	•	Explaining the Pitfalls of a Misconception "I know you think doing [misconception] will help you [achieve desire], but all it actually does is lead to [negative result]. [Misconception] won’t work because [explanation]. What you need is [solution]."
-	•	Highlighting the Consequences of Misconception "If you're [misconception] because you think it will get you [desire], what you're actually doing is [result of misconception] and [problem]. What you need to do is [solution] so you can get [desire]."
-
-Agitation Content Examples (These may not have perfectly followed the outlines due to previous lack of clarity, but they show the intended tone.)
-Example 1: "When I say Canva logos are usually shit, there's a reason behind it..."
-	•	"I'm not bashing the tool itself. I ducking use Canva. But I don’t use Canva to make branding."
-	•	"Canva is a free tool and literally accessible to billions of people. Let’s say only a million of them wanna start their small business this month, and 500,000 use Canva to make their logo."
-	•	"Let’s say only 100,000 of those people have design skills. So, 400,000 people with no design skill are about to make a logo in Canva. I'm telling you, 350,000 of them are going to use one of the Canva logo templates that are on there."
-	•	"Do you think you're going to stand out in an industry where all the logos look the same and now yours looks just like them?"
-Example 2: "When I talk about Canva logos, I can't count how many people say 'I made my logo in Canva and it looks great'..."
-	•	"I go look at their logo... it looks like it was made in Canva."
-	•	"The money you try to save by making a free logo is really costing you money down the line because your brand looks like you made the logo for free. So why would anyone spend money on you if you won't spend money on yourself?"
-Example 3: "Your logo looks cheap, and here's how I know..."
-	•	"When you tell people how much you cost, they tell you you're too expensive. Or even if they don’t, they say 'I need to go check with my husband,' and they never respond."
-	•	"People are judging a book by its cover. If your brand designs don't look like you cost what you're asking, you need a brand overhaul."
-	•	"If you don't believe me, look at my redesign video. People say they prefer the original logo because it looks cheaper. You don’t want to look cheap. You want your branding to help you raise your prices."
-
-Solution Content
-Description: Solution content explains how to achieve common business desires or alleviate pain points, without revealing the entire solution upfront. It should feel valuable, creating curiosity about the process Superlunar Design Co. offers. The content subtly introduces the service offerings while positioning them as the ultimate solution.
-Example Script Outlines:
-	•	Transformation Story "My client was experiencing [current reality] and was trying to fix it by doing [misconception], but all it got them was [undesirable symptom]. We took them from [current reality] to [desire/transformation] by making this one shift. We did [solution] and now they’re getting [desire] and feel [transformation]."
-	•	Step-by-Step Process "This is exactly how you get [desired outcome]. Here are 3 simple steps to make it happen: Step 1: [Broad Action] Step 2: [Another Broad Action] Step 3: [Final Broad Action]. By taking these steps, I was able to achieve [desired outcome] in [timespan]."
-	•	Client Experience Overview "This is how I get my clients from [pain point] to [desire] effortlessly. By focusing on [brand experience], now they’re experiencing [desire]."
-
-Solution Content Examples (These may not have perfectly followed the outlines due to previous lack of clarity, but they help set the tone.)
-Example 1: "A rebrand does not mean a new brand..."
-	•	"Let me show you what I mean. This is the current branding of one of my clients: TFD Presents, a queer event production and talent management company."
-	•	"They came to me wanting something that represented them more than just the standard fire flame logo."
-	•	"We retained the original essence of the brand while evolving it into a more stylized, bold version. The client was floored by the result and was ready to abandon the old flame. We ended up making the flame a drag eye makeup symbol to align better with their identity."
-	•	"The final brand was a stunning evolution of their original brand."
-Example 2: "This is how I went from charging $3,000 for my largest package to $6,000 for the same exact package without losing clients..."
-"You’re telling yourselves that people can’t afford your prices. This is a combination of limiting beliefs and imposter syndrome."
-"There are too many people on this earth for no one to afford your prices. You just need to know how to talk to the people who can."
-"I had a brand strategy in place that helped me connect directly with the clients I wanted to work with, and it made my marketing more effective."
-"I’ve been building something that’s going to help you do the same. If you're interested, DM me the word 'waitlist' and get on the list to find out more."
-Example 3: "This is exactly what I would do if I was in an industry where I knew I was doing something different, better, more skilled than my competitors, but my competitors were getting more clients..."
-	•	"I would get a brand strategy because it dissects who you’re trying to attract and what they need from you."
-	•	"Then I’d find out who they are, where they hang out, and what personalities they respond to."
-	•	"I would develop brand personalities, tones, archetypes, etc., so that my brand speaks directly to them and makes me look trustworthy."
-	•	"I would design a brand that represents everything about me and attracts the right people."
-	•	"This is the step-by-step process I use with my clients to help them create their magnetic brand."
-
-
