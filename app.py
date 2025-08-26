@@ -215,6 +215,7 @@ def enhanced_extract_audio_and_frames(tiktok_url, strategy, frames_per_minute, c
     try:
         print(f"[INFO] Starting enhanced extraction for {tiktok_url}")
         
+        # First attempt with requested strategy
         audio_path, frames_dir, frame_paths = extract_audio_and_frames(
             tiktok_url, strategy, frames_per_minute, cap, scene_threshold
         )
@@ -223,38 +224,47 @@ def enhanced_extract_audio_and_frames(tiktok_url, strategy, frames_per_minute, c
         if strategy == 'smart' and len(frame_paths) < 5:
             print(f"[WARNING] Smart extraction only got {len(frame_paths)} frames, falling back to uniform")
             
-            # Get video duration first
-            from processing import probe_duration
-            duration = probe_duration(tiktok_url)
-            
-            # Calculate appropriate frame rate
-            if duration <= 60:
-                frames_per_minute = 30  # Every 2 seconds
-            else:
-                frames_per_minute = 6   # Every 10 seconds
-            
-            # Re-extract with uniform strategy
-            audio_path, frames_dir, frame_paths = extract_audio_and_frames(
-                tiktok_url, 
-                strategy='uniform',
-                frames_per_minute=frames_per_minute,
-                cap=cap,
-                scene_threshold=scene_threshold
-            )
-
+            try:
+                # Don't call probe_duration directly on URL - use the downloaded video
+                # The video should already be downloaded in the frames_dir
+                import os
+                video_path = None
+                for file in os.listdir(frames_dir) if frames_dir and os.path.exists(frames_dir) else []:
+                    if file.endswith(('.mp4', '.webm')):
+                        video_path = os.path.join(frames_dir, file)
+                        break
+                
+                if not video_path:
+                    # Force re-download with uniform strategy
+                    print("[INFO] Re-downloading video for uniform extraction")
+                    audio_path, frames_dir, frame_paths = extract_audio_and_frames(
+                        tiktok_url, 
+                        strategy='uniform',
+                        frames_per_minute=30,  # Every 2 seconds
+                        cap=60,
+                        scene_threshold=scene_threshold
+                    )
+                else:
+                    # Use existing video file
+                    from processing import extract_frames_uniform
+                    frame_paths = extract_frames_uniform(video_path, frames_per_minute=30, cap=60)
+                    
+            except Exception as e:
+                print(f"[ERROR] Fallback extraction failed: {e}")
+                # Continue with whatever frames we have
+                if len(frame_paths) == 0:
+                    raise ValueError("No frames could be extracted")
         
         # Validate audio
         if not audio_path or not os.path.exists(audio_path):
-            raise ValueError("Audio extraction failed")
-        
-        audio_size = os.path.getsize(audio_path)
-        if audio_size < 1024:
-            raise ValueError(f"Audio file too small ({audio_size} bytes)")
+            print("[WARNING] Audio extraction failed, continuing without audio")
+            audio_path = None
+        else:
+            audio_size = os.path.getsize(audio_path)
+            if audio_size < 1024:
+                print(f"[WARNING] Audio file too small ({audio_size} bytes)")
         
         # Validate frames
-        if not frame_paths or len(frame_paths) == 0:
-            raise ValueError("Frame extraction failed")
-        
         valid_frames = []
         for fp in frame_paths:
             if os.path.exists(fp) and os.path.getsize(fp) > 1024:
@@ -408,33 +418,51 @@ def run_main_analysis(transcript_text, frames_summaries_text, creator_note, plat
     has_speech = audio_analysis['has_meaningful_speech']
     audio_type_info = audio_analysis
     
-    # Extract actual performance data from creator note
+    # Extract actual performance data from creator note (improved parsing)
     view_count = None
     performance_level = 'unknown'
     
     if creator_note:
         note_lower = creator_note.lower()
         
-        # Extract view count if mentioned
-        view_patterns = re.findall(r'(\d+\.?\d*)\s*(k|thousand|m|million|views)', note_lower)
+        # Extract view count if mentioned (improved regex)
+        view_patterns = re.findall(r'(\d+\.?\d*)\s*(k|thousand|m|million|views)?', note_lower)
         if view_patterns:
-            number, unit = view_patterns[0][:2]
-            try:
-                num = float(number)
-                if unit in ['k', 'thousand']:
-                    view_count = f"{num}k"
-                    if num >= 100:
-                        performance_level = 'moderate'
-                    if num >= 500:
-                        performance_level = 'good'
-                elif unit in ['m', 'million']:
-                    view_count = f"{num}M"
-                    performance_level = 'viral'
-                elif unit == 'views' and num < 1000:
-                    view_count = f"{int(num)} views"
-                    performance_level = 'low'
-            except:
-                pass
+            for pattern in view_patterns:
+                number = pattern[0]
+                unit = pattern[1] if len(pattern) > 1 else ''
+                try:
+                    num = float(number)
+                    if unit in ['k', 'thousand']:
+                        view_count = f"{num}k"
+                        if num >= 500:
+                            performance_level = 'good'
+                        elif num >= 100:
+                            performance_level = 'moderate'
+                        else:
+                            performance_level = 'low'
+                    elif unit in ['m', 'million']:
+                        view_count = f"{num}M"
+                        performance_level = 'viral'
+                    elif unit == 'views' or (num >= 1000 and not unit):
+                        # Plain number with 'views' or large number without unit
+                        if num >= 1000000:
+                            view_count = f"{num/1000000:.1f}M"
+                            performance_level = 'viral'
+                        elif num >= 1000:
+                            view_count = f"{num/1000:.0f}k"
+                            if num >= 500000:
+                                performance_level = 'good'
+                            elif num >= 100000:
+                                performance_level = 'moderate'
+                            else:
+                                performance_level = 'low'
+                        else:
+                            view_count = f"{int(num)} views"
+                            performance_level = 'low'
+                    break  # Use first valid pattern found
+                except:
+                    continue
     
     # Build knowledge section
     knowledge_section = ""
@@ -481,11 +509,6 @@ This video has VERBAL CONTENT. Analyze:
     else:
         performance_message = f"This video got {view_count if view_count else 'certain performance'} - analyze what's working and what needs to improve to achieve higher success in relation to the chosen goal."
     
-# Replace your current run_main_analysis function with this:
-
-def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
-    """Comprehensive analysis that adapts to ALL video types with deep insights"""
-    
     prompt = f"""
 You are a video strategist explaining to a creator exactly why their video performed the way it did in plain, conversational language. No jargon, no fluff - just clear insights they can actually use.
 
@@ -512,6 +535,10 @@ VISUAL CONTENT (frames - what's SHOWN/WRITTEN):
 {frames_summaries_text}
 
 {knowledge_section}
+
+{video_type_context}
+
+{performance_message}
 
 Respond in this EXACT JSON structure with conversational, educational insights:
 
@@ -649,8 +676,14 @@ CRITICAL INSTRUCTIONS:
             except:
                 scores[key] = default
         
-        # Build comprehensive result with ALL components
+        # Build comprehensive result with ALL new conversational fields
         result = {
+            # New conversational analysis fields
+            "what_this_video_is": parsed.get("what_this_video_is", ""),
+            "why_it_performed": parsed.get("why_it_performed", ""),
+            "all_hooks_identified": parsed.get("all_hooks_identified", {}),
+            "replication_formula": parsed.get("replication_formula", {}),
+            
             # Core analysis
             "analysis": parsed.get("analysis", ""),
             "viral_mechanics": parsed.get("viral_mechanics", ""),
@@ -676,6 +709,7 @@ CRITICAL INSTRUCTIONS:
             
             # Improvements and predictions
             "improvement_opportunities": parsed.get("improvement_opportunities", ""),
+            "improvements": parsed.get("improvements", parsed.get("improvement_opportunities", "")),
             "performance_prediction": parsed.get("performance_prediction", ""),
             
             # Knowledge patterns
@@ -708,7 +742,6 @@ CRITICAL INSTRUCTIONS:
             "engagement_psychology": parsed.get("psychological_breakdown", {}).get("sharing_psychology", ""),
             "strengths": f"Working elements: {parsed.get('viral_mechanics', '')}",
             "improvement_areas": parsed.get("improvement_opportunities", ""),
-            "improvements": parsed.get("improvement_opportunities", ""),
             
             # Viral audio analysis
             "viral_audio_analysis": {
@@ -774,6 +807,24 @@ To improve: Strengthen the opening hook, enhance audio-visual synchronization, a
     }
     
     return {
+        # New conversational fields with fallback content
+        "what_this_video_is": f"This is a {visual_content_analysis.get('content_type', 'content')} video that {'went viral' if performance_level == 'viral' else 'performed well' if performance_level in ['good', 'moderate'] else 'has growth potential'}.",
+        "why_it_performed": f"This video got {view_count if view_count else 'its views'} because of its {audio_type_info.get('audio_description', 'audio')} combined with {visual_content_analysis.get('content_type', 'visual content')}.",
+        "all_hooks_identified": {
+            "text_hooks": ["Text elements from video"],
+            "visual_hooks": ["Visual hooks identified"],
+            "verbal_hooks": ["Verbal content if present"],
+            "psychological_hooks": ["Psychological triggers used"]
+        },
+        "replication_formula": {
+            "formula_name": "The Success Formula",
+            "structure": "0-3s: Hook, 3-7s: Value, 7-15s: Payoff",
+            "scenarios_for_same_niche": ["Scenario 1", "Scenario 2"],
+            "why_it_works": "Creates curiosity and delivers satisfaction",
+            "text_template": "Template for text overlays",
+            "visual_requirements": "Visual elements needed"
+        },
+        
         "analysis": analysis,
         "viral_mechanics": f"{'Success through: ' if performance_level == 'viral' else 'To increase virality: '}Strong hooks, clear value, satisfying payoffs, effective {audio_type_info.get('audio_description', 'audio')}",
         
@@ -836,6 +887,7 @@ To improve: Strengthen the opening hook, enhance audio-visual synchronization, a
         },
         
         "improvement_opportunities": f"{'Refine' if performance_level == 'viral' else 'Enhance'} hooks, improve audio-visual sync, optimize pacing",
+        "improvements": f"To improve: {'Refine' if performance_level == 'viral' else 'Strengthen'} the opening hook, enhance satisfaction points, optimize for {platform}",
         "performance_prediction": f"{'Continued success with refinements' if performance_level == 'viral' else 'Significant growth potential with optimizations'}",
         
         "knowledge_patterns_applied": ["Hook optimization", "Satisfaction delivery", "Audio-visual integration"],
@@ -872,7 +924,6 @@ To improve: Strengthen the opening hook, enhance audio-visual synchronization, a
         
         # Template fields
         "formula": "Hook → Development → Payoff",
-        "improvements": "Optimize hooks, enhance satisfaction points",
         "template_formula": f"{platform} optimization formula",
         "knowledge_insights": "Apply proven patterns for success",
         
@@ -892,6 +943,7 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         # Form data
         'tiktok_url': form_data.get('tiktok_url', ''),
         'creator_note': form_data.get('creator_note', ''),
+        'view_count': form_data.get('view_count', ''),
         'platform': form_data.get('platform', 'tiktok'),
         'target_duration': form_data.get('target_duration', '30'),
         'goal': form_data.get('goal', 'follower_growth'),
@@ -925,7 +977,6 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'scores': gpt_result.get('scores', {}),
         'strengths': gpt_result.get('strengths', ''),
         'improvement_areas': gpt_result.get('improvement_areas', ''),
-        'improvements': gpt_result.get('improvements', gpt_result.get('improvement_areas', '')),
         'improvement_opportunities': gpt_result.get('improvement_opportunities', ''),
         
         # Timing and formulas
@@ -1039,10 +1090,10 @@ def analyze_async():
 @app.route("/process", methods=["POST"])
 def process():
     try:
-        # Get form data
+        # Get form data with improved view count handling
         form_data = {
             'tiktok_url': request.form.get("tiktok_url", "").strip(),
-            'view_count': request.form.get("view_count", "").strip(),
+            'view_count': request.form.get("view_count", "").strip(),  # Capture view count
             'creator_note': request.form.get("creator_note", "").strip(),
             'strategy': request.form.get("strategy", "smart").strip(),
             'frames_per_minute': request.form.get("frames_per_minute", "24"),
@@ -1054,6 +1105,43 @@ def process():
             'tone': request.form.get("tone", "confident, friendly").strip(),
             'audience': request.form.get("audience", "creators and small business owners").strip(),
         }
+        
+        # Parse view count immediately (improved parsing)
+        view_count = None
+        performance_level = 'unknown'
+        view_count_input = form_data.get('view_count', '') or form_data.get('creator_note', '')
+        
+        if view_count_input:
+            # Extract numbers with units (improved regex)
+            import re
+            patterns = re.findall(r'(\d+\.?\d*)\s*(k|m|thousand|million)?', view_count_input.lower())
+            if patterns:
+                for pattern in patterns:
+                    number = float(pattern[0])
+                    unit = pattern[1] if len(pattern) > 1 else ''
+                    
+                    if unit in ['k', 'thousand']:
+                        view_count = f"{number}k"
+                        performance_level = 'good' if number >= 500 else 'moderate' if number >= 100 else 'low'
+                        break
+                    elif unit in ['m', 'million']:
+                        view_count = f"{number}M"
+                        performance_level = 'viral'
+                        break
+                    else:
+                        # Plain number
+                        if number >= 1000000:
+                            view_count = f"{number/1000000:.1f}M"
+                            performance_level = 'viral'
+                        elif number >= 1000:
+                            view_count = f"{number/1000:.0f}k"
+                            performance_level = 'good' if number >= 500000 else 'moderate' if number >= 100000 else 'low'
+                        else:
+                            view_count = f"{int(number)} views"
+                            performance_level = 'low'
+                        break
+        
+        print(f"[INFO] Parsed view count: {view_count} (Performance: {performance_level})")
         
         # Validate numeric parameters
         try:
@@ -1166,8 +1254,10 @@ Key patterns for video analysis:
                 knowledge_context
             )
             
-            # Add transcript quality info
+            # Add transcript quality info and view data
             gpt_result['transcript_quality'] = transcript_data
+            gpt_result['actual_view_count'] = view_count
+            gpt_result['performance_level'] = performance_level
             
             print("[SUCCESS] Analysis complete")
             print(f"[INFO] Content type: {gpt_result.get('content_type_detected', 'unknown')}")
@@ -1184,46 +1274,11 @@ Key patterns for video analysis:
             visual_analysis = create_visual_content_description(frames_summaries_text, audio_context)
             
             has_speech = audio_context.get('has_meaningful_speech', False)
-            view_count = None
-            performance_level = 'unknown'
-            
-            view_count_raw = form_data['view_count']
-            view_count = None
-            performance_level = 'unknown'
-
-            if view_count_raw:
-                # Parse the view count
-                view_patterns = re.findall(r'(\d+\.?\d*)\s*(k|m|thousand|million)?', view_count_raw.lower())
-                if view_patterns:
-                    number, unit = view_patterns[0] if len(view_patterns[0]) == 2 else (view_patterns[0][0], '')
-                    try:
-                        num = float(number)
-                        if unit in ['k', 'thousand']:
-                            view_count = f"{num}k"
-                            performance_level = 'good' if num >= 500 else 'moderate' if num >= 100 else 'low'
-                        elif unit in ['m', 'million']:
-                            view_count = f"{num}M"
-                            performance_level = 'viral'
-                        else:
-                            # Raw number
-                            if num >= 1000000:
-                                view_count = f"{num/1000000:.1f}M"
-                                performance_level = 'viral'
-                            elif num >= 1000:
-                                view_count = f"{num/1000:.1f}k"
-                                performance_level = 'good' if num >= 500000 else 'moderate' if num >= 100000 else 'low'
-                            else:
-                                view_count = f"{int(num)} views"
-                                performance_level = 'low'
-                    except:
-                        pass
-            
             
             gpt_result = create_comprehensive_fallback(
                 transcript_data.get('transcript', ''),
                 frames_summaries_text,
                 form_data['creator_note'],
-                form_data['view_count'],
                 form_data['platform'],
                 form_data['goal'],
                 form_data['audience'],
