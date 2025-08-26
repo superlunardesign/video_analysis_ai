@@ -457,10 +457,13 @@ This video has VERBAL CONTENT. Analyze:
     else:
         performance_message = f"This video got {view_count if view_count else 'certain performance'} - analyze what's working and what needs to improve to achieve higher success in relation to the chosen goal."
     
+# Replace your current run_main_analysis function with this:
+
+def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
+    """Comprehensive analysis that adapts to ALL video types with deep insights"""
+    
     prompt = f"""
-You are a video psychology expert analyzing transcribed and extracted data from a {platform} video. 
-You have been provided with frame-by-frame descriptions and audio transcription below.
-You are NOT being asked to view a video directly - you are analyzing the provided text data. {performance_message}
+You are a video strategist explaining to a creator exactly why their video performed the way it did in plain, conversational language. No jargon, no fluff - just clear insights they can actually use.
 
 CRITICAL CONTEXT:
 - Platform: {platform}
@@ -471,6 +474,12 @@ CRITICAL CONTEXT:
 - Goal: {goal}
 - Target audience: {audience}
 - Duration target: {target_duration}s
+- Niche context: {' (mentions inquiries/sales)' if creator_note and ('inquir' in creator_note.lower() or 'sale' in creator_note.lower()) else ''}
+
+PERFORMANCE CALIBRATION:
+- For B2B/professional content: 90k views = HIGHLY SUCCESSFUL
+- For entertainment: 90k views = moderate
+- If creator mentions "inquiries" or "sales" = SUCCESS regardless of views
 
 AUDIO CONTEXT:
 {f"Speech detected: {transcript_text}" if has_speech else f"Non-speech audio: {audio_type_info.get('likely_sound_source', 'ambient sounds')} (based on visual activity)"}
@@ -478,238 +487,83 @@ AUDIO CONTEXT:
 VISUAL CONTENT (frames - what's SHOWN/WRITTEN):
 {frames_summaries_text}
 
-VISUAL ANALYSIS:
-- Content type: {visual_content_analysis.get('content_type', 'general')}
-- Satisfaction score: {visual_content_analysis.get('satisfaction_analysis', {}).get('satisfaction_score', 0)}/5
-- Visual narrative: {visual_content_analysis.get('visual_promise_delivery', {}).get('narrative_strength', 'unknown')}
-
-{video_type_context}
-
 {knowledge_section}
 
-COMPREHENSIVE ANALYSIS INSTRUCTIONS:
-{f"Since this went VIRAL, identify the EXACT psychological triggers and viral mechanics." if performance_level == 'viral' else "Identify opportunities for this specific video that can help improve based on or inspired by proven patterns. Give 2-3 ideas and examples. Instead of saying something like 'enhance visual storytelling' explain to them how they might do that thing and provide strong examples"}
-
-
-#### View Count Context Matters
-**DO NOT judge sales or conversion videos by entertainment metrics!**
-
-**Entertainment Content:**
-- 10K views = Low
-- 100K views = Moderate  
-- 500K+ views = Good
-- 1M+ views = Viral
-
-**B2B/Service Provider Content:**
-- 10K views = Solid
-- 50K views = Excellent
-- 90K+ views = HIGHLY SUCCESSFUL
-- 200K+ views = Exceptional
-
-**WHY THE DIFFERENCE:**
-B2B content with 90K views generating multiple inquiries is worth more than entertainment content with 1M views generating nothing. ALWAYS consider:
-- Niche size (designers vs general public)
-- Conversion value (one client = $5-50K)
-- Business impact (inquiries, not just views)
-
-BUT there is also a world where a video MEANT to sell only amassed many views and didn't generate sales. We need to explain in the output why this happened and what sales psychology tactics are missing and then HOW to implement them.
-
-**IF A VIDEO SEEMS TO BE ABOUT ANY TYPE OF SELLING/SERVICE/PRODUCT**
-START WITH: "This video achieved strong performance because..."
-NOT: "This video shows potential but..."
-IDENTIFY: What psychological triggers drove success
-
-For videos with 50K+ views in B2C/B2B/service niches:
-Trust building
-Objection handling
-Authority demonstration
-Problem-solving display
-
-THEN SUGGEST: Amplifications to go even bigger
-
-"To reach 200K+, consider..."
-"To maximize inquiries, add..."
-"To increase conversion, include..."
-
-### NICHE-SPECIFIC VIEW EXPECTATIONS
-
-**Design/Creative Services:**
-- 20K views = Good
-- 50K views = Excellent
-- 90K+ views = Outstanding
-
-**Consulting/Coaching:**
-- 10K views = Good
-- 30K views = Excellent
-- 50K+ views = Outstanding
-
-**Real Estate/Local Services:**
-- 5K views = Good
-- 20K views = Excellent
-- 40K+ views = Outstanding
-
-**E-commerce/Products:**
-- 50K views = Good
-- 200K views = Excellent
-- 500K+ views = Outstanding
-
-### CRITICAL REMINDERS
-
-1. **90K views generating business = MASSIVE SUCCESS**
-2. **One inquiry worth $10K > 100K views worth $0**
-3. **Trust-building > Entertainment for B2B**
-4. **Process content > Portfolio content for conversion**
-5. **Vulnerability = Relatability = Inquiries**
-
-
-1. FIRST 3 SECONDS BREAKDOWN:
-   - Frame by frame: What EXACTLY appears and why was it successful or unsuccessful?
-   - What EXACT texts on the screen are shown (from frames, not transcript)?
-   - What's the audio (speech from transcript, or {audio_type_info.get('likely_sound_source', 'sounds')})?
-   - Is there a visual hooks grab attention? If so, what?
-   - Rate the hook strength and explain WHY while educating on how to improve or how to replicate if its already good.
-
-2. PERFORMANCE MECHANICS:
-   {f"- What specific elements made this shareable?{chr(10)}   - What psychological triggers drove the viral spread?{chr(10)}   - How did it tap into platform algorithms?{chr(10)}   - What made people watch to completion?" if performance_level == 'viral' else f"- What's preventing viral growth?{chr(10)}   - Which psychological triggers are missing?{chr(10)}   - How could platform algorithms be better leveraged?{chr(10)}   - Where do viewers likely drop off?"}
-
-3. CONTENT STRUCTURE ANALYSIS:
-   - Hook mechanism (0-3s): How does it stop scrolling?
-   - Promise delivery (3-10s): What value is promised?
-   - Retention mechanics (middle): What keeps viewers?
-   - Payoff (end): How does it satisfy or create sharing impulse?
-
-4. AUDIO-VISUAL INTEGRATION:
-   - How does {audio_type_info.get('audio_description', 'the audio')} enhance the visual content?
-   - Are sounds and visuals synchronized effectively?
-   - Does the audio-visual combination create satisfaction?
-
-5. PATTERN MATCHING:
-   - Which proven patterns from the knowledge base apply?
-   - How well does it execute these patterns?
-   - What patterns could be better implemented?
-   
-MANDATORY: Every formula and hook suggestion MUST include:
-1. A specific example INSPIRED BY the knowledge base, no need to adhere too strictly as long as it fits the criteria for a strong hook
-2. How to adapt it to either the same niche or 'audience'
-3. The exact psychological principles it leverages
-4. Expected performance metrics based on similar content
-
-Example output format:
-"Hook 1 - Controversial angle: 'Your skincare routine is aging you faster (here's why)' 
-- Adaptation: For fitness: 'Your workouts are making you weaker', For cooking: 'Your healthy meals are nutrient-dead'
-- Psychology: Challenges existing beliefs, creating cognitive dissonance that demands resolution
-- Expected CTR: 2.3x baseline based on controversial hook performance"
-
-Example output format for formulas:
-This video would do well being readapted to [recommended formula]. Here is how I'd do it for maximum success in [goal]:
-[reformat video into recommended video format based off your experise and the supporting knowledge]
-
-Respond in JSON with DEEP, SPECIFIC insights:
+Respond in this EXACT JSON structure with conversational, educational insights:
 
 {{
-  "analysis": "{f'This video achieved viral status because...' if performance_level == 'viral' else 'This video shows potential but...'} [2-3 paragraphs of DEEP psychological and structural analysis. Explain the WHY behind everything. Reference specific moments. Note that audio is {audio_type_info.get('audio_description', 'ambient')} not random animal sounds.]",
+  "what_this_video_is": "This is a [specific formula/pattern] video that [explain the core idea/hook/appeal in plain language]. It works because [specific psychological reason explained simply].",
   
-  "viral_mechanics": "{f'Here are the specific viral triggers: ' if performance_level == 'viral' else 'To achieve viral potential: '}[Detailed explanation of psychological mechanisms, sharing triggers, algorithm optimization]",
+  "why_it_performed": "This video got {view_count if view_count else 'these views'} because [specific elements that drove performance]. The main psychological trigger is [explain in simple terms]. Viewers stayed because [reason]. It attracted [specific audience] who [why they engaged].",
+  
+  "all_hooks_identified": {{
+    "text_hooks": ["Exact text overlay shown: [text]", "Another text element: [text]"],
+    "visual_hooks": ["Visual element that grabs attention: [description]"],
+    "verbal_hooks": ["What's said that hooks: [quote or description]"],
+    "psychological_hooks": ["Mental trigger activated: [explanation]"]
+  }},
   
   "exact_hook_breakdown": {{
-    "first_frame": "0:00 - [EXACTLY what appears in frame 1]",
-    "second_moment": "0:01 - [EXACTLY what happens in second 1]",
-    "third_second": "0:02 - [EXACTLY what occurs by second 3]",
-    "visual_elements": "[Specific visual hooks from frames and how they are or are not effective hooks]",
-    "text_overlays": "[EXACT text shown on screen from frames and how they are or are not effective hooks]",
-    "audio_element": "[{audio_type_info.get('audio_description', 'Audio type')}]",
-    "hook_psychology": "[Deep explanation of why this hook works/doesn't work psychologically]",
+    "first_frame": "0:00 - [EXACTLY what appears]",
+    "second_moment": "0:01 - [What happens]",
+    "third_second": "0:02 - [What occurs]",
+    "visual_elements": "[Visual hooks and their effectiveness]",
+    "text_overlays": "[Text on screen and impact]",
+    "audio_element": "{audio_type_info.get('audio_description', 'Audio type')}",
+    "hook_psychology": "[Why this hook works or doesn't psychologically]",
     "hook_score": [1-10],
-    "hook_reasoning": "[Specific reasoning for the score based on proven patterns]"
+    "hook_reasoning": "[Score reasoning]"
   }},
   
-  "performance_deep_dive": "{f'With {view_count}, this demonstrates...' if view_count else 'The performance indicates...'}[3-4 sentences explaining the specific reasons for this performance level, referencing actual content elements, video retention principles, and psychological principles. Explain specific examples that can be applied to improve the video's performance that are specific to the video's context itself. Explain why this the examples would help improve the video in terms of psychological principles and viewer retention.]",
-  
-  "content_type_analysis": {{
-    "detected_type": "{visual_content_analysis.get('content_type', 'general')}",
-    "audio_type": "{audio_type_info.get('audio_description', 'unknown')}",
-    "visual_satisfaction": {visual_content_analysis.get('satisfaction_analysis', {}).get('satisfaction_score', 0)},
-    "narrative_structure": "{visual_content_analysis.get('visual_promise_delivery', {}).get('narrative_strength', 'unknown')}",
-    "type_specific_insights": "[Insights specific to this content type]"
-  }},
-  
-  "psychological_breakdown": {{
-    "emotional_triggers": ["List specific emotions triggered and when"],
-    "curiosity_mechanisms": ["How curiosity gaps are created"],
-    "satisfaction_points": ["Where viewers get satisfaction"],
-    "sharing_psychology": ["Why people would/wouldn't share this"]
-  }},
-  
-  "audio_visual_analysis": {{
-    "audio_interpretation": "{audio_type_info.get('audio_description', 'ambient sounds')}",
-    "visual_audio_sync": "[How well audio matches visual activity]",
-    "enhancement_effect": "[How audio enhances or detracts from visuals]",
-    "satisfaction_contribution": "[Does audio add to satisfaction?]"
-  }},
-  
-
-  "hooks":[
-    "[Specific controversial statement that challenges common beliefs, like 'Everyone's doing skincare wrong and here's proof' but adapt for this specific video's context]",
-    "[Relatable personal angle like 'The night routine that fixed my skin after trying everything'( but adapt for this specific video's context)]",
-    "[Create specific mystery like 'The 3 products dermatologists use but never talk about' ( but adapt for this specific video's context)]",
-    "[Unexpected opening like starting mid-action with 'Wait, don't wash your face yet' ( but adapt for this specific video's context)]",
-    "[Leverage authority like 'This routine gave me glass skin in 2 weeks (with receipts)'but adapt for this specific video's context] "
+  "replication_formula": {{
+    "formula_name": "The [Name] Formula",
+    "structure": "0-Xs: [what to do], X-Ys: [next step], Y-Zs: [final step]",
+    "scenarios_for_same_niche": [
+      "[Specific scenario 1 for their niche]",
+      "[Specific scenario 2 for their niche]"
     ],
-
-
-"improvement_opportunities": "[SPECIFIC improvements with examples like: 'Add text overlay at 0:02 saying exactly [suggested text]. Show [suggested object] to the screen in the first 3 seconds. [Anything else that would help the video improve with getting more views and longer watch time]",
+    "why_it_works": "This formula works because [psychological explanation in simple terms]",
+    "text_template": "Use text like: '[specific template they can copy]'",
+    "visual_requirements": "Show [specific visuals needed]"
+  }},
+  
+  "improvements": "To make this even stronger: [specific actionable improvement 1]. [Specific improvement 2]. This could push views to [realistic projection] because [reason].",
+  
+  "viral_mechanics": "{'This went viral because: ' if performance_level == 'viral' else 'To go viral: '}[Explain specific viral triggers and mechanics in plain language]",
   
   "scores": {{
-    "hook_strength": [1-10 based on actual effectiveness],
-    "promise_clarity": [1-10 based on value proposition],
-    "retention_design": [1-10 based on completion likelihood],
-    "engagement_potential": [1-10 based on interaction drivers],
-    "viral_potential": [1-10 based on sharing likelihood],
-    "satisfaction_delivery": [1-10 based on viewer satisfaction],
-    "goal_alignment": [1-10 based on achieving {goal}]
+    "hook_strength": [1-10],
+    "promise_clarity": [1-10],
+    "retention_design": [1-10],
+    "engagement_potential": [1-10],
+    "viral_potential": [1-10],
+    "satisfaction_delivery": [1-10],
+    "goal_alignment": [1-10]
   }},
   
   "timing_mastery": {{
-    "0-1s": "[Exact content + psychological impact + audio element]",
-    "1-3s": "[Exact content + viewer state + audio-visual sync]",
-    "3-7s": "[Development + emotional journey + satisfaction building]",
-    "7-15s": "[Core value + retention mechanics + audio role]",
-    "15s+": "[Resolution + sharing trigger + completion satisfaction]"
+    "0-1s": "[What happens and impact]",
+    "1-3s": "[Content and viewer state]",
+    "3-7s": "[Development and engagement]",
+    "7-15s": "[Core value delivery]",
+    "15s+": "[Resolution and sharing trigger]"
   }},
   
-  "formulas": {{
-    "quick_formula": "[1-sentence replication guide]",
-    "detailed_formula": "[Step-by-step breakdown with timing: 0-3s: Do X to create Y effect, 3-7s: Show Z to maintain attention...]",
-    "script_template": "[Complete fill-in-the-blank script: 'Start with [your controversial statement about your niche]. At 0:03 show [your transformation moment]. At 0:07 say [your credibility marker]...']",
-    "psychology_formula": "[Deep psychological framework: Use curiosity gap by withholding [specific info] until [timestamp], trigger completion desire by showing [incomplete action] at [timestamp]...]",
-    "example_adaptation": "[Concrete example with recommended improved formula in same niche. Include example script using improved hook, improved 3-7 seconds, using the improved formula. Explain why this will work better for the given goal.]"
-    }},
-  
-  "improvement_opportunities": "{f'Even this viral video could improve by: ' if performance_level == 'viral' else 'Key improvements: '}[Specific, actionable improvements with psychological reasoning]",
-  
-  "performance_prediction": "{f'This video succeeded because: ' if performance_level == 'viral' else 'With improvements, this could achieve: '}[Specific prediction with reasoning]",
+  "performance_prediction": "{'This succeeded because: ' if performance_level == 'viral' else 'With improvements, this could achieve: '}[Specific prediction with reasoning]",
   
   "knowledge_patterns_applied": [
-    "[Pattern 1 from knowledge base]: [How it applies to this video]",
-    "[Pattern 2 from knowledge base]: [Specific implementation]",
-    "[Pattern 3 from knowledge base]: [Opportunity or execution]"
-  ],
-  
-  "replication_framework": {{
-    "core_principles": "[What makes this replicable or how can we adjust to make it better]",
-    "adaptation_guide": "[How to apply to different niches]",
-    "success_factors": "[Critical elements to maintain or improve for more virality or retention]",
-    "common_mistakes": "[What to avoid when replicating or what was in this video that needs to be taken out to improve next time]"
-  }}
+    "[Pattern from knowledge]: [How it applies]",
+    "[Another pattern]: [Implementation]"
+  ]
 }}
 
-CRITICAL: 
-- Provide DEEP insights, not surface observations
-- Explain the WHY behind everything
-- Reference specific moments from the video
-- Correctly identify audio as {audio_type_info.get('audio_description', 'activity sounds')} not random animal noises
-- Make it actionable and educational
-- Adapt to the specific content type detected
+CRITICAL INSTRUCTIONS:
+- Write conversationally like explaining to a friend
+- Use specific examples they can visualize
+- Explain psychology in simple terms
+- Be encouraging about successes
+- Be specific about improvements
+- NO JARGON or academic language
 """
 
     try:
@@ -1023,6 +877,13 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'frames_per_minute': int(form_data.get('frames_per_minute', 24)),
         'cap': int(form_data.get('cap', 60)),
         'scene_threshold': float(form_data.get('scene_threshold', 0.24)),
+
+        # New conversational fields
+        'what_this_video_is': gpt_result.get('what_this_video_is', ''),
+        'why_it_performed': gpt_result.get('why_it_performed', ''),
+        'all_hooks_identified': gpt_result.get('all_hooks_identified', {}),
+        'replication_formula': gpt_result.get('replication_formula', {}),
+        'improvements': gpt_result.get('improvements', gpt_result.get('improvement_opportunities', '')),
         
         # Frame and file data
         'frames_count': len(frame_paths) if frame_paths else 0,

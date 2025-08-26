@@ -311,27 +311,91 @@
         <span class="meta-tag">{{ platform.title() }}</span>
         <span class="meta-tag">{{ target_duration }}s video</span>
         <span class="meta-tag">Goal: {{ goal.replace('_', ' ').title() }}</span>
-        {% if content_type_detected %}
-        <span class="meta-tag">Type: {{ content_type_detected.replace('_', ' ').title() }}</span>
+        {% if actual_view_count %}
+        <span class="meta-tag">{{ actual_view_count }} views</span>
         {% endif %}
-        {% if creator_note and 'million' in creator_note.lower() %}
+        {% if performance_level == 'viral' %}
         <span class="meta-tag">🔥 Viral Content</span>
         {% endif %}
       </div>
     </div>
 
-    <!-- Performance Scores with Explanations -->
+    <!-- What This Video Is -->
+    <div class="section">
+      <h2>🎬 What This Video Is</h2>
+      <p>{{ what_this_video_is or analysis }}</p>
+    </div>
+
+    <!-- Why It Performed -->
+    <div class="section">
+      <h2>📈 Why It Performed This Way</h2>
+      <p>{{ why_it_performed or performance_deep_dive }}</p>
+    </div>
+
+    <!-- All Hooks Identified -->
+    <div class="section">
+      <h2>🎣 All Hooks Identified</h2>
+      
+      {% if all_hooks_identified %}
+      <div class="hook-element">
+        <div class="hook-label">📝 TEXT HOOKS</div>
+        {% for hook in all_hooks_identified.text_hooks %}
+        <p>• {{ hook }}</p>
+        {% endfor %}
+      </div>
+      
+      <div class="hook-element">
+        <div class="hook-label">👁️ VISUAL HOOKS</div>
+        {% for hook in all_hooks_identified.visual_hooks %}
+        <p>• {{ hook }}</p>
+        {% endfor %}
+      </div>
+      
+      <div class="hook-element">
+        <div class="hook-label">🔊 VERBAL HOOKS</div>
+        {% for hook in all_hooks_identified.verbal_hooks %}
+        <p>• {{ hook }}</p>
+        {% endfor %}
+      </div>
+      
+      <div class="hook-element">
+        <div class="hook-label">🧠 PSYCHOLOGICAL HOOKS</div>
+        {% for hook in all_hooks_identified.psychological_hooks %}
+        <p>• {{ hook }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Replication Formula -->
+    <div class="section">
+      <h2>📋 How to Replicate This Formula</h2>
+      
+      {% if replication_formula %}
+      <div class="formula-box">
+        <h3>{{ replication_formula.formula_name }}</h3>
+        <p><strong>Structure:</strong> {{ replication_formula.structure }}</p>
+        
+        <h4>Scenarios for Your Niche:</h4>
+        <ul>
+          {% for scenario in replication_formula.scenarios_for_same_niche %}
+          <li>{{ scenario }}</li>
+          {% endfor %}
+        </ul>
+        
+        <p><strong>Why It Works:</strong> {{ replication_formula.why_it_works }}</p>
+        <p><strong>Text Template:</strong> {{ replication_formula.text_template }}</p>
+        <p><strong>Visual Requirements:</strong> {{ replication_formula.visual_requirements }}</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Performance Scores -->
     <div class="scores-section">
       <h2>📊 Performance Breakdown</h2>
       {% if creator_note %}
-      <div class="warning-box">
+      <div class="info-box">
         <strong>Your Context:</strong> {{ creator_note }}
-      </div>
-      {% endif %}
-      
-      {% if content_type_detected %}
-      <div class="content-type-badge {% if 'viral' in content_type_detected %}viral{% elif 'visual' in content_type_detected %}visual{% endif %}">
-        Content Type: {{ content_type_detected.replace('_', ' ').title() }}
       </div>
       {% endif %}
       
@@ -363,225 +427,52 @@
       </div>
     </div>
 
-    <!-- Main Analysis -->
+    <!-- Improvements -->
     <div class="section">
-      <h2>🎬 What's Happening & Why It Works</h2>
-      <p>{{ analysis }}</p>
-      
-      {% if video_type_analysis %}
-      <h3>Content Type Analysis:</h3>
-      <p>{{ video_type_analysis }}</p>
-      {% endif %}
+      <h2>💡 Improvements</h2>
+      <p>{{ improvements or improvement_opportunities }}</p>
     </div>
 
-    <!-- Performance Analysis -->
-    {% if performance_analysis %}
+    <!-- Viral Mechanics -->
     <div class="section">
-      <h2>📈 Performance Analysis</h2>
-      <p>{{ performance_analysis }}</p>
-    </div>
-    {% endif %}
-
-    <!-- Viral Audio Analysis (if detected) -->
-    {% if viral_audio_analysis and viral_audio_analysis.is_viral_sound %}
-    <div class="section">
-      <h2>🎵 Viral Audio Analysis</h2>
-      <div class="viral-audio-box">
-        <h3>🔊 Viral Sound Detected!</h3>
-        <p><strong>Audio Type:</strong> {{ viral_audio_analysis.audio_source or "Trending/Viral Audio" }}</p>
-        
-        {% if viral_audio_analysis.audio_visual_timing %}
-        <h3>⏱️ Audio-Visual Timing Breakdown:</h3>
-        <div class="viral-audio-timing">
-          {% if viral_audio_analysis.audio_visual_timing.setup_moment %}
-          <div class="timing-moment">
-            <div class="timing-label">Setup:</div>
-            <div class="timing-content">{{ viral_audio_analysis.audio_visual_timing.setup_moment }}</div>
-          </div>
-          {% endif %}
-          
-          {% if viral_audio_analysis.audio_visual_timing.build_moment %}
-          <div class="timing-moment">
-            <div class="timing-label">Build:</div>
-            <div class="timing-content">{{ viral_audio_analysis.audio_visual_timing.build_moment }}</div>
-          </div>
-          {% endif %}
-          
-          {% if viral_audio_analysis.audio_visual_timing.payoff_moment %}
-          <div class="timing-moment">
-            <div class="timing-label">Payoff:</div>
-            <div class="timing-content">{{ viral_audio_analysis.audio_visual_timing.payoff_moment }}</div>
-          </div>
-          {% endif %}
-        </div>
-        {% endif %}
-        
-        {% if viral_audio_analysis.viral_mechanics %}
-        <h3>🎯 Why This Works:</h3>
-        <p>{{ viral_audio_analysis.viral_mechanics }}</p>
-        {% endif %}
-        
-        {% if viral_audio_analysis.replication_potential %}
-        <h3>🔄 Replication Potential:</h3>
-        <p>{{ viral_audio_analysis.replication_potential }}</p>
-        {% endif %}
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Standard Content Analysis (if not viral audio) -->
-    {% if content_analysis and content_analysis.key_insights %}
-    <div class="section">
-      <h2>🎯 Content-Specific Insights</h2>
-      <p><strong>Content Type:</strong> {{ content_analysis.type or audio_type_detected }}</p>
-      <p>{{ content_analysis.key_insights }}</p>
-      
-      {% if content_analysis.optimization_opportunities %}
-      <h3>Optimization Opportunities:</h3>
-      <p>{{ content_analysis.optimization_opportunities }}</p>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- Exact Hook Breakdown -->
-    <div class="section">
-      <h2>🎣 The First 3 Seconds - Exact Breakdown</h2>
-      
-      {% if exact_hook_breakdown %}
-      <div class="info-box">
-        <h3>Second-by-Second:</h3>
-        {% if exact_hook_breakdown.first_second %}
-        <p><strong>{{ exact_hook_breakdown.first_second }}</strong></p>
-        {% endif %}
-        {% if exact_hook_breakdown.second_second %}
-        <p><strong>{{ exact_hook_breakdown.second_second }}</strong></p>
-        {% endif %}
-        {% if exact_hook_breakdown.third_second %}
-        <p><strong>{{ exact_hook_breakdown.third_second }}</strong></p>
-        {% endif %}
-      </div>
-      
-      <div class="hook-element">
-        <div class="hook-label">👁️ VISUAL HOOK</div>
-        <p>{{ exact_hook_breakdown.visual_hook or visual_hook or "Visual elements that grab attention" }}</p>
-      </div>
-      
-      <div class="hook-element">
-        <div class="hook-label">📝 TEXT ON SCREEN</div>
-        <p>{{ exact_hook_breakdown.text_hook or text_hook or "On-screen text analysis" }}</p>
-      </div>
-      
-      <div class="hook-element">
-        <div class="hook-label">🔊 AUDIO/VERBAL HOOK</div>
-        <p>{{ exact_hook_breakdown.audio_hook or verbal_hook or "Audio elements in opening" }}</p>
-      </div>
-      
-      {% if exact_hook_breakdown.why_it_works_or_not %}
-      <h3>Why This Hook Works:</h3>
-      <p>{{ exact_hook_breakdown.why_it_works_or_not }}</p>
-      {% endif %}
-      {% endif %}
-    </div>
-
-    <!-- Engagement Psychology -->
-    <div class="section">
-      <h2>💭 Engagement Psychology</h2>
-      {% if engagement_psychology %}
-      <p>{{ engagement_psychology }}</p>
-      {% endif %}
-    </div>
-
-    <!-- Alternative Hooks -->
-    <div class="section">
-      <h2>🔄 Alternative Hooks That Would Work</h2>
-      <p style="margin-bottom: 20px; color: #666;">Natural hooks for {{ platform }}:</p>
-      
-      {% for hook in hooks %}
-      <div class="hook-item">"{{ hook }}"</div>
-      {% endfor %}
-    </div>
-
-    <!-- Strengths & Improvements -->
-    {% if strengths %}
-    <div class="section">
-      <h2>✨ What's Working Well</h2>
-      <p>{{ strengths }}</p>
-    </div>
-    {% endif %}
-
-    {% if improvement_areas %}
-    <div class="section">
-      <h2>💡 Areas for Improvement</h2>
-      <p>{{ improvement_areas }}</p>
-    </div>
-    {% endif %}
-
-    <!-- Complete Formulas -->
-    <div class="section">
-      <h2>📋 Replication Formulas</h2>
-      
-      {% if improvement_opportunities %}
-      <div class="formula-box">
-        <div class="formula-title">IMRPOVEMENT OPPORTUNITIES</div>
-        <pre>{{ improvement_opportunities }}</pre>
-      </div>
-      {% endif %}
-      
-      {% if timing_mastery %}
-      <div class="formula-box">
-        <div class="formula-title">TIMING MASTERY</div>
-        <pre>{{ timing_mastery }}</pre>
-      </div>
-      {% endif %}
-      
-      {% if viral_mechanics %}
-      <div class="formula-box">
-        <div class="formula-title">VIRAL MECHANICS</div>
-        <pre>{{ viral_mechanics }}</pre>
-      </div>
-      {% endif %}
-      
-      {% if psychology_formula %}
-      <div class="formula-box">
-        <div class="formula-title">📝 STEP-BY-STEP PROCESS</div>
-        <pre>{{ psychology_formula }}</pre>
-      </div>
-      {% endif %}
+      <h2>🚀 Viral Mechanics</h2>
+      <p>{{ viral_mechanics }}</p>
     </div>
 
     <!-- Timing Breakdown -->
-    {% if timing_breakdown %}
+    {% if timing_mastery %}
     <div class="section">
-      <h2>⏰ Full Video Timing Analysis</h2>
-      <pre>{{ timing_breakdown }}</pre>
+      <h2>⏰ Timing Mastery</h2>
+      {% for time, content in timing_mastery.items() %}
+      <div class="timing-moment">
+        <div class="timing-label">{{ time }}</div>
+        <div class="timing-content">{{ content }}</div>
+      </div>
+      {% endfor %}
     </div>
     {% endif %}
 
     <!-- Performance Prediction -->
-    {% if performance_prediction %}
     <div class="section">
       <h2>📊 Performance Prediction</h2>
       <p>{{ performance_prediction }}</p>
-        <pre>{{ example_adaptation }}</pre>
     </div>
-    {% endif %}
 
-    <!-- Knowledge Insights -->
-    {% if knowledge_insights %}
+    <!-- Knowledge Patterns -->
+    {% if knowledge_patterns_applied %}
     <div class="section">
-      <h2>📚 Comparison to Proven Patterns</h2>
-      <p>{{ knowledge_insights }}</p>
+      <h2>📚 Proven Patterns Applied</h2>
+      <ul>
+        {% for pattern in knowledge_patterns_applied %}
+        <li>{{ pattern }}</li>
+        {% endfor %}
+      </ul>
     </div>
     {% endif %}
 
     <!-- Transcript -->
     <div class="section">
       <h2>📝 Transcript</h2>
-      {% if transcript_quality and not transcript_quality.is_reliable %}
-      <div class="warning-box">
-        <strong>Audio Quality:</strong> {{ transcript_quality.quality_reason }}
-      </div>
-      {% endif %}
       <div style="background: #f7fafc; padding: 20px; border-radius: 8px; max-height: 300px; overflow-y: auto;">
         <pre>{{ transcript or "(No verbal content - visual/ambient audio)" }}</pre>
       </div>
@@ -597,17 +488,6 @@
         </div>
         {% endfor %}
       </div>
-      
-      {% if frame_summary %}
-      <details style="margin-top: 25px;">
-        <summary style="cursor: pointer; color: #667eea; font-weight: 600; padding: 10px; background: #f7fafc; border-radius: 8px;">
-          ▶ View Frame-by-Frame Analysis
-        </summary>
-        <div style="background: #f7fafc; padding: 20px; border-radius: 8px; margin-top: 10px; max-height: 400px; overflow-y: auto;">
-          <pre>{{ frame_summary }}</pre>
-        </div>
-      </details>
-      {% endif %}
     </div>
 
     <div class="center">
