@@ -211,13 +211,37 @@ def analyze_audio_with_visual_context(transcript_text, frames_summaries_text):
 
 
 def enhanced_extract_audio_and_frames(tiktok_url, strategy, frames_per_minute, cap, scene_threshold):
-    """Enhanced extraction with validation"""
+    """Enhanced extraction with validation and fallback"""
     try:
         print(f"[INFO] Starting enhanced extraction for {tiktok_url}")
         
         audio_path, frames_dir, frame_paths = extract_audio_and_frames(
             tiktok_url, strategy, frames_per_minute, cap, scene_threshold
         )
+        
+        # If smart strategy yields too few frames, fall back to uniform
+        if strategy == 'smart' and len(frame_paths) < 5:
+            print(f"[WARNING] Smart extraction only got {len(frame_paths)} frames, falling back to uniform")
+            
+            # Get video duration first
+            from processing import probe_duration
+            duration = probe_duration(tiktok_url)
+            
+            # Calculate appropriate frame rate
+            if duration <= 60:
+                frames_per_minute = 30  # Every 2 seconds
+            else:
+                frames_per_minute = 6   # Every 10 seconds
+            
+            # Re-extract with uniform strategy
+            audio_path, frames_dir, frame_paths = extract_audio_and_frames(
+                tiktok_url, 
+                strategy='uniform',
+                frames_per_minute=frames_per_minute,
+                cap=cap,
+                scene_threshold=scene_threshold
+            )
+
         
         # Validate audio
         if not audio_path or not os.path.exists(audio_path):
@@ -1018,6 +1042,7 @@ def process():
         # Get form data
         form_data = {
             'tiktok_url': request.form.get("tiktok_url", "").strip(),
+            'view_count': request.form.get("view_count", "").strip(),
             'creator_note': request.form.get("creator_note", "").strip(),
             'strategy': request.form.get("strategy", "smart").strip(),
             'frames_per_minute': request.form.get("frames_per_minute", "24"),
@@ -1162,23 +1187,43 @@ Key patterns for video analysis:
             view_count = None
             performance_level = 'unknown'
             
-            # Try to extract view count for fallback
-            if form_data['creator_note']:
-                view_patterns = re.findall(r'(\d+\.?\d*)\s*(k|thousand|m|million)', 
-                                         form_data['creator_note'].lower())
+            view_count_raw = form_data['view_count']
+            view_count = None
+            performance_level = 'unknown'
+
+            if view_count_raw:
+                # Parse the view count
+                view_patterns = re.findall(r'(\d+\.?\d*)\s*(k|m|thousand|million)?', view_count_raw.lower())
                 if view_patterns:
-                    number, unit = view_patterns[0]
-                    if unit in ['k', 'thousand']:
-                        view_count = f"{number}k"
-                        performance_level = 'moderate' if float(number) >= 100 else 'low'
-                    elif unit in ['m', 'million']:
-                        view_count = f"{number}M"
-                        performance_level = 'viral'
+                    number, unit = view_patterns[0] if len(view_patterns[0]) == 2 else (view_patterns[0][0], '')
+                    try:
+                        num = float(number)
+                        if unit in ['k', 'thousand']:
+                            view_count = f"{num}k"
+                            performance_level = 'good' if num >= 500 else 'moderate' if num >= 100 else 'low'
+                        elif unit in ['m', 'million']:
+                            view_count = f"{num}M"
+                            performance_level = 'viral'
+                        else:
+                            # Raw number
+                            if num >= 1000000:
+                                view_count = f"{num/1000000:.1f}M"
+                                performance_level = 'viral'
+                            elif num >= 1000:
+                                view_count = f"{num/1000:.1f}k"
+                                performance_level = 'good' if num >= 500000 else 'moderate' if num >= 100000 else 'low'
+                            else:
+                                view_count = f"{int(num)} views"
+                                performance_level = 'low'
+                    except:
+                        pass
+            
             
             gpt_result = create_comprehensive_fallback(
                 transcript_data.get('transcript', ''),
                 frames_summaries_text,
                 form_data['creator_note'],
+                form_data['view_count'],
                 form_data['platform'],
                 form_data['goal'],
                 form_data['audience'],
