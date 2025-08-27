@@ -225,29 +225,14 @@ def enhanced_extract_audio_and_frames(tiktok_url, strategy, frames_per_minute, c
             print(f"[WARNING] Smart extraction only got {len(frame_paths)} frames, falling back to uniform")
             
             try:
-                # Don't call probe_duration directly on URL - use the downloaded video
-                # The video should already be downloaded in the frames_dir
-                import os
-                video_path = None
-                for file in os.listdir(frames_dir) if frames_dir and os.path.exists(frames_dir) else []:
-                    if file.endswith(('.mp4', '.webm')):
-                        video_path = os.path.join(frames_dir, file)
-                        break
-                
-                if not video_path:
-                    # Force re-download with uniform strategy
-                    print("[INFO] Re-downloading video for uniform extraction")
-                    audio_path, frames_dir, frame_paths = extract_audio_and_frames(
-                        tiktok_url, 
-                        strategy='uniform',
-                        frames_per_minute=30,  # Every 2 seconds
-                        cap=60,
-                        scene_threshold=scene_threshold
-                    )
-                else:
-                    # Use existing video file
-                    from processing import extract_frames_uniform
-                    frame_paths = extract_frames_uniform(video_path, frames_per_minute=30, cap=60)
+                # Re-extract with uniform strategy
+                audio_path, frames_dir, frame_paths = extract_audio_and_frames(
+                    tiktok_url, 
+                    strategy='uniform',
+                    frames_per_minute=30,  # Every 2 seconds
+                    cap=60,
+                    scene_threshold=scene_threshold
+                )
                     
             except Exception as e:
                 print(f"[ERROR] Fallback extraction failed: {e}")
