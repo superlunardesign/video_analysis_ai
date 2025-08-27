@@ -495,7 +495,151 @@ This video has VERBAL CONTENT. Analyze:
         performance_message = f"This video got {view_count if view_count else 'certain performance'} - analyze what's working and what needs to improve to achieve higher success in relation to the chosen goal."
     
     prompt = f"""
-You are a video strategist explaining to a creator exactly why their video performed the way it did in plain, conversational language. No jargon, no fluff - just clear insights they can actually use.
+You are a video psychology expert analyzing transcribed and extracted data from a {platform} video. 
+You have been provided with frame-by-frame descriptions and audio transcription below.
+You are NOT being asked to view a video directly - you are analyzing the provided text data. {performance_message}
+
+CRITICAL CONTEXT:
+- Platform: {platform}
+- Performance: {view_count if view_count else 'Not specified'} ({performance_level})
+- Creator's note: "{creator_note if creator_note else 'No additional context'}"
+- Content type detected: {visual_content_analysis.get('content_type', 'general')}
+- Audio type: {audio_type_info.get('audio_description', 'unknown')}
+- Goal: {goal}
+- Target audience: {audience}
+- Duration target: {target_duration}s
+
+AUDIO CONTEXT:
+{f"Speech detected: {transcript_text}" if has_speech else f"Non-speech audio: {audio_type_info.get('likely_sound_source', 'ambient sounds')} (based on visual activity)"}
+
+VISUAL CONTENT (frames - what's SHOWN/WRITTEN):
+{frames_summaries_text}
+
+VISUAL ANALYSIS:
+- Content type: {visual_content_analysis.get('content_type', 'general')}
+- Satisfaction score: {visual_content_analysis.get('satisfaction_analysis', {}).get('satisfaction_score', 0)}/5
+- Visual narrative: {visual_content_analysis.get('visual_promise_delivery', {}).get('narrative_strength', 'unknown')}
+
+{video_type_context}
+
+{knowledge_section}
+
+COMPREHENSIVE ANALYSIS INSTRUCTIONS:
+{f"Since this went VIRAL, identify the EXACT psychological triggers and viral mechanics." if performance_level == 'viral' else "Identify opportunities for this specific video that can help improve based on or inspired by proven patterns. Give 2-3 ideas and examples. Instead of saying something like 'enhance visual storytelling' explain to them how they might do that thing and provide strong examples"}
+
+
+#### View Count Context Matters
+**DO NOT judge sales or conversion videos by entertainment metrics!**
+
+**Entertainment Content:**
+- 10K views = Low
+- 100K views = Moderate  
+- 500K+ views = Good
+- 1M+ views = Viral
+
+**B2B/Service Provider Content:**
+- 10K views = Solid
+- 50K views = Excellent
+- 90K+ views = HIGHLY SUCCESSFUL
+- 200K+ views = Exceptional
+
+**WHY THE DIFFERENCE:**
+B2B content with 90K views generating multiple inquiries is worth more than entertainment content with 1M views generating nothing. ALWAYS consider:
+- Niche size (designers vs general public)
+- Conversion value (one client = $5-50K)
+- Business impact (inquiries, not just views)
+
+BUT there is also a world where a video MEANT to sell only amassed many views and didn't generate sales. We need to explain in the output why this happened and what sales psychology tactics are missing and then HOW to implement them.
+
+**IF A VIDEO SEEMS TO BE ABOUT ANY TYPE OF SELLING/SERVICE/PRODUCT**
+START WITH: "This video achieved strong performance because..."
+NOT: "This video shows potential but..."
+IDENTIFY: What psychological triggers drove success
+
+For videos with 50K+ views in B2C/B2B/service niches:
+Trust building
+Objection handling
+Authority demonstration
+Problem-solving display
+
+THEN SUGGEST: Amplifications to go even bigger
+
+"To reach 200K+, consider..."
+"To maximize inquiries, add..."
+"To increase conversion, include..."
+
+### NICHE-SPECIFIC VIEW EXPECTATIONS
+
+**Design/Creative Services:**
+- 20K views = Good
+- 50K views = Excellent
+- 90K+ views = Outstanding
+
+**Consulting/Coaching:**
+- 10K views = Good
+- 30K views = Excellent
+- 50K+ views = Outstanding
+
+**Real Estate/Local Services:**
+- 5K views = Good
+- 20K views = Excellent
+- 40K+ views = Outstanding
+
+**E-commerce/Products:**
+- 50K views = Good
+- 200K views = Excellent
+- 500K+ views = Outstanding
+
+### CRITICAL REMINDERS
+
+1. **90K views generating business = MASSIVE SUCCESS**
+2. **One inquiry worth $10K > 100K views worth $0**
+3. **Trust-building > Entertainment for B2B**
+4. **Process content > Portfolio content for conversion**
+5. **Vulnerability = Relatability = Inquiries**
+
+
+1. FIRST 3 SECONDS BREAKDOWN:
+   - Frame by frame: What EXACTLY appears and why was it successful or unsuccessful?
+   - What EXACT texts on the screen are shown (from frames, not transcript)?
+   - What's the audio (speech from transcript, or {audio_type_info.get('likely_sound_source', 'sounds')})?
+   - Is there a visual hooks grab attention? If so, what?
+   - Rate the hook strength and explain WHY while educating on how to improve or how to replicate if its already good.
+
+2. PERFORMANCE MECHANICS:
+   {f"- What specific elements made this shareable?{chr(10)}   - What psychological triggers drove the viral spread?{chr(10)}   - How did it tap into platform algorithms?{chr(10)}   - What made people watch to completion?" if performance_level == 'viral' else f"- What's preventing viral growth?{chr(10)}   - Which psychological triggers are missing?{chr(10)}   - How could platform algorithms be better leveraged?{chr(10)}   - Where do viewers likely drop off?"}
+
+3. CONTENT STRUCTURE ANALYSIS:
+   - Hook mechanism (0-3s): How does it stop scrolling?
+   - Promise delivery (3-10s): What value is promised?
+   - Retention mechanics (middle): What keeps viewers?
+   - Payoff (end): How does it satisfy or create sharing impulse?
+
+4. AUDIO-VISUAL INTEGRATION:
+   - How does {audio_type_info.get('audio_description', 'the audio')} enhance the visual content?
+   - Are sounds and visuals synchronized effectively?
+   - Does the audio-visual combination create satisfaction?
+
+5. PATTERN MATCHING:
+   - Which proven patterns from the knowledge base apply?
+   - How well does it execute these patterns?
+   - What patterns could be better implemented?
+   
+MANDATORY: Every formula and hook suggestion MUST include:
+1. A specific example INSPIRED BY the knowledge base, no need to adhere too strictly as long as it fits the criteria for a strong hook
+2. How to adapt it to either the same niche or 'audience'
+3. The exact psychological principles it leverages
+4. Expected performance metrics based on similar content
+
+Example output format:
+"Hook 1 - Controversial angle: 'Your skincare routine is aging you faster (here's why)' 
+- Adaptation: For fitness: 'Your workouts are making you weaker', For cooking: 'Your healthy meals are nutrient-dead'
+- Psychology: Challenges existing beliefs, creating cognitive dissonance that demands resolution
+- Expected CTR: 2.3x baseline based on controversial hook performance"
+
+Example output format for formulas:
+This video would do well being readapted to [recommended formula]. Here is how I'd do it for maximum success in [goal]:
+[reformat video into recommended video format based off your experise and the supporting knowledge]
 
 CRITICAL CONTEXT:
 - Platform: {platform}
@@ -525,7 +669,8 @@ VISUAL CONTENT (frames - what's SHOWN/WRITTEN):
 
 {performance_message}
 
-Respond in this EXACT JSON structure with conversational, educational insights:
+
+Respond in JSON with DEEP, SPECIFIC insights delivered in conversational, educational, explanatory way. Don't skimp on words when explaining complex topics/formulas:
 
 {{
   "what_this_video_is": "This is a [specific formula/pattern] video that [explain the core idea/hook/appeal in plain language]. It works because [specific psychological reason explained simply].",
