@@ -300,8 +300,9 @@
       backdrop-filter: blur(10px);
     }
   </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
-<body>
+<body div id="content-to-pdf">
   <div class="container">
     <!-- Header -->
     <div class="header">
@@ -492,6 +493,32 @@
 
     <div class="center">
       <a href="/" class="back-link">← Analyze Another Video</a>
+<a onclick="generatePdf()" class="back-link" style="background-color:darkturquoise; color:white;">Download These Results ↓</a>
+<script>
+function generatePdf() {
+  const element = document.getElementById('content-to-pdf');
+  if (!element) return console.warn('#content-to-pdf not found');
+
+  const opt = {
+    margin: 0,                                 // or [10,10,10,10]
+    filename: 'analyzed_video.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: {
+      scale: 1,          // sharper text; adjust if file too big
+      scrollY: 0,        // prevents extra whitespace from page scroll
+      windowWidth: element.scrollWidth // capture full element width
+    },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: {
+      mode: ['avoid-all','css','legacy'] // respect .no-break / .page-break
+    }
+  };
+
+  // IMPORTANT: pass the *element* (not "canvas")
+  html2pdf().from(element).set(opt).save();
+}
+</script>
+
     </div>
   </div>
 </body>
