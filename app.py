@@ -390,8 +390,9 @@ def create_visual_content_description(frames_summaries_text, audio_context=None)
 # MAIN ANALYSIS FUNCTION - COMPREHENSIVE & ADAPTIVE
 # ==============================
 
-def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context):
+def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown'):
     """Comprehensive analysis that adapts to ALL video types with deep insights"""
+
     
     # First analyze frames to understand visual content
     visual_content_analysis = create_visual_content_description(frames_summaries_text)
@@ -410,44 +411,34 @@ def run_main_analysis(transcript_text, frames_summaries_text, creator_note, plat
     if creator_note:
         note_lower = creator_note.lower()
         
-        # Extract view count if mentioned (improved regex)
-        view_patterns = re.findall(r'(\d+\.?\d*)\s*(k|thousand|m|million|views)?', note_lower)
-        if view_patterns:
-            for pattern in view_patterns:
-                number = pattern[0]
+        # USE PASSED-IN VIEW COUNT (don't re-parse)
+if not view_count and creator_note:
+    # Only parse from creator_note if view_count wasn't provided
+    note_lower = creator_note.lower().replace(',', '').strip()
+    view_patterns = re.findall(r'(\d+\.?\d*)\s*(k|thousand|m|million|views)?', note_lower)
+    if view_patterns:
+        for pattern in view_patterns:
+            try:
+                num = float(pattern[0])
                 unit = pattern[1] if len(pattern) > 1 else ''
-                try:
-                    num = float(number)
-                    if unit in ['k', 'thousand']:
-                        view_count = f"{num}k"
-                        if num >= 500:
-                            performance_level = 'good'
-                        elif num >= 100:
-                            performance_level = 'moderate'
-                        else:
-                            performance_level = 'low'
-                    elif unit in ['m', 'million']:
-                        view_count = f"{num}M"
-                        performance_level = 'viral'
-                    elif unit == 'views' or (num >= 1000 and not unit):
-                        # Plain number with 'views' or large number without unit
-                        if num >= 1000000:
-                            view_count = f"{num/1000000:.1f}M"
-                            performance_level = 'viral'
-                        elif num >= 1000:
-                            view_count = f"{num/1000:.0f}k"
-                            if num >= 500000:
-                                performance_level = 'good'
-                            elif num >= 100000:
-                                performance_level = 'moderate'
-                            else:
-                                performance_level = 'low'
-                        else:
-                            view_count = f"{int(num)} views"
-                            performance_level = 'low'
-                    break  # Use first valid pattern found
-                except:
-                    continue
+                if unit in ['k', 'thousand']:
+                    view_count = f"{num}k"
+                    performance_level = 'good' if num >= 500 else 'moderate' if num >= 100 else 'low'
+                    break
+                elif unit in ['m', 'million']:
+                    view_count = f"{num}M"
+                    performance_level = 'viral'
+                    break
+                elif num >= 1000000:
+                    view_count = f"{num/1000000:.1f}M"
+                    performance_level = 'viral'
+                    break
+                elif num >= 1000:
+                    view_count = f"{num/1000:.0f}k"
+                    performance_level = 'good' if num >= 500000 else 'moderate' if num >= 100000 else 'low'
+                    break
+            except ValueError:
+                continue
     
     # Build knowledge section
     knowledge_section = ""
