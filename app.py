@@ -1239,42 +1239,65 @@ def process():
             'audience': request.form.get("audience", "creators and small business owners").strip(),
         }
         
-        # Parse view count immediately (improved parsing)
-        view_count = None
-        performance_level = 'unknown'
-        view_count_input = form_data.get('view_count', '') or form_data.get('creator_note', '')
-        
-        if view_count_input:
-            # Extract numbers with units (improved regex)
-            import re
-            patterns = re.findall(r'(\d+\.?\d*)\s*(k|m|thousand|million)?', view_count_input.lower())
-            if patterns:
-                for pattern in patterns:
-                    number = float(pattern[0])
-                    unit = pattern[1] if len(pattern) > 1 else ''
-                    
-                    if unit in ['k', 'thousand']:
-                        view_count = f"{number}k"
-                        performance_level = 'good' if number >= 500 else 'moderate' if number >= 100 else 'low'
-                        break
-                    elif unit in ['m', 'million']:
-                        view_count = f"{number}M"
-                        performance_level = 'viral'
-                        break
+       # Replace this section in app.py around line 680-710
+
+# Parse view count immediately (fixed parsing)
+view_count = None
+performance_level = 'unknown'
+view_count_input = form_data.get('view_count', '') or form_data.get('creator_note', '')
+
+if view_count_input:
+    # Extract numbers with units (fixed regex to handle commas)
+    import re
+    
+    # First, clean the input and look for patterns
+    clean_input = view_count_input.lower().replace(',', '').strip()
+    
+    # Updated regex to handle various formats
+    patterns = re.findall(r'(\d+\.?\d*)\s*(k|m|thousand|million|views)?', clean_input)
+    
+    if patterns:
+        for pattern in patterns:
+            try:
+                number = float(pattern[0])
+                unit = pattern[1] if len(pattern) > 1 else ''
+                
+                print(f"[DEBUG] Parsed: number={number}, unit='{unit}' from input '{view_count_input}'")
+                
+                if unit in ['k', 'thousand']:
+                    view_count = f"{number}k"
+                    if number >= 500:
+                        performance_level = 'good'
+                    elif number >= 100:
+                        performance_level = 'moderate'
                     else:
-                        # Plain number
-                        if number >= 1000000:
-                            view_count = f"{number/1000000:.1f}M"
-                            performance_level = 'viral'
-                        elif number >= 1000:
-                            view_count = f"{number/1000:.0f}k"
-                            performance_level = 'good' if number >= 500000 else 'moderate' if number >= 100000 else 'low'
+                        performance_level = 'low'
+                    break
+                elif unit in ['m', 'million']:
+                    view_count = f"{number}M"
+                    performance_level = 'viral'
+                    break
+                else:
+                    # Plain number - handle both with and without 'views'
+                    if number >= 1000000:
+                        view_count = f"{number/1000000:.1f}M"
+                        performance_level = 'viral'
+                    elif number >= 1000:
+                        view_count = f"{number/1000:.0f}k"
+                        if number >= 500000:
+                            performance_level = 'good'
+                        elif number >= 100000:
+                            performance_level = 'moderate'
                         else:
-                            view_count = f"{int(number)} views"
                             performance_level = 'low'
-                        break
-        
-        print(f"[INFO] Parsed view count: {view_count} (Performance: {performance_level})")
+                    else:
+                        view_count = f"{int(number)} views"
+                        performance_level = 'low'
+                    break
+            except ValueError:
+                continue
+    
+    print(f"[INFO] Final parsed view count: {view_count} (Performance: {performance_level})")
         
         # Validate numeric parameters
         try:
