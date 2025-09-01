@@ -589,7 +589,7 @@ THEN SUGGEST: Amplifications to go even bigger
    - Frame by frame: What EXACTLY appears and why was it successful or unsuccessful?
    - What EXACT texts on the screen are shown (from frames, not transcript)? DO NOT MAKE UP TEXT ELEMENTS THAT ARE NOT IN ANY FRAMES.
    - What's the audio (speech from transcript, or {audio_type_info.get('likely_sound_source', 'sounds')})?
-   - Is there a visual hooks grab attention? If so, what?
+   - Is there a visual hooks grab attention? If so, what? Why did it work?
    - Rate the hook strength and explain WHY while educating on how to improve or how to replicate if its already good.
 
 2. PERFORMANCE MECHANICS:
@@ -597,7 +597,7 @@ THEN SUGGEST: Amplifications to go even bigger
 
 3. CONTENT STRUCTURE ANALYSIS:
    - Hook mechanism (0-3s): How does it stop scrolling?
-   - Promise delivery (3-10s): What value is promised?
+   - Promise delivery (3-10s): What, is anything, is promised or an implied promise?
    - Retention mechanics (middle): What keeps viewers?
    - Payoff (end): How does it satisfy or create sharing impulse?
 
@@ -659,7 +659,7 @@ VISUAL CONTENT (frames - what's SHOWN/WRITTEN):
 Respond in JSON with DEEP, SPECIFIC insights delivered in conversational, educational, explanatory way. Don't skimp on words when explaining complex topics/formulas:
 
 {{
-  "what_this_video_is": "This is a [specific formula/pattern] video that [explain the core idea/hook/appeal in eduaction, explanatory, and easy to understand language.]. It works because [specific psychological reason explained in a moment by moment breakdown. If there are specific things that work to improve the video's retention, selling, intrigue, then point each of them out at the second they are playing and explain why they worked to improve that and if you see frames where something could have been done instead to increase retention, selling, or intrigue, then mention what could have been done in an explanatory way.].",
+  "what_this_video_is": "This is a [specific formula/pattern] video that [explain the core idea/hook/appeal in eduaction, explanatory, and easy to understand language.]. It works because [specific psychological reason explained in a moment by moment breakdown. Explain what hook likely worked best or why layered hooks works, explain for each. Explain what the promise was and why people wanted to stay. Explained what tension built as the video went on. Explain why the promise delivery did or didn't satisfy. If there are specific things that work to improve the video's retention, selling, intrigue, then point each of them out at the second they are playing and explain why they worked to improve that and if you see frames where something could have been done instead to increase retention, selling, or intrigue, then mention what could have been done in an explanatory way.].",
   
   "why_it_performed": "This video got {view_count if view_count else 'these views'} because [specific elements that drove performance. Point out each one and exlpain why it generated the views. For good, you should be pointing out the hook, the promise, what kept people watching, and what was satisfying. for bad, explain how the hook, promise, or delivery did not perform well and specific ways they can improve to increase the desired outcome]. The main psychological trigger is [explain in simple terms]. Viewers stayed because [reason]. It attracted [specific audience] who [why they engaged].",
   
