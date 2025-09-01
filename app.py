@@ -1398,7 +1398,9 @@ Key patterns for video analysis:
                 form_data['goal'],
                 form_data['tone'],
                 form_data['audience'],
-                knowledge_context
+                knowledge_context,
+                view_count,
+                performance_analysis,
             )
             
             # Add transcript quality info and view data
