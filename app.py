@@ -76,7 +76,7 @@ def _api_retry(callable_fn, *args, **kwargs):
 def analyze_audio_with_visual_context(transcript_text, frames_summaries_text):
     """
     Intelligently analyze audio by considering visual context
-    Don't assume random sounds - correlate with what's happening visually
+    Don't assume random sounds - correlate with what's happening visually. some transcripts may actually be songs or trending quotes from movies, tv shows, or other viral videos. determine what type of sound this is.
     """
     
     has_meaningful_speech = False
@@ -460,11 +460,12 @@ DEEP ANALYSIS REQUIREMENTS:
 1. EXPLAIN THE PSYCHOLOGY: Why does each element work or not work?
 2. REFERENCE PROVEN PATTERNS: Connect to specific patterns from the knowledge base
 3. BE SPECIFIC: Analyze EXACTLY what happens in THIS video, not generic observations
-4. DISTINGUISH CONTENT TYPES: Clearly identify what's spoken vs what's shown vs what's written
+4. DISTINGUISH CONTENT TYPES: Clearly differentiate and identify what's spoken vs what's shown vs what's written
 5. PERFORMANCE REASONING: Explain WHY this got {view_count if view_count else 'its current'} views
 6. ACTIONABLE INSIGHTS: Provide specific, implementable improvements
 7. TIMING PRECISION: Break down what happens at each second marker
 8. HANDLE ALL VIDEO TYPES: Visual-only, speech, viral audio, tutorials, transformations, etc.
+9. CONSIDER CREATOR NOTES. IF QUESTIONS OR REQUESTS ARE MADE, HONOR THEM. IF CONTEXT IS PROVIDED, CONSIDER IT WITH YOUR ANALYSIS.
 """
 
     # Adapt prompt based on video type
@@ -482,10 +483,11 @@ Focus analysis on:
     else:
         video_type_context = """
 This video has VERBAL CONTENT. Analyze:
-- How verbal and visual elements work together
+- How verbal (froms transcript) and visual elements work together
 - Whether on-screen text reinforces or adds to spoken content
 - The relationship between what's said and what's shown
 - Speech delivery effectiveness and clarity
+- ensure to compare transcript with text on screen to determine if its added text or captions. if transcript does not match up with text on screen, it is likely added text. if they match up, it is captions.
 """
 
     # Build the performance message separately to avoid f-string issues
@@ -508,6 +510,7 @@ CRITICAL CONTEXT:
 - Goal: {goal}
 - Target audience: {audience}
 - Duration target: {target_duration}s
+- Views: {view_count}
 
 AUDIO CONTEXT:
 {f"Speech detected: {transcript_text}" if has_speech else f"Non-speech audio: {audio_type_info.get('likely_sound_source', 'ambient sounds')} (based on visual activity)"}
@@ -639,7 +642,7 @@ Example output format:
 
 Example output format for formulas:
 This video would do well being readapted to [recommended formula]. Here is how I'd do it for maximum success in [goal]:
-[reformat video into recommended video format based off your experise and the supporting knowledge]
+[reformat video into recommended video format based off your experise and the supporting knowledge. give exact script example]
 
 CRITICAL CONTEXT:
 - Platform: {platform}
