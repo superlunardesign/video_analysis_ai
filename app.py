@@ -392,7 +392,6 @@ def create_visual_content_description(frames_summaries_text, audio_context=None)
 
 def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown'):
     """Comprehensive analysis that adapts to ALL video types with deep insights"""
-
     
     # First analyze frames to understand visual content
     visual_content_analysis = create_visual_content_description(frames_summaries_text)
@@ -404,41 +403,34 @@ def run_main_analysis(transcript_text, frames_summaries_text, creator_note, plat
     has_speech = audio_analysis['has_meaningful_speech']
     audio_type_info = audio_analysis
     
-    # Extract actual performance data from creator note (improved parsing)
-    view_count = None
-    performance_level = 'unknown'
-    
-    if creator_note:
-        note_lower = creator_note.lower()
-        
-        # USE PASSED-IN VIEW COUNT (don't re-parse)
-if not view_count and creator_note:
-    # Only parse from creator_note if view_count wasn't provided
-    note_lower = creator_note.lower().replace(',', '').strip()
-    view_patterns = re.findall(r'(\d+\.?\d*)\s*(k|thousand|m|million|views)?', note_lower)
-    if view_patterns:
-        for pattern in view_patterns:
-            try:
-                num = float(pattern[0])
-                unit = pattern[1] if len(pattern) > 1 else ''
-                if unit in ['k', 'thousand']:
-                    view_count = f"{num}k"
-                    performance_level = 'good' if num >= 500 else 'moderate' if num >= 100 else 'low'
-                    break
-                elif unit in ['m', 'million']:
-                    view_count = f"{num}M"
-                    performance_level = 'viral'
-                    break
-                elif num >= 1000000:
-                    view_count = f"{num/1000000:.1f}M"
-                    performance_level = 'viral'
-                    break
-                elif num >= 1000:
-                    view_count = f"{num/1000:.0f}k"
-                    performance_level = 'good' if num >= 500000 else 'moderate' if num >= 100000 else 'low'
-                    break
-            except ValueError:
-                continue
+    # USE PASSED-IN VIEW COUNT (don't re-parse from creator_note unless not provided)
+    if not view_count and creator_note:
+        # Only parse from creator_note if view_count wasn't provided
+        note_lower = creator_note.lower().replace(',', '').strip()
+        view_patterns = re.findall(r'(\d+\.?\d*)\s*(k|thousand|m|million|views)?', note_lower)
+        if view_patterns:
+            for pattern in view_patterns:
+                try:
+                    num = float(pattern[0])
+                    unit = pattern[1] if len(pattern) > 1 else ''
+                    if unit in ['k', 'thousand']:
+                        view_count = f"{num}k"
+                        performance_level = 'good' if num >= 500 else 'moderate' if num >= 100 else 'low'
+                        break
+                    elif unit in ['m', 'million']:
+                        view_count = f"{num}M"
+                        performance_level = 'viral'
+                        break
+                    elif num >= 1000000:
+                        view_count = f"{num/1000000:.1f}M"
+                        performance_level = 'viral'
+                        break
+                    elif num >= 1000:
+                        view_count = f"{num/1000:.0f}k"
+                        performance_level = 'good' if num >= 500000 else 'moderate' if num >= 100000 else 'low'
+                        break
+                except ValueError:
+                    continue
     
     # Build knowledge section
     knowledge_section = ""
@@ -1230,65 +1222,63 @@ def process():
             'audience': request.form.get("audience", "creators and small business owners").strip(),
         }
         
-       # Replace this section in app.py around line 680-710
+        # Parse view count immediately (fixed parsing)
+        view_count = None
+        performance_level = 'unknown'
+        view_count_input = form_data.get('view_count', '') or form_data.get('creator_note', '')
 
-# Parse view count immediately (fixed parsing)
-view_count = None
-performance_level = 'unknown'
-view_count_input = form_data.get('view_count', '') or form_data.get('creator_note', '')
-
-if view_count_input:
-    # Extract numbers with units (fixed regex to handle commas)
-    import re
-    
-    # First, clean the input and look for patterns
-    clean_input = view_count_input.lower().replace(',', '').strip()
-    
-    # Updated regex to handle various formats
-    patterns = re.findall(r'(\d+\.?\d*)\s*(k|m|thousand|million|views)?', clean_input)
-    
-    if patterns:
-        for pattern in patterns:
-            try:
-                number = float(pattern[0])
-                unit = pattern[1] if len(pattern) > 1 else ''
-                
-                print(f"[DEBUG] Parsed: number={number}, unit='{unit}' from input '{view_count_input}'")
-                
-                if unit in ['k', 'thousand']:
-                    view_count = f"{number}k"
-                    if number >= 500:
-                        performance_level = 'good'
-                    elif number >= 100:
-                        performance_level = 'moderate'
-                    else:
-                        performance_level = 'low'
-                    break
-                elif unit in ['m', 'million']:
-                    view_count = f"{number}M"
-                    performance_level = 'viral'
-                    break
-                else:
-                    # Plain number - handle both with and without 'views'
-                    if number >= 1000000:
-                        view_count = f"{number/1000000:.1f}M"
-                        performance_level = 'viral'
-                    elif number >= 1000:
-                        view_count = f"{number/1000:.0f}k"
-                        if number >= 500000:
-                            performance_level = 'good'
-                        elif number >= 100000:
-                            performance_level = 'moderate'
+        if view_count_input:
+            # Extract numbers with units (fixed regex to handle commas)
+            import re
+            
+            # First, clean the input and look for patterns
+            clean_input = view_count_input.lower().replace(',', '').strip()
+            
+            # Updated regex to handle various formats
+            patterns = re.findall(r'(\d+\.?\d*)\s*(k|m|thousand|million|views)?', clean_input)
+            
+            if patterns:
+                for pattern in patterns:
+                    try:
+                        number = float(pattern[0])
+                        unit = pattern[1] if len(pattern) > 1 else ''
+                        
+                        print(f"[DEBUG] Parsed: number={number}, unit='{unit}' from input '{view_count_input}'")
+                        
+                        if unit in ['k', 'thousand']:
+                            view_count = f"{number}k"
+                            if number >= 500:
+                                performance_level = 'good'
+                            elif number >= 100:
+                                performance_level = 'moderate'
+                            else:
+                                performance_level = 'low'
+                            break
+                        elif unit in ['m', 'million']:
+                            view_count = f"{number}M"
+                            performance_level = 'viral'
+                            break
                         else:
-                            performance_level = 'low'
-                    else:
-                        view_count = f"{int(number)} views"
-                        performance_level = 'low'
-                    break
-            except ValueError:
-                continue
-    
-    print(f"[INFO] Final parsed view count: {view_count} (Performance: {performance_level})")
+                            # Plain number - handle both with and without 'views'
+                            if number >= 1000000:
+                                view_count = f"{number/1000000:.1f}M"
+                                performance_level = 'viral'
+                            elif number >= 1000:
+                                view_count = f"{number/1000:.0f}k"
+                                if number >= 500000:
+                                    performance_level = 'good'
+                                elif number >= 100000:
+                                    performance_level = 'moderate'
+                                else:
+                                    performance_level = 'low'
+                            else:
+                                view_count = f"{int(number)} views"
+                                performance_level = 'low'
+                            break
+                    except ValueError:
+                        continue
+            
+        print(f"[INFO] Final parsed view count: {view_count} (Performance: {performance_level})")
         
         # Validate numeric parameters
         try:
@@ -1400,7 +1390,7 @@ Key patterns for video analysis:
                 form_data['audience'],
                 knowledge_context,
                 view_count,
-                performance_analysis,
+                performance_level,
             )
             
             # Add transcript quality info and view data
