@@ -587,7 +587,7 @@ THEN SUGGEST: Amplifications to go even bigger
 
 1. FIRST 3 SECONDS BREAKDOWN:
    - Frame by frame: What EXACTLY appears and why was it successful or unsuccessful?
-   - What EXACT texts on the screen are shown (from frames, not transcript)?
+   - What EXACT texts on the screen are shown (from frames, not transcript)? DO NOT MAKE UP TEXT ELEMENTS THAT ARE NOT IN ANY FRAMES.
    - What's the audio (speech from transcript, or {audio_type_info.get('likely_sound_source', 'sounds')})?
    - Is there a visual hooks grab attention? If so, what?
    - Rate the hook strength and explain WHY while educating on how to improve or how to replicate if its already good.
