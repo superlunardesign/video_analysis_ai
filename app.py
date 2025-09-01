@@ -625,7 +625,7 @@ Example output format:
 
 Example output format for formulas:
 This video would do well being readapted to [recommended formula]. Here is how I'd do it for maximum success in [goal]:
-[reformat video into recommended video format based off your experise and the supporting knowledge. give exact script example]
+[reformat video into recommended video format based off your experise and the supporting knowledge. give exact script example and include where to place pattern interrupts and other opportunities to layers hooks, reintroduce hooks, and continually leave the curiosity gap open until the end of the video. Explain in an educational and descriptive way without too much jargon.]
 
 CRITICAL CONTEXT:
 - Platform: {platform}
@@ -659,15 +659,15 @@ VISUAL CONTENT (frames - what's SHOWN/WRITTEN):
 Respond in JSON with DEEP, SPECIFIC insights delivered in conversational, educational, explanatory way. Don't skimp on words when explaining complex topics/formulas:
 
 {{
-  "what_this_video_is": "This is a [specific formula/pattern] video that [explain the core idea/hook/appeal in plain language]. It works because [specific psychological reason explained simply].",
+  "what_this_video_is": "This is a [specific formula/pattern] video that [explain the core idea/hook/appeal in eduaction, explanatory, and easy to understand language.]. It works because [specific psychological reason explained in a moment by moment breakdown. If there are specific things that work to improve the video's retention, selling, intrigue, then point each of them out at the second they are playing and explain why they worked to improve that and if you see frames where something could have been done instead to increase retention, selling, or intrigue, then mention what could have been done in an explanatory way.].",
   
-  "why_it_performed": "This video got {view_count if view_count else 'these views'} because [specific elements that drove performance]. The main psychological trigger is [explain in simple terms]. Viewers stayed because [reason]. It attracted [specific audience] who [why they engaged].",
+  "why_it_performed": "This video got {view_count if view_count else 'these views'} because [specific elements that drove performance. Point out each one and exlpain why it generated the views. For good, you should be pointing out the hook, the promise, what kept people watching, and what was satisfying. for bad, explain how the hook, promise, or delivery did not perform well and specific ways they can improve to increase the desired outcome]. The main psychological trigger is [explain in simple terms]. Viewers stayed because [reason]. It attracted [specific audience] who [why they engaged].",
   
   "all_hooks_identified": {{
-    "text_hooks": ["Exact text overlay shown: [text]", "Another text element: [text]"],
-    "visual_hooks": ["Visual element that grabs attention: [description]"],
-    "verbal_hooks": ["What's said that hooks: [quote or description]"],
-    "psychological_hooks": ["Mental trigger activated: [explanation]"]
+    "text_hooks": ["Exact text overlay shown: [text]", "Other text elements seen: [text]"],
+    "visual_hooks": ["Visual elements that grabbed attention and why they worked: [description]"],
+    "verbal_hooks": ["What's said that hooked and grabbed people's attention and keeps it: [quote or description]"],
+    "psychological_hooks": ["Mental trigger activated and why it works of doesn't work for this desired outcome: [explanation]"]
   }},
   
   "exact_hook_breakdown": {{
@@ -686,17 +686,17 @@ Respond in JSON with DEEP, SPECIFIC insights delivered in conversational, educat
     "formula_name": "The [Name] Formula",
     "structure": "0-Xs: [what to do], X-Ys: [next step], Y-Zs: [final step]",
     "scenarios_for_same_niche": [
-      "[Specific scenario 1 for their niche]",
-      "[Specific scenario 2 for their niche]"
+      "[Specific scenario 1 for their niche and full script + scenes to capture and hold attention]",
+      "[Specific scenario 2 for their niche and full script + scenes to capture and hold attention]"
     ],
-    "why_it_works": "This formula works because [psychological explanation in simple terms]",
-    "text_template": "Use text like: '[specific template they can copy]'",
+    "why_it_works": "This formula works because [psychological explanation in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]",
+    "text_template": "Use text like: '[specific full script template they can copy]'",
     "visual_requirements": "Show [specific visuals needed]"
   }},
   
-  "improvements": "To make this even stronger: [specific actionable improvement 1]. [Specific improvement 2]. This could push views to [realistic projection] because [reason].",
+  "improvements": "To make this even stronger: [specific actionable improvement and why it would make it stronger 1]. [Specific improvement 2 and why it would make it stronger]. This could push views to [realistic projection] because [reason explaied in educational and explanatory way].",
   
-  "viral_mechanics": "{'This went viral because: ' if performance_level == 'viral' else 'To go viral: '}[Explain specific viral triggers and mechanics in plain language]",
+  "viral_mechanics": "{'This went viral because: ' if performance_level == 'viral' else 'To go viral: '}[Explain specific viral triggers and mechanics in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]",
   
   "scores": {{
     "hook_strength": [1-10],
@@ -725,11 +725,11 @@ Respond in JSON with DEEP, SPECIFIC insights delivered in conversational, educat
 }}
 
 CRITICAL INSTRUCTIONS:
-- Write conversationally like explaining to a friend
-- Use specific examples they can visualize
-- Explain psychology in simple terms
+- Write educationally without vagueness like explaining to a friend
+- Use and point out specific moments and examples they can visualize
+- Explain psychology in jargon-less but educational and explanatory ways
 - Be encouraging about successes
-- Be specific about improvements
+- Be specific and explanatory about improvements
 - NO JARGON or academic language
 """
 
