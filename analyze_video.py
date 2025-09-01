@@ -54,10 +54,12 @@ print(visual_description)
 # Step 5: Summarize full content using GPT-4o
 summary_prompt = f"""
 You’re analyzing a short-form social video. Based on the transcript and this visual analysis, tell me:
-- What is the hook in the first 3 seconds?
+- What are the hooks in the first 3 seconds?
 - What’s the topic?
 - What’s the content structure?
 - Is there a CTA or pattern worth replicating?
+- If the text on screen differs from the script, it is text hooks or added text. if it is the same as the transcript, it is captions.
+- Does the transcript compare to songs, viral speech/sounds, or does it seem like original speech?
 
 Transcript:
 {transcript}
