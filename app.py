@@ -690,11 +690,11 @@ Respond in JSON with DEEP, SPECIFIC insights delivered in conversational, educat
       "[Specific scenario 2 for their niche and full script + scenes to capture and hold attention]"
     ],
     "why_it_works": "This formula works because [psychological explanation in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]",
-    "text_template": "Use text like: '[specific full script template they can copy]'",
-    "visual_requirements": "Show [specific visuals needed]"
+    "text_template": "Use text like: '[specific full word for word script for the given video length with suggested hooks, pattern interrupts, and tension builders as a script template they can copy]'",
+    "visual_requirements": "Show [specific visuals needed. Give 2-3 ideas that could help them capture attention and/or increase viewer retention and explain why they would work.]"
   }},
   
-  "improvements": "To make this even stronger: [specific actionable improvement and why it would make it stronger 1]. [Specific improvement 2 and why it would make it stronger]. This could push views to [realistic projection] because [reason explaied in educational and explanatory way].",
+  "improvements": "To make this even stronger: [specific actionable improvement and why it would make it stronger 1. Give exact word for word scripts with suggested pattern interrupts and viewer rentention ideas.]. [Specific improvement 2 and why it would make it stronger. Give exact word for word scripts with suggested pattern interrupts and viewer rentention ideas.].  This could push views to [realistic projection] because [reason explaied in educational and explanatory way].",
   
   "viral_mechanics": "{'This went viral because: ' if performance_level == 'viral' else 'To go viral: '}[Explain specific viral triggers and mechanics in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]",
   
