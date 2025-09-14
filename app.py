@@ -440,15 +440,15 @@ KNOWLEDGE BASE PATTERNS (Apply these insights deeply):
 {knowledge_context}
 
 DEEP ANALYSIS REQUIREMENTS:
-1. EXPLAIN THE PSYCHOLOGY: Why does each element work or not work?
+1. EXPLAIN THE PSYCHOLOGY: Why does this video keep people watching until the end. explain it plainly but in an explanatory manner. how did the hook or hooks work to grab attention? what curiosity gap was created and what were the questions the viewer's mind that kept them watching? when was the curiosity gap closed and did the video end there or continue to create a new hook, promise, payoff. if it didn't follow the formulas explain why. what element work or not work?
 2. REFERENCE PROVEN PATTERNS: Connect to specific patterns from the knowledge base
 3. BE SPECIFIC: Analyze EXACTLY what happens in THIS video, not generic observations
-4. DISTINGUISH CONTENT TYPES: Clearly differentiate and identify what's spoken vs what's shown vs what's written
+4. DISTINGUISH CONTENT TYPES: Clearly differentiate and identify what's spoken vs what's shown vs what's written. if text on screen correlates with script then it may be captions, sometimes though people do not add captions and add text on screen that matches what they said. 
 5. PERFORMANCE REASONING: Explain WHY this got {view_count if view_count else 'its current'} views
-6. ACTIONABLE INSIGHTS: Provide specific, implementable improvements
-7. TIMING PRECISION: Break down what happens at each second marker
+6. ACTIONABLE INSIGHTS: Provide specific improvements to this exact video like explaining how a stronger curiosity gap could have been created or delivery could have been saved until after saying something.
+7. TIMING PRECISION: Break down what happens at each second marker and watch for lulls in conversation to understand where pacing could have been improved if applicable
 8. HANDLE ALL VIDEO TYPES: Visual-only, speech, viral audio, tutorials, transformations, etc.
-9. CONSIDER CREATOR NOTES. IF QUESTIONS OR REQUESTS ARE MADE, HONOR THEM. IF CONTEXT IS PROVIDED, CONSIDER IT WITH YOUR ANALYSIS.
+9. CONSIDER CREATOR NOTES. IF QUESTIONS OR REQUESTS ARE MADE, answer THEM. IF CONTEXT IS PROVIDED, CONSIDER IT WITH YOUR ANALYSIS.
 """
 
     # Adapt prompt based on video type
@@ -596,10 +596,10 @@ THEN SUGGEST: Amplifications to go even bigger
    {f"- What specific elements made this shareable?{chr(10)}   - What psychological triggers drove the viral spread?{chr(10)}   - How did it tap into platform algorithms?{chr(10)}   - What made people watch to completion?" if performance_level == 'viral' else f"- What's preventing viral growth?{chr(10)}   - Which psychological triggers are missing?{chr(10)}   - How could platform algorithms be better leveraged?{chr(10)}   - Where do viewers likely drop off?"}
 
 3. CONTENT STRUCTURE ANALYSIS:
-   - Hook mechanism (0-3s): How does it stop scrolling?
-   - Promise delivery (3-10s): What, is anything, is promised or an implied promise?
-   - Retention mechanics (middle): What keeps viewers?
-   - Payoff (end): How does it satisfy or create sharing impulse?
+   - Hook mechanisms (0-3s): How does it stop scrolling?
+   - Promise delivery (3-10s): What, is anything, is promised or an implied promise? What curiosity gap is created?
+   - Retention mechanics (middle): What keeps viewers? What builds tension while they wait for the promise delivery.
+   - Payoff (end): How does it close the curiosity gap, satisfy, or create sharing impulse?
 
 4. AUDIO-VISUAL INTEGRATION:
    - How does {audio_type_info.get('audio_description', 'the audio')} enhance the visual content?
@@ -625,7 +625,7 @@ Example output format:
 
 Example output format for formulas:
 This video would do well being readapted to [recommended formula]. Here is how I'd do it for maximum success in [goal]:
-[reformat video into recommended video format based off your experise and the supporting knowledge. give exact script example and include where to place pattern interrupts and other opportunities to layers hooks, reintroduce hooks, and continually leave the curiosity gap open until the end of the video. Explain in an educational and descriptive way without too much jargon.]
+[reformat video into recommended video format with an exact script based off your experise and the supporting knowledge. give exact script example and include where to place pattern interrupts and other opportunities to layers hooks, reintroduce hooks, and continually leave the curiosity gap open until the end of the video. Explain in an educational and descriptive way without too much jargon.]
 
 CRITICAL CONTEXT:
 - Platform: {platform}
