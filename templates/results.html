@@ -623,9 +623,9 @@ function generatePdf() {
   const opt = {
     margin: [10, 10, 10, 10],  // Top, Right, Bottom, Left
     filename: filename,
-    image: { type: 'jpeg', quality: 0.85 },
+    image: { type: 'jpeg', quality: 0.95 },  // Higher quality for clarity at smaller scale
     html2canvas: {
-      scale: 1,  // Reduced from 2 for smaller file size, still crisp
+      scale: 0.5,  // Match browser print scale (~47%)
       scrollY: 0,  // Start from top of element
       scrollX: 0,
       windowHeight: element.scrollHeight,  // Capture full height
