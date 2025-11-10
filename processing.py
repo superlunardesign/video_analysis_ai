@@ -70,8 +70,33 @@ def download_video(tiktok_url: str) -> str:
         "retries": 5,
         "noprogress": True,
     }
-    with YoutubeDL(ydl_opts) as ydl:
-        ydl.download([tiktok_url])
+
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            ydl.download([tiktok_url])
+    except Exception as e:
+        error_msg = str(e)
+
+        # Handle specific TikTok errors with user-friendly messages
+        if "status code 10204" in error_msg or "Video not available" in error_msg:
+            raise ValueError(
+                "❌ This TikTok video is not accessible. Common causes:\n"
+                "• Video is private or deleted\n"
+                "• Video requires login to view\n"
+                "• Video is geo-restricted\n"
+                "• Creator has restricted sharing\n\n"
+                "Try a different public video or check if the link is correct."
+            )
+        elif "Sign in to confirm you're not a bot" in error_msg:
+            raise ValueError(
+                "❌ TikTok is blocking automated access. This can happen when:\n"
+                "• Too many requests in short time\n"
+                "• TikTok's anti-bot protection is active\n\n"
+                "Wait a few minutes and try again with a different video."
+            )
+        else:
+            # Re-raise original error if not a known case
+            raise
 
     mp4s = sorted(Path("downloads").glob(f"vid_{stamp}*.mp4"))
     if mp4s:

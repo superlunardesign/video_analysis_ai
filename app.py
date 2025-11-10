@@ -2180,6 +2180,63 @@ Key patterns for video analysis:
         print("[INFO] Rendering results template")
         return render_template("results.html", **template_vars)
 
+    except ValueError as e:
+        # User-friendly errors (video access issues, etc.)
+        print(f"[USER ERROR] {str(e)}")
+        error_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Video Access Error</title>
+            <style>
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                }}
+                .error-container {{
+                    background: white;
+                    border-radius: 16px;
+                    padding: 40px;
+                    max-width: 600px;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                }}
+                h1 {{ color: #e74c3c; margin-bottom: 20px; }}
+                pre {{
+                    background: #f8f9fa;
+                    padding: 20px;
+                    border-radius: 8px;
+                    border-left: 4px solid #e74c3c;
+                    white-space: pre-wrap;
+                    line-height: 1.6;
+                }}
+                .back-link {{
+                    display: inline-block;
+                    background: #667eea;
+                    color: white;
+                    text-decoration: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    margin-top: 20px;
+                }}
+                .back-link:hover {{ background: #5568d3; }}
+            </style>
+        </head>
+        <body>
+            <div class="error-container">
+                <h1>⚠️ Video Access Error</h1>
+                <pre>{str(e)}</pre>
+                <a href="/" class="back-link">← Try Another Video</a>
+            </div>
+        </body>
+        </html>
+        """
+        return error_html, 400
+
     except Exception as e:
         print(f"[ERROR] Unexpected error: {str(e)}")
         import traceback
