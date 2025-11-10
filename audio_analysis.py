@@ -126,6 +126,9 @@ class ViralSoundDetector:
 
 def enhanced_audio_analysis(audio_path: str) -> dict:
     """Comprehensive audio analysis with viral sound check."""
+    import time
+    start_time = time.time()
+
     analysis = {
         'viral_sound': {'is_viral': False},
         'tempo': 0,
@@ -140,18 +143,24 @@ def enhanced_audio_analysis(audio_path: str) -> dict:
             import librosa
             import numpy as np
 
-            # Load audio
-            y, sr = librosa.load(audio_path, duration=30)  # Only analyze first 30s
+            librosa_start = time.time()
+            # Load audio (reduced to 15s for faster analysis)
+            y, sr = librosa.load(audio_path, duration=15)
 
             # Basic audio features
             tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
             energy = np.mean(librosa.feature.rms(y=y))
 
-            analysis['tempo'] = float(tempo)
-            analysis['energy'] = float(energy)
-            analysis['is_music'] = energy > 0.05
+            # Convert to Python floats (tempo can be numpy array)
+            tempo_float = float(np.asarray(tempo).item() if hasattr(tempo, 'item') else tempo)
+            energy_float = float(energy)
 
-            print(f"[INFO] Audio features: tempo={tempo:.1f}bpm, energy={energy:.3f}")
+            analysis['tempo'] = tempo_float
+            analysis['energy'] = energy_float
+            analysis['is_music'] = energy_float > 0.05
+
+            librosa_time = time.time() - librosa_start
+            print(f"[INFO] Audio features: tempo={tempo_float:.1f}bpm, energy={energy_float:.3f} ({librosa_time:.1f}s)")
 
         except ImportError:
             print("[INFO] librosa not available, skipping advanced audio analysis")
@@ -159,17 +168,23 @@ def enhanced_audio_analysis(audio_path: str) -> dict:
             print(f"[WARNING] Audio feature extraction failed: {e}")
 
         # Check for viral sound
+        acr_start = time.time()
         detector = ViralSoundDetector()
         viral_check = detector.identify(audio_path)
         analysis['viral_sound'] = viral_check
+        acr_time = time.time() - acr_start
 
         if viral_check.get('is_viral'):
-            print(f"[VIRAL SOUND] {viral_check.get('sound_name')} by {viral_check.get('artist')}")
+            print(f"[VIRAL SOUND] {viral_check.get('sound_name')} by {viral_check.get('artist')} (ACRCloud: {acr_time:.1f}s)")
+        else:
+            print(f"[INFO] ACRCloud viral check complete ({acr_time:.1f}s)")
 
     except Exception as e:
         print(f"[ERROR] Audio analysis failed: {e}")
         analysis['error'] = str(e)
 
+    total_time = time.time() - start_time
+    print(f"[TIMING] Total audio analysis: {total_time:.1f}s")
     return analysis
 
 

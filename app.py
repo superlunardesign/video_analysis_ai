@@ -1934,7 +1934,7 @@ def process():
                         analysis_results['gallery_urls'] = gallery_data_urls
                         print(f"[PARALLEL] Frame analysis complete: {len(frames_summaries_text)} chars")
                     elif name == 'audio_analysis':
-                        audio_analysis = future.result(timeout=30)
+                        audio_analysis = future.result(timeout=45)  # Increased for ACRCloud API
                         analysis_results['audio_analysis'] = audio_analysis
                         print(f"[PARALLEL] Audio analysis complete")
 
@@ -1948,7 +1948,8 @@ def process():
                         analysis_results['frames_summaries'] = ""
                         analysis_results['gallery_urls'] = []
                     elif name == 'audio_analysis':
-                        # Provide safe fallback for audio analysis
+                        # Provide safe fallback for audio analysis (timeout or ACRCloud slow)
+                        print("[FALLBACK] Using default audio analysis (ACRCloud timeout is normal for slow networks)")
                         analysis_results['audio_analysis'] = {
                             'type': 'unknown',
                             'audio_description': 'audio elements',
