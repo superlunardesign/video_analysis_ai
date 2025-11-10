@@ -265,9 +265,9 @@
       const opt = {
         margin: [10, 10, 10, 10],  // Top, Right, Bottom, Left
         filename: filename,
-        image: { type: 'jpeg', quality: 0.98 },
+        image: { type: 'jpeg', quality: 0.85 },
         html2canvas: {
-          scale: 2,
+          scale: 1,  // Reduced from 2 for smaller file size, still crisp
           scrollY: 0,  // Start from top of element
           scrollX: 0,
           windowHeight: element.scrollHeight,  // Capture full height
