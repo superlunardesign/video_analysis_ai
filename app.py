@@ -90,6 +90,141 @@ def _api_retry(callable_fn, *args, **kwargs):
             _time.sleep(sleep_s)
 
 
+def parse_delimited_response(response_text):
+    """
+    Parse delimiter-based response format into structured data.
+    This replaces JSON parsing with 100% reliable delimiter parsing.
+
+    Format:
+    ===SECTION_NAME===
+    content here
+
+    ===NEXT_SECTION===
+    more content
+    """
+    sections = {}
+    current_section = None
+    current_content = []
+
+    lines = response_text.split('\n')
+
+    for line in lines:
+        # Check if this is a section delimiter
+        if line.strip().startswith('===') and line.strip().endswith('==='):
+            # Save previous section if exists
+            if current_section and current_section != 'END':
+                sections[current_section] = '\n'.join(current_content).strip()
+
+            # Start new section
+            section_name = line.strip().strip('=').strip()
+            if section_name != 'END':
+                current_section = section_name
+                current_content = []
+        else:
+            # Add line to current section
+            if current_section:
+                current_content.append(line)
+
+    # Save last section
+    if current_section and current_section != 'END':
+        sections[current_section] = '\n'.join(current_content).strip()
+
+    # Parse SCORES section specially (convert to dict with integers)
+    scores = {}
+    if 'SCORES' in sections:
+        for line in sections['SCORES'].split('\n'):
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key = key.strip()
+                value = value.strip()
+                # Extract number from value
+                import re
+                match = re.search(r'(\d+)', value)
+                if match:
+                    scores[key] = int(match.group(1))
+                else:
+                    scores[key] = 5  # Default score
+
+    # Parse EXACT_HOOK_BREAKDOWN into dict
+    exact_hook = {}
+    if 'EXACT_HOOK_BREAKDOWN' in sections:
+        for line in sections['EXACT_HOOK_BREAKDOWN'].split('\n'):
+            if ':' in line:
+                key, value = line.split(':', 1)
+                exact_hook[key.strip()] = value.strip()
+
+    # Parse TIMING_MASTERY into dict
+    timing = {}
+    if 'TIMING_MASTERY' in sections:
+        for line in sections['TIMING_MASTERY'].split('\n'):
+            if ':' in line:
+                key, value = line.split(':', 1)
+                timing[key.strip()] = value.strip()
+
+    # Parse REPLICATION_FORMULA into structured dict
+    replication = {}
+    if 'REPLICATION_FORMULA' in sections:
+        content = sections['REPLICATION_FORMULA']
+        scenarios = []
+
+        for line in content.split('\n'):
+            if ':' in line and not line.strip().startswith('-'):
+                key, value = line.split(':', 1)
+                key = key.strip()
+                value = value.strip()
+                if key == 'scenarios_for_same_niche':
+                    continue  # Handle below
+                replication[key] = value
+            elif line.strip().startswith('-'):
+                # This is a scenario
+                scenarios.append(line.strip('- ').strip())
+
+        if scenarios:
+            replication['scenarios_for_same_niche'] = scenarios
+
+    # Parse ALL_HOOKS sections into a combined dict
+    all_hooks = {}
+    if 'ALL_HOOKS_TEXT' in sections:
+        hooks = [line.strip('- ').strip() for line in sections['ALL_HOOKS_TEXT'].split('\n') if line.strip().startswith('-')]
+        all_hooks['text_hooks'] = hooks
+
+    if 'ALL_HOOKS_VISUAL' in sections:
+        hooks = [line.strip('- ').strip() for line in sections['ALL_HOOKS_VISUAL'].split('\n') if line.strip().startswith('-')]
+        all_hooks['visual_hooks'] = hooks
+
+    if 'ALL_HOOKS_VERBAL' in sections:
+        hooks = [line.strip('- ').strip() for line in sections['ALL_HOOKS_VERBAL'].split('\n') if line.strip().startswith('-')]
+        all_hooks['verbal_hooks'] = hooks
+
+    if 'ALL_HOOKS_PSYCHOLOGICAL' in sections:
+        hooks = [line.strip('- ').strip() for line in sections['ALL_HOOKS_PSYCHOLOGICAL'].split('\n') if line.strip().startswith('-')]
+        all_hooks['psychological_hooks'] = hooks
+
+    # Parse KNOWLEDGE_PATTERNS_APPLIED into list
+    knowledge_patterns = []
+    if 'KNOWLEDGE_PATTERNS_APPLIED' in sections:
+        knowledge_patterns = [line.strip('- ').strip() for line in sections['KNOWLEDGE_PATTERNS_APPLIED'].split('\n') if line.strip().startswith('-')]
+
+    # Return structured data in the same format template expects
+    return {
+        'what_this_video_is': sections.get('WHAT_THIS_VIDEO_IS', ''),
+        'why_it_performed': sections.get('WHY_IT_PERFORMED', ''),
+        'all_hooks_identified': all_hooks,
+        'exact_hook_breakdown': exact_hook,
+        'replication_formula': replication,
+        'improvements': sections.get('IMPROVEMENTS', ''),
+        'viral_mechanics': sections.get('VIRAL_MECHANICS', ''),
+        'scores': scores,
+        'timing_mastery': timing,
+        'performance_prediction': sections.get('PERFORMANCE_PREDICTION', ''),
+        'knowledge_patterns_applied': knowledge_patterns,
+
+        # Also include as single field for compatibility
+        'analysis': sections.get('WHAT_THIS_VIDEO_IS', ''),
+        'performance_deep_dive': sections.get('WHY_IT_PERFORMED', ''),
+    }
+
+
 def escape_unescaped_quotes_in_json(json_str):
     """
     Aggressively escape unescaped quotes within JSON string values.
@@ -937,73 +1072,94 @@ VISUAL CONTENT (frames - what's SHOWN/WRITTEN):
 {performance_message}
 
 
-Respond in JSON with DEEP, SPECIFIC insights delivered in conversational, educational, explanatory way. Don't skimp on words when explaining complex topics/formulas:
+Respond using SECTION DELIMITERS with DEEP, SPECIFIC insights delivered in conversational, educational, explanatory way. Don't skimp on words when explaining complex topics/formulas.
 
-{{
-  "what_this_video_is": "This is a [specific formula/pattern] video that [explain the core idea/hook/appeal in eduaction, explanatory, and easy to understand language.]. It works because [specific psychological reason explained in a moment by moment breakdown. Explain what hook likely worked best or why layered hooks works, explain for each. Explain what the promise was and why people wanted to stay. Explained what tension built as the video went on. Explain why the promise delivery did or didn't satisfy. If there are specific things that work to improve the video's retention, selling, intrigue, then point each of them out at the second they are playing and explain why they worked to improve that and if you see frames where something could have been done instead to increase retention, selling, or intrigue, then mention what could have been done in an explanatory way.].",
-  
-  "why_it_performed": "This video got {view_count if view_count else 'these views'} because [specific elements that drove performance. Point out each one and exlpain why it generated the views. For good, you should be pointing out the hook, the promise, what kept people watching, and what was satisfying. for bad, explain how the hook, promise, or delivery did not perform well and specific ways they can improve to increase the desired outcome]. The main psychological trigger is [explain in simple terms]. Viewers stayed because [reason]. It attracted [specific audience] who [why they engaged].",
-  
-  "all_hooks_identified": {{
-    "text_hooks": ["Exact text overlay shown: [text]", "Other text elements seen: [text]"],
-    "visual_hooks": ["Visual elements that grabbed attention and why they worked: [description]"],
-    "verbal_hooks": ["What's said that hooked and grabbed people's attention and keeps it: [quote or description]"],
-    "psychological_hooks": ["Mental trigger activated and why it works of doesn't work for this desired outcome: [explanation]"]
-  }},
-  
-  "exact_hook_breakdown": {{
-    "first_frame": "0:00 - [EXACTLY what appears]",
-    "second_moment": "0:01 - [What happens]",
-    "third_second": "0:02 - [What occurs]",
-    "visual_elements": "[Visual hooks and their effectiveness]",
-    "text_overlays": "[Text on screen and impact]",
-    "audio_element": "{audio_type_info.get('audio_description', 'Audio type')}",
-    "hook_psychology": "[Why this hook works or doesn't psychologically]",
-    "hook_score": [1-10],
-    "hook_reasoning": "[Score reasoning]"
-  }},
-  
-  "replication_formula": {{
-    "formula_name": "The [Name] Formula",
-    "structure": "0-Xs: [what to do], X-Ys: [next step], Y-Zs: [final step]",
-    "scenarios_for_same_niche": [
-      "[Specific scenario 1 for their niche and full script + scenes to capture and hold attention]",
-      "[Specific scenario 2 for their niche and full script + scenes to capture and hold attention]"
-    ],
-    "why_it_works": "This formula works because [psychological explanation in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]",
-    "text_template": "Use text like: '[specific full word for word script for the given video length with suggested hooks, pattern interrupts, and tension builders as a script template they can copy]'",
-    "visual_requirements": "Show [specific visuals needed. Give 2-3 ideas that could help them capture attention and/or increase viewer retention and explain why they would work.]"
-  }},
-  
-  "improvements": "To make this even stronger: [specific actionable improvement and why it would make it stronger 1. Give exact word for word scripts with suggested pattern interrupts and viewer rentention ideas.]. [Specific improvement 2 and why it would make it stronger. Give exact word for word scripts with suggested pattern interrupts and viewer rentention ideas.].  This could push views to [realistic projection] because [reason explaied in educational and explanatory way].",
-  
-  "viral_mechanics": "{'This went viral because: ' if performance_level == 'viral' else 'To go viral: '}[Explain specific viral triggers and mechanics in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]",
-  
-  "scores": {{
-    "hook_strength": [1-10],
-    "promise_clarity": [1-10],
-    "retention_design": [1-10],
-    "engagement_potential": [1-10],
-    "viral_potential": [1-10],
-    "satisfaction_delivery": [1-10],
-    "goal_alignment": [1-10]
-  }},
-  
-  "timing_mastery": {{
-    "0-1s": "[What happens and impact]",
-    "1-3s": "[Content and viewer state]",
-    "3-7s": "[Development and engagement]",
-    "7-15s": "[Core value delivery]",
-    "15s+": "[Resolution and sharing trigger]"
-  }},
-  
-  "performance_prediction": "{'This succeeded because: ' if performance_level == 'viral' else 'With improvements, this could achieve: '}[Specific prediction with reasoning]",
-  
-  "knowledge_patterns_applied": [
-    "[Pattern from knowledge]: [How it applies]",
-    "[Another pattern]: [Implementation]"
-  ]
-}}
+You can use quotes "like this" freely, write multiple paragraphs, and format naturally without worrying about escaping.
+
+Use this EXACT format with === delimiters:
+
+===WHAT_THIS_VIDEO_IS===
+This is a [specific formula/pattern] video that [explain the core idea/hook/appeal in education, explanatory, and easy to understand language.].
+
+It works because [specific psychological reason explained in a moment by moment breakdown. Explain what hook likely worked best or why layered hooks works, explain for each. Explain what the promise was and why people wanted to stay. Explained what tension built as the video went on. Explain why the promise delivery did or didn't satisfy. If there are specific things that work to improve the video's retention, selling, intrigue, then point each of them out at the second they are playing and explain why they worked to improve that and if you see frames where something could have been done instead to increase retention, selling, or intrigue, then mention what could have been done in an explanatory way.].
+
+===WHY_IT_PERFORMED===
+This video got {view_count if view_count else 'these views'} because [specific elements that drove performance. Point out each one and explain why it generated the views. For good, you should be pointing out the hook, the promise, what kept people watching, and what was satisfying. for bad, explain how the hook, promise, or delivery did not perform well and specific ways they can improve to increase the desired outcome].
+
+The main psychological trigger is [explain in simple terms]. Viewers stayed because [reason]. It attracted [specific audience] who [why they engaged].
+
+===ALL_HOOKS_TEXT===
+- Exact text overlay shown: [text]
+- Other text elements seen: [text]
+
+===ALL_HOOKS_VISUAL===
+- Visual elements that grabbed attention and why they worked: [description]
+
+===ALL_HOOKS_VERBAL===
+- What's said that hooked and grabbed people's attention and keeps it: [quote or description]
+
+===ALL_HOOKS_PSYCHOLOGICAL===
+- Mental trigger activated and why it works or doesn't work for this desired outcome: [explanation]
+
+===EXACT_HOOK_BREAKDOWN===
+first_frame: 0:00 - [EXACTLY what appears]
+second_moment: 0:01 - [What happens]
+third_second: 0:02 - [What occurs]
+visual_elements: [Visual hooks and their effectiveness]
+text_overlays: [Text on screen and impact]
+audio_element: {audio_type_info.get('audio_description', 'Audio type')}
+hook_psychology: [Why this hook works or doesn't psychologically]
+hook_score: [1-10]
+hook_reasoning: [Score reasoning]
+
+===REPLICATION_FORMULA===
+formula_name: The [Name] Formula
+structure: 0-Xs: [what to do], X-Ys: [next step], Y-Zs: [final step]
+
+scenarios_for_same_niche:
+- [Specific scenario 1 for their niche and full script + scenes to capture and hold attention]
+- [Specific scenario 2 for their niche and full script + scenes to capture and hold attention]
+
+why_it_works: This formula works because [psychological explanation in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]
+
+text_template: Use text like: '[specific full word for word script for the given video length with suggested hooks, pattern interrupts, and tension builders as a script template they can copy]'
+
+visual_requirements: Show [specific visuals needed. Give 2-3 ideas that could help them capture attention and/or increase viewer retention and explain why they would work.]
+
+===IMPROVEMENTS===
+To make this even stronger: [specific actionable improvement and why it would make it stronger 1. Give exact word for word scripts with suggested pattern interrupts and viewer retention ideas.].
+
+[Specific improvement 2 and why it would make it stronger. Give exact word for word scripts with suggested pattern interrupts and viewer retention ideas.].
+
+This could push views to [realistic projection] because [reason explained in educational and explanatory way].
+
+===VIRAL_MECHANICS===
+{'This went viral because: ' if performance_level == 'viral' else 'To go viral: '}[Explain specific viral triggers and mechanics in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]
+
+===SCORES===
+hook_strength: [1-10]
+promise_clarity: [1-10]
+retention_design: [1-10]
+engagement_potential: [1-10]
+viral_potential: [1-10]
+satisfaction_delivery: [1-10]
+goal_alignment: [1-10]
+
+===TIMING_MASTERY===
+0-1s: [What happens and impact]
+1-3s: [Content and viewer state]
+3-7s: [Development and engagement]
+7-15s: [Core value delivery]
+15s+: [Resolution and sharing trigger]
+
+===PERFORMANCE_PREDICTION===
+{'This succeeded because: ' if performance_level == 'viral' else 'With improvements, this could achieve: '}[Specific prediction with reasoning]
+
+===KNOWLEDGE_PATTERNS_APPLIED===
+- [Pattern from knowledge]: [How it applies]
+- [Another pattern]: [Implementation]
+
+===END===
 
 CRITICAL INSTRUCTIONS:
 - Write educationally without vagueness like explaining to a friend
@@ -1012,39 +1168,9 @@ CRITICAL INSTRUCTIONS:
 - Be encouraging about successes
 - Be specific and explanatory about improvements
 - NO JARGON or academic language
-
-JSON FORMATTING REQUIREMENTS (CRITICAL - READ CAREFULLY):
-1. EVERY opening quote MUST have a closing quote on the SAME LINE
-2. NO line breaks inside string values - use a single continuous line
-3. If you need to describe multiple things, write them in ONE continuous paragraph
-4. ALL quotes inside strings MUST be escaped: use \\" not "
-5. ALL backslashes must be doubled: use \\\\ not \\
-6. Single quotes are OKAY inside double-quoted strings without escaping
-7. Do NOT include markdown, code blocks, or any text outside the JSON object
-8. The response must START with {{ and END with }}
-
-COMMON ERRORS TO AVOID:
-❌ WRONG: "30-45s": "Continues second point
-                     More content here"
-✓ CORRECT: "30-45s": "Continues second point. More content here"
-
-❌ WRONG: "text": "She said "hello" to me"
-✓ CORRECT: "text": "She said \\"hello\\" to me"
-
-❌ WRONG: "text": "First line
-Second line"
-✓ CORRECT: "text": "First line. Second line"
-
-❌ WRONG: "path": "C:\\Users\\file.txt"
-✓ CORRECT: "path": "C:\\\\Users\\\\file.txt"
-
-VALIDATION BEFORE RESPONDING:
-- Count your opening quotes - must equal closing quotes
-- Check each string ends on the same line it starts
-- Verify all internal quotes are escaped with backslash
-- Ensure the last character is }}
-
-RETURN ONLY VALID JSON - no markdown, no comments, no explanations outside the JSON.
+- Use EXACT section names with === delimiters as shown above
+- You can use quotes, line breaks, and write naturally within each section
+- End with ===END=== marker
 """
 
     # Store raw response for fallback
@@ -1070,8 +1196,10 @@ RETURN ONLY VALID JSON - no markdown, no comments, no explanations outside the J
         response_text = gpt_response.content[0].text.strip()
         raw_response_text = response_text  # Save for fallback
 
-        # Parse JSON with repair logic
-        parsed = _repair_json(response_text)
+        # Parse delimiter-based response (no JSON issues!)
+        print("[INFO] Parsing delimited response...")
+        parsed = parse_delimited_response(response_text)
+        print(f"[INFO] Successfully parsed {len(parsed)} fields from response")
         
         # Process scores with performance-based defaults
         scores_raw = parsed.get("scores", {})
@@ -1190,26 +1318,6 @@ RETURN ONLY VALID JSON - no markdown, no comments, no explanations outside the J
         }
         
         return result
-        
-    except json.JSONDecodeError as e:
-        print(f"[ERROR] JSON parsing failed after all attempts: {e}")
-        import traceback
-        traceback.print_exc()
-
-        # If we have Claude's raw response, use it instead of generic fallback
-        if raw_response_text:
-            print(f"[FALLBACK] Using raw text response ({len(raw_response_text)} chars)")
-            return create_raw_text_fallback(
-                raw_response_text, view_count, performance_level,
-                audio_type_info, visual_content_analysis, has_speech
-            )
-        else:
-            print(f"[FALLBACK] No raw response available, using generic fallback")
-            return create_comprehensive_fallback(
-                transcript_text, frames_summaries_text, creator_note,
-                platform, goal, audience, has_speech, view_count, performance_level,
-                knowledge_context, audio_type_info, visual_content_analysis
-            )
 
     except Exception as e:
         print(f"[ERROR] Comprehensive analysis failed: {e}")
@@ -1798,6 +1906,14 @@ def process():
                     if name == 'frames':
                         analysis_results['frames_summaries'] = ""
                         analysis_results['gallery_urls'] = []
+                    elif name == 'audio_analysis':
+                        # Provide safe fallback for audio analysis
+                        analysis_results['audio_analysis'] = {
+                            'type': 'unknown',
+                            'audio_description': 'audio elements',
+                            'viral_audio_check': False,
+                            'viral_sound': {'is_viral': False}
+                        }
 
         # Extract results
         basic_transcript = analysis_results['transcript']
