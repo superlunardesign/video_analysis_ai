@@ -90,6 +90,77 @@ def _api_retry(callable_fn, *args, **kwargs):
             _time.sleep(sleep_s)
 
 
+def repair_unterminated_strings(json_str):
+    """
+    Detect and repair unterminated strings in JSON.
+    Common issue: string values that span multiple lines without closing quotes.
+
+    Strategy:
+    1. Find unterminated strings (quote followed by newline without closing quote)
+    2. Close the string at the end of the line (before newline)
+    3. Continue looking for the next field
+    """
+    lines = json_str.split('\n')
+    repaired_lines = []
+    in_string = False
+    escape_next = False
+
+    for line_idx, line in enumerate(lines):
+        if not line.strip():
+            repaired_lines.append(line)
+            continue
+
+        repaired_line = []
+        i = 0
+
+        while i < len(line):
+            char = line[i]
+
+            # Handle escape sequences
+            if escape_next:
+                repaired_line.append(char)
+                escape_next = False
+                i += 1
+                continue
+
+            if char == '\\':
+                escape_next = True
+                repaired_line.append(char)
+                i += 1
+                continue
+
+            # Track string state
+            if char == '"':
+                if in_string:
+                    in_string = False
+                else:
+                    in_string = True
+                repaired_line.append(char)
+            else:
+                repaired_line.append(char)
+
+            i += 1
+
+        # If we reach end of line and still in a string, close it
+        if in_string and line_idx < len(lines) - 1:
+            # Check if next line looks like a new JSON field or continuation
+            next_line = lines[line_idx + 1].strip()
+
+            # If next line starts with a quote or looks like a new field, close this string
+            if (next_line.startswith('"') or
+                next_line.startswith('}') or
+                next_line.startswith(']') or
+                re.match(r'^\s*"[\w_]+"\s*:', next_line)):
+
+                print(f"[REPAIR] Closing unterminated string at line {line_idx + 1}")
+                repaired_line.append('"')
+                in_string = False
+
+        repaired_lines.append(''.join(repaired_line))
+
+    return '\n'.join(repaired_lines)
+
+
 def _repair_json(json_str):
     """Attempt to repair common JSON issues from LLM responses."""
     # Remove code block markers if present
@@ -130,6 +201,18 @@ def _repair_json(json_str):
         return json.loads(fixed)
     except json.JSONDecodeError:
         pass
+
+    # Try to repair unterminated strings (common error from line breaks)
+    try:
+        print("[INFO] Attempting to repair unterminated strings...")
+        repaired = repair_unterminated_strings(json_str)
+        if repaired != json_str:
+            print(f"[INFO] String repair made changes, attempting parse...")
+            return json.loads(repaired)
+    except json.JSONDecodeError as e:
+        print(f"[WARN] String repair didn't fix the issue: {e}")
+    except Exception as e:
+        print(f"[WARN] String repair error: {e}")
 
     # Try to extract JSON by finding balanced braces
     try:
