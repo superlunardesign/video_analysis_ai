@@ -90,6 +90,80 @@ def _api_retry(callable_fn, *args, **kwargs):
             _time.sleep(sleep_s)
 
 
+def escape_unescaped_quotes_in_json(json_str):
+    """
+    Aggressively escape unescaped quotes within JSON string values.
+
+    This handles cases where Claude includes quotes like:
+    "text": "She said "hello" to me"
+
+    And converts it to:
+    "text": "She said \"hello\" to me"
+    """
+    result = []
+    in_string = False
+    in_value = False  # Track if we're in a value vs a key
+    escape_next = False
+    i = 0
+
+    while i < len(json_str):
+        char = json_str[i]
+
+        # Handle already-escaped characters
+        if escape_next:
+            result.append(char)
+            escape_next = False
+            i += 1
+            continue
+
+        if char == '\\':
+            escape_next = True
+            result.append(char)
+            i += 1
+            continue
+
+        # Handle quotes
+        if char == '"':
+            if not in_string:
+                # Starting a string (either key or value)
+                in_string = True
+                result.append(char)
+            else:
+                # Ending a string - but is it really the end?
+                # Look ahead to see what's next
+                next_chars = json_str[i+1:i+10].lstrip()
+
+                # If next char is : then we just finished a key
+                if next_chars.startswith(':'):
+                    in_string = False
+                    in_value = False  # About to start a value
+                    result.append(char)
+                # If next char is , or } or ] then we finished a value
+                elif next_chars.startswith(',') or next_chars.startswith('}') or next_chars.startswith(']'):
+                    in_string = False
+                    in_value = False
+                    result.append(char)
+                # Otherwise, this might be an unescaped quote WITHIN a value
+                elif in_value:
+                    # This is likely an unescaped quote within the value
+                    print(f"[REPAIR] Found unescaped quote at position {i}, escaping...")
+                    result.append('\\')
+                    result.append(char)
+                else:
+                    # Not sure, assume it's the end of string
+                    in_string = False
+                    result.append(char)
+        else:
+            result.append(char)
+            # Track when we're in a value (after : and inside string)
+            if char == ':' and not in_string:
+                in_value = True
+
+        i += 1
+
+    return ''.join(result)
+
+
 def repair_unterminated_strings(json_str):
     """
     Detect and repair unterminated strings in JSON.
@@ -213,6 +287,18 @@ def _repair_json(json_str):
         print(f"[WARN] String repair didn't fix the issue: {e}")
     except Exception as e:
         print(f"[WARN] String repair error: {e}")
+
+    # Try aggressive quote escaping within string values
+    try:
+        print("[INFO] Attempting aggressive quote escaping...")
+        repaired = escape_unescaped_quotes_in_json(json_str)
+        if repaired != json_str:
+            print(f"[INFO] Quote escaping made changes, attempting parse...")
+            return json.loads(repaired)
+    except json.JSONDecodeError as e:
+        print(f"[WARN] Quote escaping didn't fix the issue: {e}")
+    except Exception as e:
+        print(f"[WARN] Quote escaping error: {e}")
 
     # Try to extract JSON by finding balanced braces
     try:
@@ -1460,6 +1546,10 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'actual_view_count': gpt_result.get('actual_view_count', ''),
         'performance_level': gpt_result.get('performance_level', 'unknown'),
         'video_has_speech': gpt_result.get('video_has_speech', False),
+
+        # Raw text fallback support
+        'is_raw_text_fallback': gpt_result.get('is_raw_text_fallback', False),
+        'raw_analysis_text': gpt_result.get('raw_analysis_text', ''),
     }
     
     # Ensure hooks is always a list
