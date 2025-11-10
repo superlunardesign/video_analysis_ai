@@ -1,6 +1,40 @@
 # PROMISE DELIVERY TIMING & RETENTION MECHANICS
 # CRITICAL: Understanding when to deliver the payoff
 
+## THE RETENTION FORMULA
+
+**The Proper Structure**: Hook > Promise > Tension > Payoff
+
+### Components:
+
+1. **Hook (0-3s)**: Creates curiosity gap or pattern interrupt that stops scrolling
+2. **Promise (0-10s)**: States or implies what viewer will get by watching
+3. **Tension (middle)**: Builds toward payoff, adds stakes, maintains engagement
+4. **Payoff (75-90% through)**: Delivers on the promise, satisfies curiosity gap
+
+### Promise Types:
+
+**Explicit Promise:**
+- "I'm going to tell you the question"
+- "Watch me transform this"
+- "Here's the secret to..."
+- Verbal statement of what's coming
+
+**Implied Promise:**
+- Drawing outline → implies completed drawing
+- "Before" state → implies "after" reveal
+- Problem statement → implies solution
+- Starting a process → implies seeing completion
+
+**Examples of Implied Promises:**
+- Art video shows blank canvas/outline → viewer knows final artwork is coming
+- Cooking video shows raw ingredients → viewer expects finished dish
+- Transformation starts → viewer expects to see result
+- Question posed → viewer expects answer
+- Product unboxing begins → viewer expects to see it in use
+
+**IMPORTANT**: The promise can be IN the hook itself (e.g., "Watch this transformation" shows before state) or separate from it. Both are valid - what matters is creating the expectation that will be satisfied at the end.
+
 ## THE FUNDAMENTAL RULE: PAYOFF NEAR THE END
 
 **Core Principle:** The promised information/reveal/answer should be delivered in the LAST 10-20% of the video to maximize watch time and completion rate.
