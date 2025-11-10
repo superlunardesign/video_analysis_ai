@@ -1131,10 +1131,12 @@ text_template: Use text like: '[specific full word for word script for the given
 visual_requirements: Show [specific visuals needed. Give 2-3 ideas that could help them capture attention and/or increase viewer retention and explain why they would work.]
 
 ===IMPROVEMENTS===
+REMEMBER: NEVER suggest revealing payoff earlier than 75% through video. Focus on hook strength, visual variety, tension building, and engagement hooks instead.
 {"Improvement 1: [Detailed specific actionable change with exact word-for-word script suggestions, pattern interrupts, and retention tactics. Explain why this would work psychologically]. Improvement 2: [Another detailed improvement with scripts and explanations]. Improvement 3: [Third improvement]. This could push views to [realistic projection with detailed reasoning]." if analysis_depth == 'deep' else "1. [Most important improvement in 1 sentence]. 2. [Second improvement in 1 sentence]. 3. [Third improvement in 1 sentence]. Potential: [projected views with brief reason]."}
 
 ===VIRAL_MECHANICS===
-{'"This went viral because: [List 3-5 specific viral triggers with detailed psychological explanations, referring to exact moments and mechanics]" if performance_level == "viral" else "To go viral, this video needs: [List 3-5 specific viral triggers to add/strengthen with explanations]"' if analysis_depth == 'deep' else '"Viral because: [2 main reasons]" if performance_level == "viral" else "To go viral: [2 key additions needed]"'}
+CRITICAL: Do NOT suggest "front-loading the reveal" or "satisfying curiosity faster" - this destroys retention. Suggest adding tension, stakes, visual variety, engagement hooks BEFORE the payoff instead.
+{'"This went viral because: [List 3-5 specific viral triggers with detailed psychological explanations, referring to exact moments and mechanics]" if performance_level == "viral" else "To go viral, this video needs: [List 3-5 specific viral triggers to add/strengthen with explanations - focus on hook power, tension building, visual pattern breaks, NOT moving the payoff earlier]"' if analysis_depth == 'deep' else '"Viral because: [2 main reasons]" if performance_level == "viral" else "To go viral: [2 key additions needed - NOT earlier payoff]"'}
 
 ===SCORES===
 IMPORTANT: Provide actual numeric scores based on THIS video's performance, NOT placeholders.
@@ -1170,6 +1172,35 @@ promise_clarity: 7
 ===END===
 
 CRITICAL INSTRUCTIONS:
+
+🚨 PAYOFF TIMING RULE (MOST IMPORTANT):
+NEVER suggest revealing the answer/payoff/promise early in the video.
+- The payoff should be delivered at 75-90% through the video (last 10-20%)
+- For a 45s video: reveal at 34-41 seconds (NOT at 8-10 seconds!)
+- For a 60s video: reveal at 45-54 seconds
+- For a 30s video: reveal at 23-27 seconds
+
+WRONG ADVICE EXAMPLES (NEVER SAY THIS):
+❌ "Reveal the answer within the first 10 seconds"
+❌ "Front-load the reveal in the first 8 seconds"
+❌ "Satisfy curiosity faster to prevent drop-off"
+❌ "Close the curiosity gap earlier"
+
+CORRECT ADVICE:
+✅ "Current reveal timing at 30s in 45s video (67%) is good - maintain this structure"
+✅ "Push the reveal slightly later to 36-38s (80-84%) for maximum retention"
+✅ "Build more tension before the payoff"
+
+WHY EARLY PAYOFF KILLS RETENTION:
+- If you reveal at 10s in a 45s video, viewers have 35s of post-satisfaction drop-off
+- Algorithm sees retention crash after payoff = lower distribution
+- The HOOK creates curiosity gap → TENSION builds it → PAYOFF at END satisfies it
+- Short videos (15s) work because they're SHORT, not because of early reveals
+
+ONLY suggest earlier reveals for:
+- Tutorial/educational content where process IS the value
+- Transformation videos where before/after is shown throughout
+- "Watch me do X" format where the doing is the entertainment
 """
 
     # Add depth-specific instructions
