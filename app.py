@@ -132,8 +132,9 @@ def parse_delimited_response(response_text):
     # Parse SCORES section specially (convert to dict with integers)
     scores = {}
     if 'SCORES' in sections:
+        print(f"[SCORES] Raw SCORES section content:\n{sections['SCORES']}")
         for line in sections['SCORES'].split('\n'):
-            if ':' in line:
+            if ':' in line and not line.strip().startswith('IMPORTANT') and not line.strip().startswith('Example') and not line.strip().startswith('Use the'):
                 key, value = line.split(':', 1)
                 key = key.strip()
                 value = value.strip()
@@ -142,8 +143,10 @@ def parse_delimited_response(response_text):
                 match = re.search(r'(\d+)', value)
                 if match:
                     scores[key] = int(match.group(1))
+                    print(f"[SCORES] Parsed {key}: {scores[key]}")
                 else:
                     scores[key] = 5  # Default score
+                    print(f"[SCORES] Using default for {key}: 5 (couldn't extract number from '{value}')")
 
     # Parse EXACT_HOOK_BREAKDOWN into dict
     exact_hook = {}
@@ -1134,13 +1137,21 @@ visual_requirements: Show [specific visuals needed. Give 2-3 ideas that could he
 {'"This went viral because: [List 3-5 specific viral triggers with detailed psychological explanations, referring to exact moments and mechanics]" if performance_level == "viral" else "To go viral, this video needs: [List 3-5 specific viral triggers to add/strengthen with explanations]"' if analysis_depth == 'deep' else '"Viral because: [2 main reasons]" if performance_level == "viral" else "To go viral: [2 key additions needed]"'}
 
 ===SCORES===
-hook_strength: [1-10]
-promise_clarity: [1-10]
-retention_design: [1-10]
-engagement_potential: [1-10]
-viral_potential: [1-10]
-satisfaction_delivery: [1-10]
-goal_alignment: [1-10]
+IMPORTANT: Provide actual numeric scores based on THIS video's performance, NOT placeholders.
+Use the performance level ({performance_level}) and view count ({view_count if view_count else 'unknown'}) to calibrate scores.
+
+hook_strength: [Number 1-10]
+promise_clarity: [Number 1-10]
+retention_design: [Number 1-10]
+engagement_potential: [Number 1-10]
+viral_potential: [Number 1-10]
+satisfaction_delivery: [Number 1-10]
+goal_alignment: [Number 1-10]
+
+Example format:
+hook_strength: 8
+promise_clarity: 7
+(Just the number, no extra text)
 
 ===TIMING_MASTERY===
 0-1s: [What happens and impact]
