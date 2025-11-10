@@ -1411,49 +1411,16 @@ def process():
         print(f"[INFO] Creator note: {form_data['creator_note']}")
         print(f"[INFO] Strategy: {form_data['strategy']}, Goal: {form_data['goal']}")
 
-        # 3. PARALLEL PROCESSING for speed (with fallback to sequential)
-        print("[INFO] Starting parallel processing...")
-        use_parallel = False
-        try:
-            parallel_results = parallel_video_processing(
-                tiktok_url,
-                form_data['strategy'],
-                frames_per_minute,
-                cap,
-                scene_threshold
-            )
-
-            # Use parallel results if successful, otherwise fall back
-            if parallel_results.get('extraction'):
-                audio_path, frames_dir, frame_paths = parallel_results['extraction']
-                print(f"[PARALLEL SUCCESS] Extracted {len(frame_paths)} frames")
-                use_parallel = True
-
-                # Update metadata if parallel extraction got it
-                if parallel_results.get('metadata') and not metadata.get('view_count'):
-                    metadata = parallel_results['metadata']
-                    print("[PARALLEL] Updated metadata from parallel extraction")
-            else:
-                print(f"[WARNING] Parallel extraction returned None (metadata success: {bool(parallel_results.get('metadata'))})")
-                raise Exception("Parallel extraction returned no results")
-
-        except Exception as e:
-            import traceback
-            print(f"[WARNING] Parallel processing failed: {type(e).__name__}: {e}")
-            print("[INFO] Full traceback:")
-            traceback.print_exc()
-            print("[INFO] Falling back to sequential processing...")
-
-        # Sequential fallback (if parallel didn't work)
-        if not use_parallel:
-            audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
-                tiktok_url,
-                strategy=form_data['strategy'],
-                frames_per_minute=frames_per_minute,
-                cap=cap,
-                scene_threshold=scene_threshold,
-            )
-            print(f"[SUCCESS] Sequential extraction: {len(frame_paths)} frames")
+        # 3. VIDEO EXTRACTION (sequential is more reliable than parallel for video processing)
+        print("[INFO] Extracting audio and frames...")
+        audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
+            tiktok_url,
+            strategy=form_data['strategy'],
+            frames_per_minute=frames_per_minute,
+            cap=cap,
+            scene_threshold=scene_threshold,
+        )
+        print(f"[SUCCESS] Extracted {len(frame_paths)} frames")
 
         # Quick transcription FIRST (for enhanced frame analysis)
         basic_transcript = ""
