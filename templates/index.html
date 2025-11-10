@@ -336,8 +336,11 @@
                             required
                         >
 <div class="form-group">
-  <label for="view_count">View Count (required):</label>
-  <input type="text" id="view_count" name="view_count" placeholder="e.g., 259k, 1.2M, 50000" required>
+  <label for="view_count">View Count (optional - auto-detected):</label>
+  <input type="text" id="view_count" name="view_count" placeholder="Leave blank for auto-detection (259k, 1.2M, 50000)">
+  <small style="color: var(--celestial-lavender); font-size: 0.85rem; display: block; margin-top: 0.25rem;">
+    💡 Leave blank to automatically extract views, likes, saves, and engagement metrics
+  </small>
 </div>
                     </div>
 

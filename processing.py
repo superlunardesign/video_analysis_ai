@@ -656,3 +656,146 @@ def extract_text_with_ocr(frame_path):
     except Exception as e:
         print(f"[ERROR] OCR extraction failed: {e}")
         return []
+
+
+# ------------------------------------------------------------------------------
+# AUTO METADATA EXTRACTION WITH SAVE COUNTS
+# ------------------------------------------------------------------------------
+
+def extract_video_metadata(tiktok_url):
+    """
+    Extract comprehensive video metadata including SAVES/BOOKMARKS.
+    NO API NEEDED - yt-dlp handles everything.
+    """
+    import yt_dlp
+    import re
+
+    ydl_opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'extract_flat': False,
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(tiktok_url, download=False)
+
+            # Debug available fields
+            print(f"[DEBUG] Available fields in yt-dlp: {', '.join(info.keys())}")
+
+            # Extract saves (field name varies)
+            save_count = (
+                info.get('save_count') or
+                info.get('bookmark_count') or
+                info.get('favorite_count') or
+                info.get('collect_count') or
+                0
+            )
+
+            metadata = {
+                'url': tiktok_url,
+                'title': info.get('title', ''),
+                'description': info.get('description', ''),
+
+                # Engagement metrics
+                'view_count': info.get('view_count', 0),
+                'like_count': info.get('like_count', 0),
+                'comment_count': info.get('comment_count', 0),
+                'share_count': info.get('repost_count', 0),
+                'save_count': save_count,  # SAVES/BOOKMARKS
+
+                # Video details
+                'duration': info.get('duration', 0),
+                'upload_date': info.get('upload_date', ''),
+                'timestamp': info.get('timestamp', ''),
+
+                # Creator info
+                'uploader': info.get('uploader', ''),
+                'uploader_id': info.get('uploader_id', ''),
+
+                # Content
+                'hashtags': extract_hashtags(info.get('description', '')),
+                'music': {
+                    'artist': info.get('artist', ''),
+                    'track': info.get('track', ''),
+                },
+
+                # Technical
+                'thumbnail': info.get('thumbnail', ''),
+                'video_id': info.get('id', ''),
+            }
+
+            # Calculate engagement rates including save rate
+            if metadata['view_count'] > 0:
+                views = metadata['view_count']
+                metadata['engagement_metrics'] = {
+                    'like_rate': round((metadata['like_count'] / views) * 100, 2),
+                    'comment_rate': round((metadata['comment_count'] / views) * 100, 2),
+                    'share_rate': round((metadata['share_count'] / views) * 100, 2),
+                    'save_rate': round((metadata['save_count'] / views) * 100, 2),
+                    'total_engagement_rate': round(
+                        ((metadata['like_count'] + metadata['comment_count'] +
+                          metadata['share_count'] + metadata['save_count']) / views) * 100, 2
+                    ),
+                    'save_to_like_ratio': round(
+                        metadata['save_count'] / metadata['like_count'], 3
+                    ) if metadata['like_count'] > 0 else 0,
+                }
+
+                # High-value content flag
+                metadata['high_value_content'] = metadata['engagement_metrics']['save_rate'] > 1.5
+
+            # Performance level with saves considered
+            views = metadata['view_count']
+            save_rate = metadata['engagement_metrics'].get('save_rate', 0) if metadata.get('engagement_metrics') else 0
+
+            if views >= 1000000:
+                metadata['performance_level'] = 'viral'
+            elif views >= 100000 or (views >= 50000 and save_rate > 2):
+                metadata['performance_level'] = 'good'
+            elif views >= 10000:
+                metadata['performance_level'] = 'moderate'
+            else:
+                metadata['performance_level'] = 'low'
+
+            print(f"[SUCCESS] Metadata extracted:")
+            print(f"  Views: {metadata['view_count']:,}")
+            print(f"  Likes: {metadata['like_count']:,}")
+            print(f"  SAVES: {metadata['save_count']:,}")
+            print(f"  Save Rate: {metadata['engagement_metrics'].get('save_rate', 0)}%")
+
+            return metadata
+
+    except Exception as e:
+        print(f"[ERROR] Metadata extraction failed: {e}")
+        return {'view_count': 0, 'error': str(e)}
+
+
+def extract_hashtags(description):
+    import re
+    return re.findall(r'#(\w+)', description)
+
+
+def analyze_save_metrics(metadata):
+    """Analyze what save patterns indicate about content value."""
+    save_count = metadata.get('save_count', 0)
+    view_count = metadata.get('view_count', 0)
+
+    if view_count == 0:
+        return {}
+
+    save_rate = (save_count / view_count) * 100
+
+    analysis = {
+        'save_rate': save_rate,
+        'value_indicators': []
+    }
+
+    if save_rate > 2:
+        analysis['value_indicators'].append("EXCEPTIONAL VALUE - Tutorial/reference content")
+    elif save_rate > 1:
+        analysis['value_indicators'].append("HIGH VALUE - Worth keeping for later")
+    elif save_rate > 0.5:
+        analysis['value_indicators'].append("MODERATE VALUE - Some reference value")
+
+    return analysis

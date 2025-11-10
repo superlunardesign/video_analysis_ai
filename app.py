@@ -22,15 +22,26 @@ from processing import (
     dedupe_frames_by_phash,
     keep_text_heavy_frames,
     extract_frames_uniform,
-    _ensure_dirs
+    _ensure_dirs,
+    extract_video_metadata,
+    analyze_save_metrics
 )
 from rag_helper import retrieve_smart_context, retrieve_all_context
+from cache_manager import AnalysisCache
+from analysis_optimization import intelligent_frame_extraction, parallel_video_processing, optimize_frame_selection
+from audio_analysis import enhanced_audio_analysis, ViralSoundDetector
+from performance_tracker import AnalysisPerformanceTracker
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 app = Flask(__name__)
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=600.0)
 claude_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+# Initialize optimization components
+cache = AnalysisCache()
+tracker = AnalysisPerformanceTracker()
+print("[INFO] Optimization components initialized: cache, tracker")
 
 
 def validate_dependencies():
@@ -432,7 +443,7 @@ def create_visual_content_description(frames_summaries_text, audio_context=None)
 # MAIN ANALYSIS FUNCTION - COMPREHENSIVE & ADAPTIVE
 # ==============================
 
-def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown'):
+def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown', metadata=None, audio_insights=None):
     """Comprehensive analysis that adapts to ALL video types with deep insights"""
     
     # First analyze frames to understand visual content
@@ -1243,6 +1254,8 @@ def analyze_async():
 @app.route("/process", methods=["POST"])
 def process():
     try:
+        start_time = _time.time()
+
         # Get form data with improved view count handling
         form_data = {
             'tiktok_url': request.form.get("tiktok_url", "").strip(),
@@ -1258,13 +1271,53 @@ def process():
             'tone': request.form.get("tone", "confident, friendly").strip(),
             'audience': request.form.get("audience", "creators and small business owners").strip(),
         }
-        
-        # Parse view count immediately (fixed parsing)
+
+        # 1. CHECK CACHE FIRST (unless force_refresh is requested)
+        force_refresh = request.form.get('force_refresh', 'false').lower() == 'true'
+        if not force_refresh:
+            cached_result = cache.get_cached_analysis(form_data['tiktok_url'])
+            if cached_result:
+                print(f"[CACHE HIT] Returning cached analysis")
+                return render_template("results.html", **cached_result)
+
+        # 2. EXTRACT METADATA AUTOMATICALLY (includes saves!)
+        print("[INFO] Auto-extracting video metadata with save counts...")
+        metadata = extract_video_metadata(form_data['tiktok_url'])
+
+        # Initialize view_count and performance_level from metadata
         view_count = None
         performance_level = 'unknown'
+
+        if metadata.get('view_count') and metadata['view_count'] > 0:
+            # Use auto-detected metadata
+            view_count_raw = metadata['view_count']
+            if view_count_raw >= 1000000:
+                view_count = f"{view_count_raw/1000000:.1f}M"
+                performance_level = 'viral'
+            elif view_count_raw >= 1000:
+                view_count = f"{view_count_raw/1000:.0f}k"
+                performance_level = metadata.get('performance_level', 'moderate')
+            else:
+                view_count = f"{view_count_raw} views"
+                performance_level = metadata.get('performance_level', 'low')
+
+            print(f"[AUTO-DETECTED] Views: {view_count}")
+            print(f"[AUTO-DETECTED] Likes: {metadata.get('like_count', 0):,}")
+            print(f"[AUTO-DETECTED] SAVES: {metadata.get('save_count', 0):,} ({metadata.get('engagement_metrics', {}).get('save_rate', 0)}%)")
+            print(f"[AUTO-DETECTED] Engagement: {metadata.get('engagement_metrics', {}).get('total_engagement_rate', 0)}%")
+
+            # Add save insights to creator note
+            save_analysis = analyze_save_metrics(metadata)
+            if save_analysis.get('save_rate', 0) > 1.5:
+                form_data['creator_note'] += f" | HIGH SAVE RATE: {save_analysis['save_rate']:.1f}% - Valuable reference content"
+        else:
+            # Fallback to manual parsing if auto-extraction fails
+            print("[WARNING] Auto-extraction failed, trying manual parsing")
+
+        # If auto-detection failed, try manual parsing as fallback
         view_count_input = form_data.get('view_count', '') or form_data.get('creator_note', '')
 
-        if view_count_input:
+        if not view_count and view_count_input:
             # Extract numbers with units (fixed regex to handle commas)
             import re
             
@@ -1334,8 +1387,32 @@ def process():
         print(f"[INFO] Creator note: {form_data['creator_note']}")
         print(f"[INFO] Strategy: {form_data['strategy']}, Goal: {form_data['goal']}")
 
-        # Extract audio and frames
+        # 3. PARALLEL PROCESSING for speed (with fallback to sequential)
+        print("[INFO] Starting parallel processing...")
         try:
+            parallel_results = parallel_video_processing(
+                tiktok_url,
+                form_data['strategy'],
+                frames_per_minute,
+                cap,
+                scene_threshold
+            )
+
+            # Use parallel results if successful, otherwise fall back
+            if parallel_results.get('extraction'):
+                audio_path, frames_dir, frame_paths = parallel_results['extraction']
+                print(f"[PARALLEL SUCCESS] Extracted {len(frame_paths)} frames")
+
+                # Update metadata if parallel extraction got it
+                if parallel_results.get('metadata') and not metadata.get('view_count'):
+                    metadata = parallel_results['metadata']
+                    print("[PARALLEL] Updated metadata from parallel extraction")
+            else:
+                raise Exception("Parallel extraction returned no results")
+
+        except Exception as e:
+            print(f"[WARNING] Parallel processing failed: {e}, falling back to sequential")
+            # Sequential fallback
             audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
                 tiktok_url,
                 strategy=form_data['strategy'],
@@ -1343,10 +1420,7 @@ def process():
                 cap=cap,
                 scene_threshold=scene_threshold,
             )
-            print(f"[SUCCESS] Extracted {len(frame_paths)} frames")
-        except Exception as e:
-            print(f"[ERROR] Video processing error: {e}")
-            return f"Error processing video: {str(e)}", 500
+            print(f"[SUCCESS] Sequential extraction: {len(frame_paths)} frames")
 
         # Quick transcription FIRST (for enhanced frame analysis)
         basic_transcript = ""
@@ -1384,6 +1458,21 @@ def process():
                 'is_reliable': bool(basic_transcript),
                 'audio_context': {}
             }
+
+        # 4. ENHANCED AUDIO ANALYSIS with viral sound detection
+        audio_analysis = {'viral_sound': {'is_viral': False}}
+        try:
+            print("[INFO] Running enhanced audio analysis with viral sound detection...")
+            audio_analysis = enhanced_audio_analysis(audio_path)
+
+            if audio_analysis.get('viral_sound', {}).get('is_viral'):
+                sound_info = audio_analysis['viral_sound']
+                print(f"[VIRAL SOUND] Detected: {sound_info.get('sound_name')} by {sound_info.get('artist')}")
+                # Add to creator note for analysis
+                form_data['creator_note'] += f" | Viral Sound: {sound_info.get('sound_name')} by {sound_info.get('artist')}"
+        except Exception as e:
+            print(f"[WARNING] Audio analysis failed: {e}, continuing without it")
+            audio_analysis = {'viral_sound': {'is_viral': False}, 'error': str(e)}
 
         # Get knowledge context using smart RAG retrieval
         try:
@@ -1424,7 +1513,7 @@ Key patterns for video analysis:
 """
             knowledge_citations = ["Basic patterns fallback"]
 
-        # Run comprehensive analysis
+        # Run comprehensive analysis with metadata and audio insights
         try:
             gpt_result = run_main_analysis(
                 transcript_data.get('transcript', ''),
@@ -1438,18 +1527,23 @@ Key patterns for video analysis:
                 knowledge_context,
                 view_count,
                 performance_level,
+                metadata=metadata,  # Pass metadata with saves
+                audio_insights=audio_analysis  # Pass audio analysis
             )
-            
-            # Add transcript quality info and view data
+
+            # Add transcript quality info, view data, and new metrics
             gpt_result['transcript_quality'] = transcript_data
             gpt_result['actual_view_count'] = view_count
             gpt_result['performance_level'] = performance_level
-            
+            gpt_result['metadata'] = metadata
+            gpt_result['audio_analysis'] = audio_analysis
+            gpt_result['save_insights'] = analyze_save_metrics(metadata) if metadata else {}
+
             print("[SUCCESS] Analysis complete")
             print(f"[INFO] Content type: {gpt_result.get('content_type_detected', 'unknown')}")
             print(f"[INFO] Audio type: {gpt_result.get('audio_type_detected', 'unknown')}")
             print(f"[INFO] Performance level: {gpt_result.get('performance_level', 'unknown')}")
-            
+
         except Exception as e:
             print(f"[ERROR] Analysis error: {e}")
             import traceback
@@ -1479,20 +1573,37 @@ Key patterns for video analysis:
         # Prepare template variables
         try:
             template_vars = prepare_template_variables(
-                gpt_result, 
-                transcript_data, 
-                frames_summaries_text, 
-                form_data, 
-                gallery_data_urls, 
-                frame_paths, 
-                frames_dir, 
-                knowledge_citations, 
+                gpt_result,
+                transcript_data,
+                frames_summaries_text,
+                form_data,
+                gallery_data_urls,
+                frame_paths,
+                frames_dir,
+                knowledge_citations,
                 knowledge_context
             )
             print("[SUCCESS] Template variables prepared")
         except Exception as e:
             print(f"[ERROR] Template preparation error: {e}")
             return f"Error preparing results: {str(e)}", 500
+
+        # 5. TRACK PERFORMANCE for continuous improvement
+        try:
+            tracker.record_prediction(form_data['tiktok_url'], metadata, gpt_result)
+            print("[TRACKER] Performance data recorded")
+        except Exception as e:
+            print(f"[WARNING] Failed to track performance: {e}")
+
+        # 6. CACHE RESULTS for 24-hour reuse
+        try:
+            cache.save_analysis(form_data['tiktok_url'], 'full', template_vars)
+            print("[CACHE] Analysis cached for future requests")
+        except Exception as e:
+            print(f"[WARNING] Failed to cache results: {e}")
+
+        elapsed = _time.time() - start_time
+        print(f"[SUCCESS] Analysis completed in {elapsed:.1f}s")
 
         print("[INFO] Rendering results template")
         return render_template("results.html", **template_vars)
