@@ -310,6 +310,12 @@
       <p>Deep dive into what makes your content work</p>
       <div class="meta-tags">
         <span class="meta-tag">{{ platform.title() }}</span>
+        {% if metadata and metadata.uploader %}
+        <span class="meta-tag">👤 @{{ metadata.uploader }}</span>
+        {% endif %}
+        {% if metadata and metadata.track %}
+        <span class="meta-tag">🎵 {{ metadata.track }}</span>
+        {% endif %}
         <span class="meta-tag">{{ target_duration }}s video</span>
         <span class="meta-tag">Goal: {{ goal.replace('_', ' ').title() }}</span>
         {% if actual_view_count %}
@@ -337,12 +343,12 @@
         </div>
         <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px; {% if metadata.high_value_content %}border: 2px solid var(--solar-lime);{% endif %}">
           <div style="font-size: 2rem; font-weight: 700; color: {% if metadata.high_value_content %}var(--solar-lime){% else %}var(--lunar-blush){% endif %};">
-            🔖 {{ "{:,}".format(metadata.save_count) }}
+            🔁 {{ "{:,}".format(metadata.repost_count) }}
           </div>
-          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">SAVES</div>
+          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">REPOSTS</div>
           <div style="color: {% if metadata.high_value_content %}var(--solar-lime){% else %}rgba(255, 255, 255, 0.6){% endif %}; font-size: 0.8rem;">
-            {{ metadata.engagement_metrics.save_rate }}% rate
-            {% if metadata.high_value_content %}✨ High Value!{% endif %}
+            {{ metadata.engagement_metrics.repost_rate }}% rate
+            {% if metadata.high_value_content %}✨ Highly Shareable!{% endif %}
           </div>
         </div>
         <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px;">
@@ -351,24 +357,17 @@
           <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem;">{{ metadata.engagement_metrics.comment_rate }}% rate</div>
         </div>
         <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px;">
-          <div style="font-size: 2rem; font-weight: 700; color: var(--lunar-blush);">{{ "{:,}".format(metadata.share_count) }}</div>
-          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">Shares</div>
-          <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem;">{{ metadata.engagement_metrics.share_rate }}% rate</div>
-        </div>
-        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px;">
           <div style="font-size: 2rem; font-weight: 700; color: var(--celestial-lavender);">{{ metadata.engagement_metrics.total_engagement_rate }}%</div>
           <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">Total Engagement</div>
         </div>
       </div>
 
-      {% if save_insights and save_insights.value_indicators %}
+      {% if metadata.engagement_metrics.repost_rate > 2.0 %}
       <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(245, 255, 160, 0.1); border-radius: 12px; border-left: 3px solid var(--solar-lime);">
-        <strong style="color: var(--solar-lime);">💎 Save Rate Insights:</strong>
-        <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
-        {% for indicator in save_insights.value_indicators %}
-          <li style="color: var(--stellar-cream);">{{ indicator }}</li>
-        {% endfor %}
-        </ul>
+        <strong style="color: var(--solar-lime);">🔁 High Repost Rate Detected:</strong>
+        <p style="margin-top: 0.5rem; color: var(--stellar-cream);">
+          {{ metadata.engagement_metrics.repost_rate }}% repost rate indicates strong shareability and viral potential. This content resonates enough that viewers want to share it with their own audience.
+        </p>
       </div>
       {% endif %}
 

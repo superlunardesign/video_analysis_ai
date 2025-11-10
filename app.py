@@ -1827,15 +1827,18 @@ def process():
                 view_count = f"{view_count_raw} views"
                 performance_level = metadata.get('performance_level', 'low')
 
+            print(f"[AUTO-DETECTED] Uploader: {metadata.get('uploader', 'Unknown')}")
+            if metadata.get('track'):
+                print(f"[AUTO-DETECTED] Track: {metadata.get('track')} by {metadata.get('artist', 'Unknown')}")
             print(f"[AUTO-DETECTED] Views: {view_count}")
             print(f"[AUTO-DETECTED] Likes: {metadata.get('like_count', 0):,}")
-            print(f"[AUTO-DETECTED] SAVES: {metadata.get('save_count', 0):,} ({metadata.get('engagement_metrics', {}).get('save_rate', 0)}%)")
+            print(f"[AUTO-DETECTED] Reposts: {metadata.get('repost_count', 0):,} ({metadata.get('engagement_metrics', {}).get('repost_rate', 0)}%)")
             print(f"[AUTO-DETECTED] Engagement: {metadata.get('engagement_metrics', {}).get('total_engagement_rate', 0)}%")
 
-            # Add save insights to creator note
-            save_analysis = analyze_save_metrics(metadata)
-            if save_analysis.get('save_rate', 0) > 1.5:
-                form_data['creator_note'] += f" | HIGH SAVE RATE: {save_analysis['save_rate']:.1f}% - Valuable reference content"
+            # Add repost insights to creator note (high reposts = viral potential)
+            repost_rate = metadata.get('engagement_metrics', {}).get('repost_rate', 0)
+            if repost_rate > 2.0:
+                form_data['creator_note'] += f" | HIGH REPOST RATE: {repost_rate:.1f}% - Strong shareability"
         else:
             # Fallback to manual parsing if auto-extraction fails
             print("[WARNING] Auto-extraction failed, trying manual parsing")
