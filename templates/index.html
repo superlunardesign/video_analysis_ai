@@ -423,6 +423,26 @@
                             <label for="audience">Audience</label>
                             <input type="text" id="audience" name="audience" value="same as video">
                         </div>
+
+                        <div class="field-group">
+                            <label for="analysis_depth">Analysis Depth</label>
+                            <select id="analysis_depth" name="analysis_depth">
+                                <option value="standard" selected>Standard (Concise & Actionable)</option>
+                                <option value="deep">Deep Analysis (Comprehensive Detail)</option>
+                            </select>
+                            <span class="helper-text">💡 Standard: Brief insights for quick reading. Deep: Full explanations with psychology.</span>
+                        </div>
+
+                        <div class="field-group">
+                            <label for="results_speed">Results Speed</label>
+                            <select id="results_speed" name="results_speed">
+                                <option value="ultra_fast">Ultra Fast (~30-60s) - Transcript + 1 frame</option>
+                                <option value="fast">Fast (~1-2min) - 20 frames</option>
+                                <option value="standard" selected>Standard (~2-4min) - 40 frames</option>
+                                <option value="thorough">Thorough (~4-6min) - 70 frames + motion detection</option>
+                            </select>
+                            <span class="helper-text">⚠️ Deep analysis requires more video frames and longer analysis time. Choose your options here.</span>
+                        </div>
                     </div>
 
                     <!-- Submit Button -->

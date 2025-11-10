@@ -806,7 +806,7 @@ def create_visual_content_description(frames_summaries_text, audio_context=None)
 # MAIN ANALYSIS FUNCTION - COMPREHENSIVE & ADAPTIVE
 # ==============================
 
-def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown', metadata=None, audio_insights=None):
+def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown', metadata=None, audio_insights=None, analysis_depth='standard'):
     """Comprehensive analysis that adapts to ALL video types with deep insights"""
     
     # First analyze frames to understand visual content
@@ -1072,34 +1072,35 @@ VISUAL CONTENT (frames - what's SHOWN/WRITTEN):
 {performance_message}
 
 
-Respond using SECTION DELIMITERS with DEEP, SPECIFIC insights delivered in conversational, educational, explanatory way. Don't skimp on words when explaining complex topics/formulas.
+{"Respond using SECTION DELIMITERS with DEEP, COMPREHENSIVE insights. Provide detailed, educational explanations with full psychological breakdowns. Don't hold back on details and examples." if analysis_depth == 'deep' else "Respond using SECTION DELIMITERS with CONCISE, ACTIONABLE insights. Keep each section brief (2-4 sentences). Focus on the most important takeaways only."}
 
 You can use quotes "like this" freely, write multiple paragraphs, and format naturally without worrying about escaping.
 
 Use this EXACT format with === delimiters:
 
 ===WHAT_THIS_VIDEO_IS===
-This is a [specific formula/pattern] video that [explain the core idea/hook/appeal in education, explanatory, and easy to understand language.].
-
-It works because [specific psychological reason explained in a moment by moment breakdown. Explain what hook likely worked best or why layered hooks works, explain for each. Explain what the promise was and why people wanted to stay. Explained what tension built as the video went on. Explain why the promise delivery did or didn't satisfy. If there are specific things that work to improve the video's retention, selling, intrigue, then point each of them out at the second they are playing and explain why they worked to improve that and if you see frames where something could have been done instead to increase retention, selling, or intrigue, then mention what could have been done in an explanatory way.].
+{"This is a [specific formula/pattern] video that [explain the core idea/hook/appeal in educational, explanatory language]. It works because [detailed psychological reason with moment-by-moment breakdown explaining hook effectiveness, promise clarity, tension building, and satisfaction delivery. Point out specific seconds where retention tactics work and explain why]." if analysis_depth == 'deep' else "This is a [specific formula/pattern] video. Core hook: [what grabbed attention]. Why it works: [1-2 sentence psychological explanation]. Result: [did it satisfy or not, briefly]."}
 
 ===WHY_IT_PERFORMED===
-This video got {view_count if view_count else 'these views'} because [specific elements that drove performance. Point out each one and explain why it generated the views. For good, you should be pointing out the hook, the promise, what kept people watching, and what was satisfying. for bad, explain how the hook, promise, or delivery did not perform well and specific ways they can improve to increase the desired outcome].
-
-The main psychological trigger is [explain in simple terms]. Viewers stayed because [reason]. It attracted [specific audience] who [why they engaged].
+{"This video got {view_count if view_count else 'these views'} because [comprehensive analysis: list each performance driver, explain why it generated views, break down hook/promise/retention/satisfaction, identify what worked or didn't work, provide specific improvement suggestions]. Main psychological trigger: [detailed explanation]. Viewers stayed because: [comprehensive reason]. It attracted [specific audience] who [detailed engagement explanation]." if analysis_depth == 'deep' else "This video got {view_count if view_count else 'these views'} because: [1-2 main reasons]. Key trigger: [one psychological driver]. Audience: [who watched and why in 1 sentence]."}
 
 ===ALL_HOOKS_TEXT===
-- Exact text overlay shown: [text]
-- Other text elements seen: [text]
+ONLY list text that appears in the FIRST 3 SECONDS that STOPS the scroll.
+Not all text is a hook - only attention-grabbing opening text.
+- [Text from first 3 seconds only]
 
 ===ALL_HOOKS_VISUAL===
-- Visual elements that grabbed attention and why they worked: [description]
+ONLY list visual elements in FIRST 3 SECONDS that grabbed attention.
+- [Opening visual hooks only, not all visuals]
 
 ===ALL_HOOKS_VERBAL===
-- What's said that hooked and grabbed people's attention and keeps it: [quote or description]
+ONLY list what's SAID in FIRST 3 SECONDS that grabbed attention.
+Promises, explanations, and body content are NOT hooks - only opening attention-grabbers.
+- [Opening verbal hooks only]
 
 ===ALL_HOOKS_PSYCHOLOGICAL===
-- Mental trigger activated and why it works or doesn't work for this desired outcome: [explanation]
+What mental trigger(s) in the OPENING caused someone to stop scrolling?
+- [Primary psychological hook trigger only]
 
 ===EXACT_HOOK_BREAKDOWN===
 first_frame: 0:00 - [EXACTLY what appears]
@@ -1127,14 +1128,10 @@ text_template: Use text like: '[specific full word for word script for the given
 visual_requirements: Show [specific visuals needed. Give 2-3 ideas that could help them capture attention and/or increase viewer retention and explain why they would work.]
 
 ===IMPROVEMENTS===
-To make this even stronger: [specific actionable improvement and why it would make it stronger 1. Give exact word for word scripts with suggested pattern interrupts and viewer retention ideas.].
-
-[Specific improvement 2 and why it would make it stronger. Give exact word for word scripts with suggested pattern interrupts and viewer retention ideas.].
-
-This could push views to [realistic projection] because [reason explained in educational and explanatory way].
+{"Improvement 1: [Detailed specific actionable change with exact word-for-word script suggestions, pattern interrupts, and retention tactics. Explain why this would work psychologically]. Improvement 2: [Another detailed improvement with scripts and explanations]. Improvement 3: [Third improvement]. This could push views to [realistic projection with detailed reasoning]." if analysis_depth == 'deep' else "1. [Most important improvement in 1 sentence]. 2. [Second improvement in 1 sentence]. 3. [Third improvement in 1 sentence]. Potential: [projected views with brief reason]."}
 
 ===VIRAL_MECHANICS===
-{'This went viral because: ' if performance_level == 'viral' else 'To go viral: '}[Explain specific viral triggers and mechanics in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]
+{'"This went viral because: [List 3-5 specific viral triggers with detailed psychological explanations, referring to exact moments and mechanics]" if performance_level == "viral" else "To go viral, this video needs: [List 3-5 specific viral triggers to add/strengthen with explanations]"' if analysis_depth == 'deep' else '"Viral because: [2 main reasons]" if performance_level == "viral" else "To go viral: [2 key additions needed]"'}
 
 ===SCORES===
 hook_strength: [1-10]
@@ -1153,22 +1150,19 @@ goal_alignment: [1-10]
 15s+: [Resolution and sharing trigger]
 
 ===PERFORMANCE_PREDICTION===
-{'This succeeded because: ' if performance_level == 'viral' else 'With improvements, this could achieve: '}[Specific prediction with reasoning]
+{'"This succeeded because: [Detailed analysis of why this hit ' + str(view_count) + ' - break down each success factor]. Future potential: [What it could achieve with tweaks]." if performance_level == "viral" else "With the improvements above, this could achieve: [Specific view target with detailed reasoning about what would drive that growth]."' if analysis_depth == 'deep' else '"Success factors: [2 key reasons]. Potential: [projected views with 1 sentence why]." if performance_level == "viral" else "Could reach: [view target] if [1-2 key improvements made]."'}
 
 ===KNOWLEDGE_PATTERNS_APPLIED===
-- [Pattern from knowledge]: [How it applies]
-- [Another pattern]: [Implementation]
+- [Pattern from knowledge base]: [How it applies to this video]
+- [Another pattern]: [Implementation example]
 
 ===END===
 
 CRITICAL INSTRUCTIONS:
-- Write educationally without vagueness like explaining to a friend
-- Use and point out specific moments and examples they can visualize
-- Explain psychology in jargon-less but educational and explanatory ways
-- Be encouraging about successes
-- Be specific and explanatory about improvements
-- NO JARGON or academic language
+{'- Write comprehensive, educational explanations without holding back on details\\n- Provide moment-by-moment psychological breakdowns\\n- Include specific examples and scenarios\\n- Give exact scripts and word-for-word suggestions\\n- Explain the "why" behind every observation' if analysis_depth == 'deep' else '- Keep each section concise (2-4 sentences max)\\n- Focus on most important insights only\\n- Prioritize actionable takeaways over theory\\n- Use simple, direct language'}
 - Use EXACT section names with === delimiters as shown above
+- FILL EVERY SECTION - do not leave any section empty
+- All hooks sections should focus on FIRST 3 SECONDS only
 - You can use quotes, line breaks, and write naturally within each section
 - End with ===END=== marker
 """
@@ -1831,7 +1825,26 @@ def process():
         except ValueError as e:
             print(f"[ERROR] Invalid numeric parameter: {e}")
             return "Error: Invalid numeric parameters provided", 400
-        
+
+        # Apply Results Speed tier settings
+        results_speed = form_data.get('results_speed', 'standard')
+        if results_speed == 'ultra_fast':
+            cap = 1  # Only first frame for hook analysis
+            scene_threshold = 0.9  # Very selective
+            print("[SPEED] Ultra Fast mode: 1 frame only")
+        elif results_speed == 'fast':
+            cap = 20
+            scene_threshold = 0.45  # More selective
+            print("[SPEED] Fast mode: 20 frames max")
+        elif results_speed == 'thorough':
+            cap = 70
+            scene_threshold = 0.24  # More sensitive motion detection
+            print("[SPEED] Thorough mode: 70 frames with enhanced motion detection")
+        else:  # standard
+            cap = 40
+            scene_threshold = 0.35
+            print("[SPEED] Standard mode: 40 frames")
+
         tiktok_url = form_data['tiktok_url']
         if not tiktok_url:
             return "Error: TikTok URL is required", 400
@@ -1839,6 +1852,7 @@ def process():
         print(f"[INFO] Processing: {tiktok_url}")
         print(f"[INFO] Creator note: {form_data['creator_note']}")
         print(f"[INFO] Strategy: {form_data['strategy']}, Goal: {form_data['goal']}")
+        print(f"[INFO] Results Speed: {results_speed} (cap={cap}, threshold={scene_threshold})")
 
         # 3. VIDEO EXTRACTION (sequential is more reliable than parallel for video processing)
         print("[INFO] Extracting audio and frames...")
@@ -1993,7 +2007,8 @@ Key patterns for video analysis:
                 view_count,
                 performance_level,
                 metadata=metadata,  # Pass metadata with saves
-                audio_insights=audio_analysis  # Pass audio analysis
+                audio_insights=audio_analysis,  # Pass audio analysis
+                analysis_depth=form_data.get('analysis_depth', 'standard')  # Pass analysis depth
             )
 
             # Add transcript quality info, view data, and new metrics
