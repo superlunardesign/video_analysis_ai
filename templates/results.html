@@ -321,6 +321,68 @@
       </div>
     </div>
 
+    <!-- Auto-Detected Metrics -->
+    {% if metadata and metadata.view_count %}
+    <div class="section" style="background: linear-gradient(135deg, rgba(111, 116, 206, 0.1), rgba(183, 180, 237, 0.1)); border-left: 4px solid var(--lunar-blush);">
+      <h2>📊 Auto-Detected Engagement Metrics</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px;">
+          <div style="font-size: 2rem; font-weight: 700; color: var(--solar-lime);">{{ "{:,}".format(metadata.view_count) }}</div>
+          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">Views</div>
+        </div>
+        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px;">
+          <div style="font-size: 2rem; font-weight: 700; color: var(--solar-lime);">{{ "{:,}".format(metadata.like_count) }}</div>
+          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">Likes</div>
+          <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem;">{{ metadata.engagement_metrics.like_rate }}% rate</div>
+        </div>
+        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px; {% if metadata.high_value_content %}border: 2px solid var(--solar-lime);{% endif %}">
+          <div style="font-size: 2rem; font-weight: 700; color: {% if metadata.high_value_content %}var(--solar-lime){% else %}var(--lunar-blush){% endif %};">
+            🔖 {{ "{:,}".format(metadata.save_count) }}
+          </div>
+          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">SAVES</div>
+          <div style="color: {% if metadata.high_value_content %}var(--solar-lime){% else %}rgba(255, 255, 255, 0.6){% endif %}; font-size: 0.8rem;">
+            {{ metadata.engagement_metrics.save_rate }}% rate
+            {% if metadata.high_value_content %}✨ High Value!{% endif %}
+          </div>
+        </div>
+        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px;">
+          <div style="font-size: 2rem; font-weight: 700; color: var(--lunar-blush);">{{ "{:,}".format(metadata.comment_count) }}</div>
+          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">Comments</div>
+          <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem;">{{ metadata.engagement_metrics.comment_rate }}% rate</div>
+        </div>
+        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px;">
+          <div style="font-size: 2rem; font-weight: 700; color: var(--lunar-blush);">{{ "{:,}".format(metadata.share_count) }}</div>
+          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">Shares</div>
+          <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem;">{{ metadata.engagement_metrics.share_rate }}% rate</div>
+        </div>
+        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px;">
+          <div style="font-size: 2rem; font-weight: 700; color: var(--celestial-lavender);">{{ metadata.engagement_metrics.total_engagement_rate }}%</div>
+          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">Total Engagement</div>
+        </div>
+      </div>
+
+      {% if save_insights and save_insights.value_indicators %}
+      <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(245, 255, 160, 0.1); border-radius: 12px; border-left: 3px solid var(--solar-lime);">
+        <strong style="color: var(--solar-lime);">💎 Save Rate Insights:</strong>
+        <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+        {% for indicator in save_insights.value_indicators %}
+          <li style="color: var(--stellar-cream);">{{ indicator }}</li>
+        {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if audio_analysis and audio_analysis.viral_sound and audio_analysis.viral_sound.is_viral %}
+      <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(245, 255, 160, 0.1); border-radius: 12px; border-left: 3px solid var(--solar-lime);">
+        <strong style="color: var(--solar-lime);">🎵 Viral Sound Detected:</strong>
+        <p style="margin-top: 0.5rem; color: var(--stellar-cream);">
+          "{{ audio_analysis.viral_sound.sound_name }}" by {{ audio_analysis.viral_sound.artist }}
+        </p>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
     <!-- What This Video Is -->
     <div class="section">
       <h2>🎬 What This Video Is</h2>
