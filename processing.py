@@ -680,17 +680,50 @@ def extract_video_metadata(tiktok_url):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(tiktok_url, download=False)
 
-            # Debug available fields
+            # Debug available fields - print all fields and their values for debugging
             print(f"[DEBUG] Available fields in yt-dlp: {', '.join(info.keys())}")
 
-            # Extract saves (field name varies)
+            # Show all numeric fields (likely to contain counts)
+            numeric_fields = {k: v for k, v in info.items() if isinstance(v, (int, float)) and v > 0}
+            print(f"[DEBUG] All numeric fields with values > 0: {numeric_fields}")
+
+            # Look for save-related fields
+            save_related_fields = [
+                'save_count', 'bookmark_count', 'favorite_count', 'collect_count',
+                'collection_count', 'saved_count', 'bookmarks', 'favorites',
+                'saves', 'collect', 'collected'
+            ]
+
+            print("[DEBUG] Checking for save count fields:")
+            for field in save_related_fields:
+                value = info.get(field)
+                if value is not None:
+                    print(f"  {field}: {value}")
+
+            # Extract saves (field name varies) - try all possible names
             save_count = (
+                info.get('collect_count') or  # TikTok often uses 'collect_count' for saves
                 info.get('save_count') or
                 info.get('bookmark_count') or
                 info.get('favorite_count') or
-                info.get('collect_count') or
+                info.get('collection_count') or
+                info.get('saved_count') or
+                info.get('collect') or
                 0
             )
+
+            # If still 0, check statistics dict if it exists
+            if save_count == 0 and 'statistics' in info:
+                stats = info['statistics']
+                print(f"[DEBUG] Found statistics dict: {stats.keys() if isinstance(stats, dict) else stats}")
+                if isinstance(stats, dict):
+                    save_count = (
+                        stats.get('collect_count') or
+                        stats.get('save_count') or
+                        stats.get('bookmark_count') or
+                        stats.get('favorite_count') or
+                        0
+                    )
 
             metadata = {
                 'url': tiktok_url,

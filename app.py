@@ -1413,6 +1413,7 @@ def process():
 
         # 3. PARALLEL PROCESSING for speed (with fallback to sequential)
         print("[INFO] Starting parallel processing...")
+        use_parallel = False
         try:
             parallel_results = parallel_video_processing(
                 tiktok_url,
@@ -1426,17 +1427,25 @@ def process():
             if parallel_results.get('extraction'):
                 audio_path, frames_dir, frame_paths = parallel_results['extraction']
                 print(f"[PARALLEL SUCCESS] Extracted {len(frame_paths)} frames")
+                use_parallel = True
 
                 # Update metadata if parallel extraction got it
                 if parallel_results.get('metadata') and not metadata.get('view_count'):
                     metadata = parallel_results['metadata']
                     print("[PARALLEL] Updated metadata from parallel extraction")
             else:
+                print(f"[WARNING] Parallel extraction returned None (metadata success: {bool(parallel_results.get('metadata'))})")
                 raise Exception("Parallel extraction returned no results")
 
         except Exception as e:
-            print(f"[WARNING] Parallel processing failed: {e}, falling back to sequential")
-            # Sequential fallback
+            import traceback
+            print(f"[WARNING] Parallel processing failed: {type(e).__name__}: {e}")
+            print("[INFO] Full traceback:")
+            traceback.print_exc()
+            print("[INFO] Falling back to sequential processing...")
+
+        # Sequential fallback (if parallel didn't work)
+        if not use_parallel:
             audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
                 tiktok_url,
                 strategy=form_data['strategy'],

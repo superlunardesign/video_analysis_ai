@@ -84,6 +84,7 @@ def detect_text_regions(frame: np.ndarray) -> bool:
 def parallel_video_processing(tiktok_url: str, strategy: str, frames_per_minute: int, cap: int, scene_threshold: float):
     """Process video components in parallel for speed."""
     from processing import extract_video_metadata, extract_audio_and_frames
+    import traceback
 
     results = {}
     with ThreadPoolExecutor(max_workers=2) as executor:
@@ -101,7 +102,8 @@ def parallel_video_processing(tiktok_url: str, strategy: str, frames_per_minute:
                 results[name] = future.result(timeout=120)  # 2 minute timeout
                 print(f"[PARALLEL] {name} complete")
             except Exception as e:
-                print(f"[ERROR] {name} failed: {e}")
+                print(f"[ERROR] {name} failed: {type(e).__name__}: {e}")
+                traceback.print_exc()
                 results[name] = None
 
     return results
