@@ -263,31 +263,23 @@
       console.log('[PDF] Filename:', filename);
 
       const opt = {
-        margin: [10, 10, 10, 10],  // Top, Right, Bottom, Left
+        margin: [0, 0, 0, 0],  // Top, Right, Bottom, Left
         filename: filename,
-        image: { type: 'jpeg', quality: 0.95 },  // Higher quality for clarity at smaller scale
         html2canvas: {
-          scale: 0.5,  // Match browser print scale (~47%)
+          scale: .2,  // Reduced from 2 for smaller file size, still crisp
           scrollY: 0,  // Start from top of element
           scrollX: 0,
           windowHeight: element.scrollHeight,  // Capture full height
-          windowWidth: element.scrollWidth,
           useCORS: true,
           logging: false,
           letterRendering: true,
           allowTaint: false
         },
         jsPDF: {
-          unit: 'mm',
-          format: 'a4',
+          unit: 'px',
+          format: 'tabloid',
           orientation: 'portrait',
           compress: true
-        },
-        pagebreak: {
-          mode: ['avoid-all', 'css'],
-          before: '.section',  // Try to break before sections
-          after: [],
-          avoid: ['h2', 'h3', '.score-card']  // Don't break these
         }
       };
 
