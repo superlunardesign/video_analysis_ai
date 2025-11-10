@@ -751,7 +751,7 @@ CRITICAL INSTRUCTIONS:
         
         gpt_response = _api_retry(
             claude_client.messages.create,
-            model="claude-3-5-sonnet-20241022",
+            model="claude-sonnet-4-5-20250929",
             max_tokens=6000,
             temperature=0.7,
             system="You are an expert in viral psychology and content analysis. Provide DEEP, specific insights about why content succeeds or fails. Always explain the psychological mechanisms. Never give surface-level observations. Correctly interpret audio based on visual context - if someone is drawing, sounds are likely marker/pen sounds, not animal noises.",
