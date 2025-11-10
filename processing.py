@@ -410,15 +410,19 @@ def analyze_frames_batch(frame_paths, transcript=None):
     frame_analyses = []
     gallery_urls = []
 
-    # Group frames for context (analyze 3-5 at a time for better continuity understanding)
+    # Group frames for context (analyze 10 at a time for efficiency)
+    # Larger groups = fewer API calls = faster analysis
     frame_groups = []
-    group_size = 3
+    group_size = 10  # Increased from 3 to reduce API calls (60 frames = 6 calls instead of 20)
     for i in range(0, len(frame_paths), group_size):
         frame_groups.append(frame_paths[i:i+group_size])
 
     # Process each group of frames
+    total_groups = len(frame_groups)
+    print(f"[INFO] Frame analysis: {len(frame_paths)} frames in {total_groups} groups (group size: {group_size})")
+
     for group_idx, frame_group in enumerate(frame_groups):
-        print(f"[INFO] Processing frame group {group_idx + 1}/{len(frame_groups)}")
+        print(f"[INFO] Analyzing frame group {group_idx + 1}/{total_groups} ({len(frame_group)} frames)...")
 
         # Convert frames to base64 for GPT-4 Vision
         base64_images = []

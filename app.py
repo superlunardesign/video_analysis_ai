@@ -1322,7 +1322,7 @@ def process():
             'creator_note': request.form.get("creator_note", "").strip(),
             'strategy': request.form.get("strategy", "smart").strip(),
             'frames_per_minute': request.form.get("frames_per_minute", "24"),
-            'cap': request.form.get("cap", "60"),
+            'cap': request.form.get("cap", "40"),  # Reduced from 60 to 40 for faster analysis
             'scene_threshold': request.form.get("scene_threshold", "0.24"),
             'platform': request.form.get("platform", "tiktok").strip(),
             'target_duration': request.form.get("target_duration", "30").strip(),
