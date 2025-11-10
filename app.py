@@ -106,44 +106,79 @@ def _repair_json(json_str):
     try:
         return json.loads(json_str)
     except json.JSONDecodeError as e:
-        print(f"[WARN] JSON parsing failed: {e}. Attempting repair...")
+        print(f"[WARN] Initial JSON parsing failed: {e}")
 
-        # Handle "Extra data" error - find the valid JSON portion
-        if "Extra data" in str(e):
-            try:
-                # Use JSONDecoder to parse and get the end position
-                from json import JSONDecoder
-                decoder = JSONDecoder()
-                result, end_idx = decoder.raw_decode(json_str)
-                print(f"[INFO] Extracted valid JSON, ignoring extra data after position {end_idx}")
-                return result
-            except Exception as e2:
-                print(f"[WARN] Could not extract JSON: {e2}")
+        # PRIORITY: Use JSONDecoder.raw_decode() - this handles most cases
+        try:
+            from json import JSONDecoder
+            decoder = JSONDecoder()
+            result, end_idx = decoder.raw_decode(json_str)
+            extra_content = json_str[end_idx:].strip()
+            if extra_content:
+                print(f"[INFO] Extracted valid JSON, ignoring {len(extra_content)} extra chars: '{extra_content[:100]}'")
+            else:
+                print(f"[INFO] Successfully parsed JSON with JSONDecoder")
+            return result
+        except json.JSONDecodeError as e2:
+            print(f"[WARN] JSONDecoder.raw_decode failed: {e2}")
+        except Exception as e2:
+            print(f"[WARN] Unexpected error in JSONDecoder: {e2}")
 
-    # Common fix: escape unescaped quotes within strings
-    # This is a simplified approach - for complex cases, may need more sophisticated logic
+    # Try removing trailing commas
     try:
-        # Remove trailing commas before closing braces/brackets
-        json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
-        return json.loads(json_str)
+        fixed = re.sub(r',(\s*[}\]])', r'\1', json_str)
+        return json.loads(fixed)
     except json.JSONDecodeError:
         pass
 
-    # Try to find JSON object boundaries
+    # Try to extract JSON by finding balanced braces
     try:
-        # Find first { and last }
         first_brace = json_str.find('{')
-        last_brace = json_str.rfind('}')
-        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-            json_str = json_str[first_brace:last_brace+1]
-            print(f"[INFO] Extracted JSON between braces")
-            return json.loads(json_str)
-    except json.JSONDecodeError:
-        pass
+        if first_brace != -1:
+            # Count braces to find the matching closing brace
+            brace_count = 0
+            in_string = False
+            escape_next = False
+
+            for i in range(first_brace, len(json_str)):
+                char = json_str[i]
+
+                # Handle escape sequences in strings
+                if escape_next:
+                    escape_next = False
+                    continue
+
+                if char == '\\':
+                    escape_next = True
+                    continue
+
+                # Track whether we're inside a string
+                if char == '"' and not in_string:
+                    in_string = True
+                elif char == '"' and in_string:
+                    in_string = False
+
+                # Only count braces outside of strings
+                if not in_string:
+                    if char == '{':
+                        brace_count += 1
+                    elif char == '}':
+                        brace_count -= 1
+                        if brace_count == 0:
+                            # Found the matching closing brace
+                            extracted = json_str[first_brace:i+1]
+                            print(f"[INFO] Extracted JSON using balanced brace counting ({len(extracted)} chars)")
+                            return json.loads(extracted)
+    except json.JSONDecodeError as e:
+        print(f"[WARN] Balanced brace extraction failed: {e}")
+    except Exception as e:
+        print(f"[WARN] Unexpected error in brace counting: {e}")
 
     # If all repairs fail, raise the original error
-    print(f"[ERROR] Could not repair JSON. First 500 chars: {json_str[:500]}")
-    raise json.JSONDecodeError("Failed to parse JSON after repair attempts", json_str, 0)
+    print(f"[ERROR] All JSON repair attempts failed")
+    print(f"[ERROR] First 500 chars: {json_str[:500]}")
+    print(f"[ERROR] Last 200 chars: {json_str[-200:]}")
+    raise json.JSONDecodeError("Failed to parse JSON after all repair attempts", json_str, 0)
 
 
 # ==============================
