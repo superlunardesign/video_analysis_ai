@@ -108,12 +108,36 @@ def _repair_json(json_str):
     except json.JSONDecodeError as e:
         print(f"[WARN] JSON parsing failed: {e}. Attempting repair...")
 
+        # Handle "Extra data" error - find the valid JSON portion
+        if "Extra data" in str(e):
+            try:
+                # Use JSONDecoder to parse and get the end position
+                from json import JSONDecoder
+                decoder = JSONDecoder()
+                result, end_idx = decoder.raw_decode(json_str)
+                print(f"[INFO] Extracted valid JSON, ignoring extra data after position {end_idx}")
+                return result
+            except Exception as e2:
+                print(f"[WARN] Could not extract JSON: {e2}")
+
     # Common fix: escape unescaped quotes within strings
     # This is a simplified approach - for complex cases, may need more sophisticated logic
     try:
         # Remove trailing commas before closing braces/brackets
         json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
         return json.loads(json_str)
+    except json.JSONDecodeError:
+        pass
+
+    # Try to find JSON object boundaries
+    try:
+        # Find first { and last }
+        first_brace = json_str.find('{')
+        last_brace = json_str.rfind('}')
+        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+            json_str = json_str[first_brace:last_brace+1]
+            print(f"[INFO] Extracted JSON between braces")
+            return json.loads(json_str)
     except json.JSONDecodeError:
         pass
 
