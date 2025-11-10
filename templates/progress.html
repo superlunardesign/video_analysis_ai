@@ -218,7 +218,7 @@
 <body>
     <div class="container">
         <h1>🎬 Analyzing Your Video</h1>
-        <div class="time-estimate">Estimated time: <span id="timeEstimate">5-7 minutes</span></div>
+        <div class="time-estimate">Estimated time: <span id="timeEstimate">Loading...</span></div>
         
         <div class="stage-container">
             <div class="stage" id="stage1">
@@ -230,9 +230,9 @@
                         <div class="progress-bar" id="progress1"></div>
                     </div>
                 </div>
-                <div class="stage-time">~15s</div>
+                <div class="stage-time" id="time1">~15s</div>
             </div>
-            
+
             <div class="stage" id="stage2">
                 <div class="stage-icon">🎞️</div>
                 <div class="stage-info">
@@ -242,21 +242,21 @@
                         <div class="progress-bar" id="progress2"></div>
                     </div>
                 </div>
-                <div class="stage-time">~30s</div>
+                <div class="stage-time" id="time2">~30s</div>
             </div>
-            
+
             <div class="stage" id="stage3">
                 <div class="stage-icon">🔍</div>
                 <div class="stage-info">
                     <div class="stage-title">Analyzing Visual Content</div>
-                    <div class="stage-description">Understanding each frame with AI vision...</div>
+                    <div class="stage-description" id="frameDescription">Understanding each frame with AI vision...</div>
                     <div class="progress-bar-container">
                         <div class="progress-bar" id="progress3"></div>
                     </div>
                 </div>
-                <div class="stage-time">~3-4 min</div>
+                <div class="stage-time" id="time3">~5-6 min</div>
             </div>
-            
+
             <div class="stage" id="stage4">
                 <div class="stage-icon">🎵</div>
                 <div class="stage-info">
@@ -266,9 +266,9 @@
                         <div class="progress-bar" id="progress4"></div>
                     </div>
                 </div>
-                <div class="stage-time">~20s</div>
+                <div class="stage-time" id="time4">~20s</div>
             </div>
-            
+
             <div class="stage" id="stage5">
                 <div class="stage-icon">📚</div>
                 <div class="stage-info">
@@ -278,9 +278,9 @@
                         <div class="progress-bar" id="progress5"></div>
                     </div>
                 </div>
-                <div class="stage-time">~10s</div>
+                <div class="stage-time" id="time5">~15s</div>
             </div>
-            
+
             <div class="stage" id="stage6">
                 <div class="stage-icon">🧠</div>
                 <div class="stage-info">
@@ -290,9 +290,9 @@
                         <div class="progress-bar" id="progress6"></div>
                     </div>
                 </div>
-                <div class="stage-time">~45s</div>
+                <div class="stage-time" id="time6">~45s</div>
             </div>
-            
+
             <div class="stage" id="stage7">
                 <div class="stage-icon">✨</div>
                 <div class="stage-info">
@@ -302,7 +302,7 @@
                         <div class="progress-bar" id="progress7"></div>
                     </div>
                 </div>
-                <div class="stage-time">~10s</div>
+                <div class="stage-time" id="time7">~10s</div>
             </div>
         </div>
         
@@ -336,18 +336,51 @@
             formData.append(key, passedData[key]);
         }
         
+        // Get results speed tier from form data
+        const resultsSpeed = passedData.results_speed || 'standard';
+
+        // Configure timing based on results speed tier
+        let frameAnalysisDuration, totalEstimate, frameCount;
+
+        switch(resultsSpeed) {
+            case 'ultra_fast':
+                frameAnalysisDuration = 10;  // 1 frame, very quick
+                totalEstimate = '30-60 seconds';
+                frameCount = '1 frame';
+                break;
+            case 'fast':
+                frameAnalysisDuration = 90;  // ~20 frames: 1.5 min
+                totalEstimate = '1-2 minutes';
+                frameCount = '~20 frames';
+                break;
+            case 'thorough':
+                frameAnalysisDuration = 480; // ~70 frames: 8 min
+                totalEstimate = '8-12 minutes';
+                frameCount = '~70 frames';
+                break;
+            default: // standard
+                frameAnalysisDuration = 360; // ~40 frames: 6 min
+                totalEstimate = '6-9 minutes';
+                frameCount = '~40 frames';
+        }
+
+        // Update time estimate display
+        document.getElementById('timeEstimate').textContent = totalEstimate;
+        document.getElementById('frameDescription').textContent = `Understanding ${frameCount} with AI vision...`;
+        document.getElementById('time3').textContent = `~${Math.floor(frameAnalysisDuration/60)} min`;
+
         // Stage timing configuration (in seconds)
         const stages = [
-            { id: 'stage1', duration: 15, start: 0 },      // Download
-            { id: 'stage2', duration: 30, start: 15 },     // Extract frames
-            { id: 'stage3', duration: 210, start: 45 },    // Analyze frames (3.5 min)
-            { id: 'stage4', duration: 20, start: 255 },    // Process audio
-            { id: 'stage5', duration: 10, start: 275 },    // Search knowledge
-            { id: 'stage6', duration: 45, start: 285 },    // Deep analysis
-            { id: 'stage7', duration: 10, start: 330 }     // Finalize
+            { id: 'stage1', duration: 15, start: 0 },                                    // Download
+            { id: 'stage2', duration: 20, start: 15 },                                   // Extract frames
+            { id: 'stage3', duration: frameAnalysisDuration, start: 35 },               // Analyze frames (DYNAMIC)
+            { id: 'stage4', duration: 20, start: 35 + frameAnalysisDuration },           // Process audio
+            { id: 'stage5', duration: 15, start: 55 + frameAnalysisDuration },           // Search knowledge
+            { id: 'stage6', duration: 45, start: 70 + frameAnalysisDuration },           // Deep analysis
+            { id: 'stage7', duration: 10, start: 115 + frameAnalysisDuration }           // Finalize
         ];
-        
-        const totalDuration = 340; // ~5.7 minutes
+
+        const totalDuration = 125 + frameAnalysisDuration;
         let startTime = Date.now();
         let currentStage = 0;
         
