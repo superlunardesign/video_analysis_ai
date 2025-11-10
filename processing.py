@@ -389,85 +389,270 @@ def transcribe_audio(audio_path: str) -> str:
 # Batch frame analysis (vision) — always gpt-4o
 # ------------------------------------------------------------------------------
 
-# REPLACE the analyze_frames_batch function in your processing.py with this:
-
-def analyze_frames_batch(image_paths: List[str]) -> Tuple[str, List[str]]:
+def analyze_frames_batch(frame_paths, transcript=None):
     """
-    Enhanced frame analysis that identifies satisfying background processes and retention drivers.
+    Enhanced frame analysis with better text distinction and context awareness.
+
+    Args:
+        frame_paths: List of paths to frame images
+        transcript: Optional transcript text to help identify captions vs overlays
+
+    Returns:
+        Tuple of (detailed_analysis_text, gallery_urls)
     """
-    
-    analysis_prompt = """Analyze these video frames for TikTok retention psychology. Focus on identifying DUAL ENGAGEMENT MECHANISMS:
 
-PRIMARY CONTENT ANALYSIS:
-- What is the main message/topic being delivered?
-- Is this educational, controversial, storytelling, or opinion-based?
-- What verbal hooks or claims are being made?
+    if not frame_paths:
+        return "", []
 
-SATISFYING BACKGROUND PROCESSES:
-Look for activities that provide visual satisfaction while the main message is delivered:
+    print(f"[INFO] Analyzing {len(frame_paths)} frames with enhanced text detection")
 
-REPETITIVE/RHYTHMIC ACTIONS:
-- Folding, organizing, sorting items
-- Makeup application (blending, brushing, precise movements)
-- Food preparation (chopping, mixing, plating)
-- Art creation (painting, drawing, crafting)
-- Cleaning/tidying (wiping, arranging, decluttering)
-- Hair styling/braiding
-- Gaming/typing with satisfying precision
+    # Prepare frame descriptions with structured analysis
+    frame_analyses = []
+    gallery_urls = []
 
-PROCESS SATISFACTION ELEMENTS:
-- Transformation moments (before/after states)
-- Completion satisfaction (finishing a task)
-- Precision movements (careful, skilled actions)
-- Texture interactions (smooth, satisfying materials)
-- Organization/symmetry creation
-- Problem-solving in real-time
+    # Group frames for context (analyze 3-5 at a time for better continuity understanding)
+    frame_groups = []
+    group_size = 3
+    for i in range(0, len(frame_paths), group_size):
+        frame_groups.append(frame_paths[i:i+group_size])
 
-MULTITASKING APPEAL:
-- Productive activities (cleaning while teaching)
-- Self-care routines (skincare while storytelling)
-- Creative processes (art while explaining)
-- Skill demonstrations (cooking while sharing tips)
+    # Process each group of frames
+    for group_idx, frame_group in enumerate(frame_groups):
+        print(f"[INFO] Processing frame group {group_idx + 1}/{len(frame_groups)}")
 
-RETENTION PSYCHOLOGY:
-- Does the visual process keep eyes engaged during slower verbal moments?
-- Are there satisfying completion moments throughout?
-- Does the background activity create a meditative, watchable quality?
-- Is there anticipation for the finished result?
+        # Convert frames to base64 for GPT-4 Vision
+        base64_images = []
+        for frame_path in frame_group:
+            try:
+                with open(frame_path, 'rb') as f:
+                    img_data = base64.b64encode(f.read()).decode()
+                    base64_images.append(img_data)
+                    gallery_urls.append(f"data:image/jpeg;base64,{img_data}")
+            except Exception as e:
+                print(f"[ERROR] Failed to process frame {frame_path}: {e}")
+                continue
 
-ENGAGEMENT AMPLIFIERS:
-- Skilled/expert-level execution that's impressive to watch
-- Relatable daily activities viewers connect with
-- Aspirational lifestyle elements (organized spaces, skills)
-- ASMR-like visual satisfaction
+        if not base64_images:
+            continue
 
-For each frame, describe:
-1. What background process/activity is happening
-2. How satisfying/engaging this process appears
-3. How it supports or distracts from the main message
-4. What completion/transformation moments are visible
-5. Why this combination would retain viewer attention
+        # Build the analysis prompt with transcript context
+        transcript_context = ""
+        if transcript:
+            # Estimate which part of transcript might correspond to these frames
+            # (This is approximate - you might want to use timing info if available)
+            transcript_words = transcript.split()
+            total_groups = len(frame_groups)
+            words_per_group = len(transcript_words) // total_groups if total_groups > 0 else len(transcript_words)
+            start_idx = group_idx * words_per_group
+            end_idx = min(start_idx + words_per_group, len(transcript_words))
+            transcript_segment = ' '.join(transcript_words[start_idx:end_idx])
+            transcript_context = f"LIKELY TRANSCRIPT SEGMENT: '{transcript_segment}'"
 
-Focus on the DUAL ENGAGEMENT: eyes watching satisfying process + ears processing valuable content."""
+        # Create structured prompt for GPT-4o
+        prompt = f"""Analyze these {len(frame_group)} sequential video frames in detail.
 
-    contents = [{
-        "type": "text", 
-        "text": analysis_prompt
-    }]
+{transcript_context}
 
-    gallery = []
-    for p in image_paths:
-        with open(p, "rb") as f:
-            b64 = base64.b64encode(f.read()).decode("utf-8")
-        contents.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
-        gallery.append(f"data:image/jpeg;base64,{b64}")
+For EACH frame, provide a structured analysis:
 
-    def _call():
-        return client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": contents}],
-            max_tokens=1500,  # Increased for detailed process analysis
-        )
+1. TEXT DETECTION AND CLASSIFICATION:
+   Identify ALL visible text and classify each element:
 
-    resp = _api_retry(_call)
-    return resp.choices[0].message.content, gallery
+   a) CAPTIONS (auto-generated subtitles):
+      - Usually white/black text with outline
+      - Bottom center position
+      - Matches transcript words
+      - Consistent font across frames
+      - Example: "this is what I said in the video"
+
+   b) OVERLAY TEXT (added for emphasis/hooks):
+      - Stylized, colorful, or animated
+      - Can appear anywhere on screen
+      - Doesn't match transcript exactly
+      - Used for hooks, CTAs, or key points
+      - Example: "WAIT FOR IT..." or "3 TIPS!" or "Link in bio"
+
+   c) UI TEXT (platform interface):
+      - Username, likes, comments, share buttons
+      - Part of TikTok/Instagram/YouTube interface
+
+2. VISUAL CONTENT:
+   Describe what's happening visually (actions, objects, people, etc.)
+
+3. FRAME PURPOSE:
+   What is this frame's role in the video? (establishing shot, reveal, demonstration, etc.)
+
+4. ATTENTION ELEMENTS:
+   What grabs attention? (motion, colors, text placement, visual hooks)
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS for each frame:
+
+FRAME [NUMBER]:
+TEXT FOUND:
+- [CAPTION] "exact text here" | Position: bottom-center | Style: white with black outline
+- [OVERLAY] "exact text here" | Position: top-left | Style: bold yellow, animated entrance
+- [UI] "@username" | Position: bottom-left | Style: platform default
+
+VISUAL CONTENT:
+[Describe what's shown in the frame]
+
+PURPOSE: [Frame's role in video narrative]
+
+ATTENTION GRABBERS: [What catches the eye]
+
+---
+
+CRITICAL:
+- Quote text EXACTLY as it appears
+- If text appears to match the transcript segment = likely CAPTION
+- If text is stylized/emphatic and doesn't match transcript = likely OVERLAY
+- If no text visible, write "No text in this frame"
+- Pay attention to text positioning and styling for classification"""
+
+        # Build the messages for GPT-4o Vision
+        messages = [
+            {
+                "role": "system",
+                "content": "You are an expert video analyst specializing in distinguishing between different types of on-screen text (captions vs overlays vs UI). You have excellent OCR capabilities and understand video editing conventions."
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt}
+                ]
+            }
+        ]
+
+        # Add each image to the message
+        for idx, base64_img in enumerate(base64_images):
+            messages[1]["content"].append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/jpeg;base64,{base64_img}",
+                    "detail": "high"  # Use high detail for better text recognition
+                }
+            })
+
+        try:
+            # Call GPT-4o for analysis
+            response = client.chat.completions.create(
+                model="gpt-4o",  # Latest and best for vision + OCR
+                messages=messages,
+                max_tokens=2000,
+                temperature=0.3  # Lower temperature for more consistent text recognition
+            )
+
+            frame_analyses.append(response.choices[0].message.content)
+
+        except Exception as e:
+            print(f"[ERROR] GPT-4 Vision API call failed for group {group_idx}: {e}")
+            # Fallback analysis
+            frame_analyses.append(f"Frame group {group_idx + 1}: Unable to analyze frames - {str(e)}")
+
+    # Combine all analyses into a comprehensive summary
+    full_analysis = "\n\n".join(frame_analyses)
+
+    # Post-process to create a summary section
+    summary = create_analysis_summary(full_analysis, transcript)
+
+    # Add summary to the beginning of the analysis
+    final_output = f"""VIDEO FRAME ANALYSIS SUMMARY:
+{summary}
+
+DETAILED FRAME-BY-FRAME ANALYSIS:
+{full_analysis}"""
+
+    print(f"[SUCCESS] Frame analysis complete")
+    return final_output, gallery_urls
+
+
+def create_analysis_summary(full_analysis, transcript=None):
+    """
+    Create a summary of the frame analysis highlighting key findings.
+    """
+    summary_lines = []
+
+    # Extract key patterns from the analysis
+    caption_count = full_analysis.lower().count('[caption]')
+    overlay_count = full_analysis.lower().count('[overlay]')
+
+    summary_lines.append(f"Total text elements detected: {caption_count + overlay_count}")
+    summary_lines.append(f"- Captions (matching speech): {caption_count}")
+    summary_lines.append(f"- Overlay text (added hooks/emphasis): {overlay_count}")
+
+    # Identify common overlay patterns
+    if '[overlay]' in full_analysis.lower():
+        summary_lines.append("\nKey overlay text identified (hooks and CTAs):")
+        # Extract overlay texts (this is a simple extraction, could be enhanced)
+        import re
+        overlay_pattern = r'\[OVERLAY\] "(.*?)"'
+        overlays = re.findall(overlay_pattern, full_analysis, re.IGNORECASE)
+        for overlay in overlays[:5]:  # Show first 5 overlays
+            summary_lines.append(f"  • \"{overlay}\"")
+
+    # Add transcript matching note
+    if transcript:
+        summary_lines.append(f"\nTranscript provided for caption matching: Yes ({len(transcript.split())} words)")
+    else:
+        summary_lines.append("\nTranscript provided for caption matching: No (classification based on visual cues only)")
+
+    # Check for visual patterns
+    if 'hook' in full_analysis.lower() or 'attention' in full_analysis.lower():
+        summary_lines.append("\nVisual hooks detected - see detailed analysis below")
+
+    return "\n".join(summary_lines)
+
+
+def extract_text_with_ocr(frame_path):
+    """
+    Optional: Pre-process frames with dedicated OCR for better text extraction.
+    This can be called before GPT-4 analysis for higher accuracy.
+
+    Requires: pip install easyocr
+    """
+    try:
+        import easyocr
+        reader = easyocr.Reader(['en'])
+
+        results = reader.readtext(frame_path)
+
+        extracted_texts = []
+        for (bbox, text, confidence) in results:
+            if confidence > 0.5:  # Only include high-confidence text
+                # Determine position based on bbox
+                top_y = bbox[0][1]
+                center_x = (bbox[0][0] + bbox[1][0]) / 2
+
+                # Simple position classification
+                img_height = 1920  # Assume standard dimensions, adjust as needed
+                img_width = 1080
+
+                if top_y < img_height * 0.3:
+                    v_position = "top"
+                elif top_y > img_height * 0.7:
+                    v_position = "bottom"
+                else:
+                    v_position = "middle"
+
+                if center_x < img_width * 0.3:
+                    h_position = "left"
+                elif center_x > img_width * 0.7:
+                    h_position = "right"
+                else:
+                    h_position = "center"
+
+                extracted_texts.append({
+                    'text': text,
+                    'position': f"{v_position}-{h_position}",
+                    'confidence': confidence,
+                    'bbox': bbox
+                })
+
+        return extracted_texts
+
+    except ImportError:
+        print("[WARNING] easyocr not installed. Skipping OCR pre-processing.")
+        return []
+    except Exception as e:
+        print(f"[ERROR] OCR extraction failed: {e}")
+        return []

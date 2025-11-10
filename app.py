@@ -1318,17 +1318,26 @@ def process():
             print(f"[ERROR] Video processing error: {e}")
             return f"Error processing video: {str(e)}", 500
 
-        # Analyze frames FIRST (needed for audio context)
+        # Quick transcription FIRST (for enhanced frame analysis)
+        basic_transcript = ""
         try:
-            frames_summaries_text, gallery_data_urls = analyze_frames_batch(frame_paths)
-            print(f"[SUCCESS] Frame analysis complete")
+            basic_transcript = transcribe_audio(audio_path)
+            print(f"[SUCCESS] Basic transcription complete: {len(basic_transcript)} chars")
+        except Exception as e:
+            print(f"[WARNING] Basic transcription failed: {e}, continuing without transcript")
+            basic_transcript = ""
+
+        # Analyze frames WITH transcript context for better text classification
+        try:
+            frames_summaries_text, gallery_data_urls = analyze_frames_batch(frame_paths, basic_transcript)
+            print(f"[SUCCESS] Enhanced frame analysis complete with text classification")
             print(f"[INFO] Frame analysis preview: {frames_summaries_text[:200]}...")
         except Exception as e:
             print(f"[ERROR] Frame analysis error: {e}")
             frames_summaries_text = ""
             gallery_data_urls = []
 
-        # Transcribe audio WITH visual context
+        # Enhanced audio transcription WITH visual context
         try:
             transcript_data = enhanced_transcribe_audio_with_context(audio_path, frames_summaries_text)
             print(f"[INFO] Audio interpretation: {transcript_data.get('audio_context', {}).get('audio_description', 'unknown')}")
@@ -1336,12 +1345,13 @@ def process():
             if transcript_data.get('audio_context', {}).get('likely_sound_source'):
                 print(f"[INFO] Likely sound source: {transcript_data['audio_context']['likely_sound_source']}")
         except Exception as e:
-            print(f"[ERROR] Transcription error: {e}")
+            print(f"[ERROR] Enhanced transcription error: {e}")
+            # Fallback to basic transcript if enhanced analysis fails
             transcript_data = {
-                'transcript': "",
-                'quality': 'error',
+                'transcript': basic_transcript,
+                'quality': 'basic',
                 'quality_reason': str(e),
-                'is_reliable': False,
+                'is_reliable': bool(basic_transcript),
                 'audio_context': {}
             }
 
