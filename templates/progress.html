@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Analyzing Your Video...</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         * {
             margin: 0;
@@ -214,6 +215,68 @@
             to { transform: rotate(360deg); }
         }
     </style>
+    <script>
+    // PDF Generation Function (must be defined before results load)
+    function generatePdf() {
+      console.log('[PDF] Generate PDF clicked');
+
+      // Check if html2pdf is loaded
+      if (typeof html2pdf === 'undefined') {
+        console.error('[PDF] html2pdf library not loaded!');
+        alert('PDF library failed to load. Please try refreshing the page.');
+        return;
+      }
+
+      const element = document.getElementById('content-to-pdf');
+      if (!element) {
+        console.warn('[PDF] #content-to-pdf element not found');
+        alert('Content area not found. Cannot generate PDF.');
+        return;
+      }
+
+      console.log('[PDF] Starting PDF generation...');
+
+      const opt = {
+        margin: 10,
+        filename: 'tiktok_analysis.pdf',
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: {
+          scale: 2,
+          scrollY: -window.scrollY,
+          windowWidth: element.scrollWidth,
+          useCORS: true
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: {
+          mode: ['avoid-all','css','legacy']
+        }
+      };
+
+      try {
+        html2pdf()
+          .from(element)
+          .set(opt)
+          .save()
+          .then(() => console.log('[PDF] PDF generated successfully'))
+          .catch((err) => {
+            console.error('[PDF] Generation failed:', err);
+            alert('PDF generation failed: ' + err.message);
+          });
+      } catch (err) {
+        console.error('[PDF] Exception during PDF generation:', err);
+        alert('Failed to generate PDF: ' + err.message);
+      }
+    }
+
+    // Check if library loaded on page load
+    window.addEventListener('load', function() {
+      if (typeof html2pdf === 'undefined') {
+        console.error('[PDF] html2pdf.js failed to load from CDN');
+      } else {
+        console.log('[PDF] html2pdf.js loaded successfully');
+      }
+    });
+    </script>
 </head>
 <body>
     <div class="container">
