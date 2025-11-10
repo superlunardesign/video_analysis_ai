@@ -1135,7 +1135,7 @@ REMEMBER: NEVER suggest revealing payoff earlier than 75% through video. Focus o
 {"Improvement 1: [Detailed specific actionable change with exact word-for-word script suggestions, pattern interrupts, and retention tactics. Explain why this would work psychologically]. Improvement 2: [Another detailed improvement with scripts and explanations]. Improvement 3: [Third improvement]. This could push views to [realistic projection with detailed reasoning]." if analysis_depth == 'deep' else "1. [Most important improvement in 1 sentence]. 2. [Second improvement in 1 sentence]. 3. [Third improvement in 1 sentence]. Potential: [projected views with brief reason]."}
 
 ===VIRAL_MECHANICS===
-CRITICAL: Do NOT suggest "front-loading the reveal" or "satisfying curiosity faster" - this destroys retention. Suggest adding tension, stakes, visual variety, engagement hooks BEFORE the payoff instead.
+CRITICAL: NEVER suggest "front-loading the reveal" or "satisfying curiosity faster" - this destroys retention. Suggest adding tension, stakes, visual variety, engagement hooks BEFORE the payoff instead.
 {'"This went viral because: [List 3-5 specific viral triggers with detailed psychological explanations, referring to exact moments and mechanics]" if performance_level == "viral" else "To go viral, this video needs: [List 3-5 specific viral triggers to add/strengthen with explanations - focus on hook power, tension building, visual pattern breaks, NOT moving the payoff earlier]"' if analysis_depth == 'deep' else '"Viral because: [2 main reasons]" if performance_level == "viral" else "To go viral: [2 key additions needed - NOT earlier payoff]"'}
 
 ===SCORES===
@@ -1196,6 +1196,27 @@ WHY EARLY PAYOFF KILLS RETENTION:
 - Algorithm sees retention crash after payoff = lower distribution
 - The HOOK creates curiosity gap → TENSION builds it → PAYOFF at END satisfies it
 - Short videos (15s) work because they're SHORT, not because of early reveals
+
+THE "15-SECOND RULE" DOES NOT MEAN REVEAL THE ANSWER:
+"Give viewers a reason to stay every 15 seconds" means:
+✅ Add new context/information that builds toward the answer
+✅ Escalate stakes ("this can cost you $50k")
+✅ Add visual pattern breaks (B-roll, examples, text overlays)
+✅ Create secondary curiosity loops ("but here's what most don't realize...")
+✅ Tease what's coming ("and the worst part is...")
+✅ Mini-reveals (NOT the main payoff)
+
+❌ NEVER interpret this as "reveal the main answer/payoff early"
+❌ NEVER interpret this as "satisfy the primary curiosity gap"
+❌ NEVER interpret this as "front-load the reveal"
+
+Example for "Never hire designer who asks..." video:
+- 0-3s: Hook (NEVER HIRE text)
+- 3-7s: Promise + context ("the question is about aesthetics, but here's the problem...")
+- 7-15s: Stakes ("this thinking cost businesses $50k in rebranding")
+- 15-25s: Tension building (examples, contrast, why it matters)
+- 30-35s: THE REVEAL (what the question actually is)
+- 35-45s: Why it's dangerous + CTA
 
 ONLY suggest earlier reveals for:
 - Tutorial/educational content where process IS the value
