@@ -683,9 +683,10 @@ Satisfying the human need for closure:
 
 **Content Structuring:**
 
-- Frontload value in first 15 seconds
-- Use micro-reveals throughout middle section
-- Save biggest insight for final 20%
+- Provide IMMEDIATE value (hook + context) in first 15 seconds - NOT the main payoff
+- Use micro-reveals (breadcrumbs) throughout middle section to maintain engagement
+- Save biggest insight/main payoff for final 20-25% (75-90% through video)
+- NEVER reveal the main answer/payoff early - only provide valuable context leading to it
 
 **Engagement Amplification:**
 
