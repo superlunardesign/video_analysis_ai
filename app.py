@@ -1159,8 +1159,24 @@ goal_alignment: [1-10]
 ===END===
 
 CRITICAL INSTRUCTIONS:
-{'- Write comprehensive, educational explanations without holding back on details\\n- Provide moment-by-moment psychological breakdowns\\n- Include specific examples and scenarios\\n- Give exact scripts and word-for-word suggestions\\n- Explain the "why" behind every observation' if analysis_depth == 'deep' else '- Keep each section concise (2-4 sentences max)\\n- Focus on most important insights only\\n- Prioritize actionable takeaways over theory\\n- Use simple, direct language'}
-- Use EXACT section names with === delimiters as shown above
+"""
+
+    # Add depth-specific instructions
+    if analysis_depth == 'deep':
+        prompt += """- Write comprehensive, educational explanations without holding back on details
+- Provide moment-by-moment psychological breakdowns
+- Include specific examples and scenarios
+- Give exact scripts and word-for-word suggestions
+- Explain the "why" behind every observation
+"""
+    else:
+        prompt += """- Keep each section concise (2-4 sentences max)
+- Focus on most important insights only
+- Prioritize actionable takeaways over theory
+- Use simple, direct language
+"""
+
+    prompt += """- Use EXACT section names with === delimiters as shown above
 - FILL EVERY SECTION - do not leave any section empty
 - All hooks sections should focus on FIRST 3 SECONDS only
 - You can use quotes, line breaks, and write naturally within each section
