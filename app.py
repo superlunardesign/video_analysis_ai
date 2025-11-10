@@ -1825,7 +1825,26 @@ def process():
         except ValueError as e:
             print(f"[ERROR] Invalid numeric parameter: {e}")
             return "Error: Invalid numeric parameters provided", 400
-        
+
+        # Apply Results Speed tier settings
+        results_speed = form_data.get('results_speed', 'standard')
+        if results_speed == 'ultra_fast':
+            cap = 1  # Only first frame for hook analysis
+            scene_threshold = 0.9  # Very selective
+            print("[SPEED] Ultra Fast mode: 1 frame only")
+        elif results_speed == 'fast':
+            cap = 20
+            scene_threshold = 0.45  # More selective
+            print("[SPEED] Fast mode: 20 frames max")
+        elif results_speed == 'thorough':
+            cap = 70
+            scene_threshold = 0.24  # More sensitive motion detection
+            print("[SPEED] Thorough mode: 70 frames with enhanced motion detection")
+        else:  # standard
+            cap = 40
+            scene_threshold = 0.35
+            print("[SPEED] Standard mode: 40 frames")
+
         tiktok_url = form_data['tiktok_url']
         if not tiktok_url:
             return "Error: TikTok URL is required", 400
@@ -1833,6 +1852,7 @@ def process():
         print(f"[INFO] Processing: {tiktok_url}")
         print(f"[INFO] Creator note: {form_data['creator_note']}")
         print(f"[INFO] Strategy: {form_data['strategy']}, Goal: {form_data['goal']}")
+        print(f"[INFO] Results Speed: {results_speed} (cap={cap}, threshold={scene_threshold})")
 
         # 3. VIDEO EXTRACTION (sequential is more reliable than parallel for video processing)
         print("[INFO] Extracting audio and frames...")
