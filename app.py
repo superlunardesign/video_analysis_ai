@@ -106,44 +106,79 @@ def _repair_json(json_str):
     try:
         return json.loads(json_str)
     except json.JSONDecodeError as e:
-        print(f"[WARN] JSON parsing failed: {e}. Attempting repair...")
+        print(f"[WARN] Initial JSON parsing failed: {e}")
 
-        # Handle "Extra data" error - find the valid JSON portion
-        if "Extra data" in str(e):
-            try:
-                # Use JSONDecoder to parse and get the end position
-                from json import JSONDecoder
-                decoder = JSONDecoder()
-                result, end_idx = decoder.raw_decode(json_str)
-                print(f"[INFO] Extracted valid JSON, ignoring extra data after position {end_idx}")
-                return result
-            except Exception as e2:
-                print(f"[WARN] Could not extract JSON: {e2}")
+        # PRIORITY: Use JSONDecoder.raw_decode() - this handles most cases
+        try:
+            from json import JSONDecoder
+            decoder = JSONDecoder()
+            result, end_idx = decoder.raw_decode(json_str)
+            extra_content = json_str[end_idx:].strip()
+            if extra_content:
+                print(f"[INFO] Extracted valid JSON, ignoring {len(extra_content)} extra chars: '{extra_content[:100]}'")
+            else:
+                print(f"[INFO] Successfully parsed JSON with JSONDecoder")
+            return result
+        except json.JSONDecodeError as e2:
+            print(f"[WARN] JSONDecoder.raw_decode failed: {e2}")
+        except Exception as e2:
+            print(f"[WARN] Unexpected error in JSONDecoder: {e2}")
 
-    # Common fix: escape unescaped quotes within strings
-    # This is a simplified approach - for complex cases, may need more sophisticated logic
+    # Try removing trailing commas
     try:
-        # Remove trailing commas before closing braces/brackets
-        json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
-        return json.loads(json_str)
+        fixed = re.sub(r',(\s*[}\]])', r'\1', json_str)
+        return json.loads(fixed)
     except json.JSONDecodeError:
         pass
 
-    # Try to find JSON object boundaries
+    # Try to extract JSON by finding balanced braces
     try:
-        # Find first { and last }
         first_brace = json_str.find('{')
-        last_brace = json_str.rfind('}')
-        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-            json_str = json_str[first_brace:last_brace+1]
-            print(f"[INFO] Extracted JSON between braces")
-            return json.loads(json_str)
-    except json.JSONDecodeError:
-        pass
+        if first_brace != -1:
+            # Count braces to find the matching closing brace
+            brace_count = 0
+            in_string = False
+            escape_next = False
+
+            for i in range(first_brace, len(json_str)):
+                char = json_str[i]
+
+                # Handle escape sequences in strings
+                if escape_next:
+                    escape_next = False
+                    continue
+
+                if char == '\\':
+                    escape_next = True
+                    continue
+
+                # Track whether we're inside a string
+                if char == '"' and not in_string:
+                    in_string = True
+                elif char == '"' and in_string:
+                    in_string = False
+
+                # Only count braces outside of strings
+                if not in_string:
+                    if char == '{':
+                        brace_count += 1
+                    elif char == '}':
+                        brace_count -= 1
+                        if brace_count == 0:
+                            # Found the matching closing brace
+                            extracted = json_str[first_brace:i+1]
+                            print(f"[INFO] Extracted JSON using balanced brace counting ({len(extracted)} chars)")
+                            return json.loads(extracted)
+    except json.JSONDecodeError as e:
+        print(f"[WARN] Balanced brace extraction failed: {e}")
+    except Exception as e:
+        print(f"[WARN] Unexpected error in brace counting: {e}")
 
     # If all repairs fail, raise the original error
-    print(f"[ERROR] Could not repair JSON. First 500 chars: {json_str[:500]}")
-    raise json.JSONDecodeError("Failed to parse JSON after repair attempts", json_str, 0)
+    print(f"[ERROR] All JSON repair attempts failed")
+    print(f"[ERROR] First 500 chars: {json_str[:500]}")
+    print(f"[ERROR] Last 200 chars: {json_str[-200:]}")
+    raise json.JSONDecodeError("Failed to parse JSON after all repair attempts", json_str, 0)
 
 
 # ==============================
@@ -1411,59 +1446,78 @@ def process():
         print(f"[INFO] Creator note: {form_data['creator_note']}")
         print(f"[INFO] Strategy: {form_data['strategy']}, Goal: {form_data['goal']}")
 
-        # 3. PARALLEL PROCESSING for speed (with fallback to sequential)
-        print("[INFO] Starting parallel processing...")
-        try:
-            parallel_results = parallel_video_processing(
-                tiktok_url,
-                form_data['strategy'],
-                frames_per_minute,
-                cap,
-                scene_threshold
-            )
+        # 3. VIDEO EXTRACTION (sequential is more reliable than parallel for video processing)
+        print("[INFO] Extracting audio and frames...")
+        audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
+            tiktok_url,
+            strategy=form_data['strategy'],
+            frames_per_minute=frames_per_minute,
+            cap=cap,
+            scene_threshold=scene_threshold,
+        )
+        print(f"[SUCCESS] Extracted {len(frame_paths)} frames")
 
-            # Use parallel results if successful, otherwise fall back
-            if parallel_results.get('extraction'):
-                audio_path, frames_dir, frame_paths = parallel_results['extraction']
-                print(f"[PARALLEL SUCCESS] Extracted {len(frame_paths)} frames")
+        # 4. PARALLEL ANALYSIS of independent components (REAL speedup!)
+        print("[INFO] Starting parallel analysis of audio and frames...")
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
-                # Update metadata if parallel extraction got it
-                if parallel_results.get('metadata') and not metadata.get('view_count'):
-                    metadata = parallel_results['metadata']
-                    print("[PARALLEL] Updated metadata from parallel extraction")
-            else:
-                raise Exception("Parallel extraction returned no results")
+        analysis_results = {
+            'transcript': '',
+            'frames_summaries': '',
+            'gallery_urls': [],
+            'audio_analysis': {'viral_sound': {'is_viral': False}}
+        }
 
-        except Exception as e:
-            print(f"[WARNING] Parallel processing failed: {e}, falling back to sequential")
-            # Sequential fallback
-            audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
-                tiktok_url,
-                strategy=form_data['strategy'],
-                frames_per_minute=frames_per_minute,
-                cap=cap,
-                scene_threshold=scene_threshold,
-            )
-            print(f"[SUCCESS] Sequential extraction: {len(frame_paths)} frames")
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {}
 
-        # Quick transcription FIRST (for enhanced frame analysis)
-        basic_transcript = ""
-        try:
-            basic_transcript = transcribe_audio(audio_path)
-            print(f"[SUCCESS] Basic transcription complete: {len(basic_transcript)} chars")
-        except Exception as e:
-            print(f"[WARNING] Basic transcription failed: {e}, continuing without transcript")
-            basic_transcript = ""
+            # Submit independent tasks that use different APIs/services
+            futures['transcription'] = executor.submit(transcribe_audio, audio_path)
+            futures['audio_analysis'] = executor.submit(enhanced_audio_analysis, audio_path)
+            # Frame analysis needs to wait for transcription for context, so we'll do it after
 
-        # Analyze frames WITH transcript context for better text classification
-        try:
-            frames_summaries_text, gallery_data_urls = analyze_frames_batch(frame_paths, basic_transcript)
-            print(f"[SUCCESS] Enhanced frame analysis complete with text classification")
-            print(f"[INFO] Frame analysis preview: {frames_summaries_text[:200]}...")
-        except Exception as e:
-            print(f"[ERROR] Frame analysis error: {e}")
-            frames_summaries_text = ""
-            gallery_data_urls = []
+            # Wait for transcription first (needed for frame analysis context)
+            try:
+                basic_transcript = futures['transcription'].result(timeout=60)
+                analysis_results['transcript'] = basic_transcript
+                print(f"[PARALLEL] Transcription complete: {len(basic_transcript)} chars")
+            except Exception as e:
+                print(f"[WARNING] Transcription failed: {e}")
+                basic_transcript = ""
+
+            # Now start frame analysis with transcript context
+            futures['frames'] = executor.submit(analyze_frames_batch, frame_paths, basic_transcript)
+
+            # Collect remaining results
+            for name, future in futures.items():
+                if name == 'transcription':  # Already handled
+                    continue
+                try:
+                    if name == 'frames':
+                        frames_summaries_text, gallery_data_urls = future.result(timeout=120)
+                        analysis_results['frames_summaries'] = frames_summaries_text
+                        analysis_results['gallery_urls'] = gallery_data_urls
+                        print(f"[PARALLEL] Frame analysis complete: {len(frames_summaries_text)} chars")
+                    elif name == 'audio_analysis':
+                        audio_analysis = future.result(timeout=30)
+                        analysis_results['audio_analysis'] = audio_analysis
+                        print(f"[PARALLEL] Audio analysis complete")
+
+                        if audio_analysis.get('viral_sound', {}).get('is_viral'):
+                            sound_info = audio_analysis['viral_sound']
+                            print(f"[VIRAL SOUND] Detected: {sound_info.get('sound_name')} by {sound_info.get('artist')}")
+                            form_data['creator_note'] += f" | Viral Sound: {sound_info.get('sound_name')} by {sound_info.get('artist')}"
+                except Exception as e:
+                    print(f"[WARNING] {name} failed: {type(e).__name__}: {e}")
+                    if name == 'frames':
+                        analysis_results['frames_summaries'] = ""
+                        analysis_results['gallery_urls'] = []
+
+        # Extract results
+        basic_transcript = analysis_results['transcript']
+        frames_summaries_text = analysis_results['frames_summaries']
+        gallery_data_urls = analysis_results['gallery_urls']
+        audio_analysis = analysis_results['audio_analysis']
 
         # Enhanced audio transcription WITH visual context
         try:
@@ -1482,21 +1536,6 @@ def process():
                 'is_reliable': bool(basic_transcript),
                 'audio_context': {}
             }
-
-        # 4. ENHANCED AUDIO ANALYSIS with viral sound detection
-        audio_analysis = {'viral_sound': {'is_viral': False}}
-        try:
-            print("[INFO] Running enhanced audio analysis with viral sound detection...")
-            audio_analysis = enhanced_audio_analysis(audio_path)
-
-            if audio_analysis.get('viral_sound', {}).get('is_viral'):
-                sound_info = audio_analysis['viral_sound']
-                print(f"[VIRAL SOUND] Detected: {sound_info.get('sound_name')} by {sound_info.get('artist')}")
-                # Add to creator note for analysis
-                form_data['creator_note'] += f" | Viral Sound: {sound_info.get('sound_name')} by {sound_info.get('artist')}"
-        except Exception as e:
-            print(f"[WARNING] Audio analysis failed: {e}, continuing without it")
-            audio_analysis = {'viral_sound': {'is_viral': False}, 'error': str(e)}
 
         # Get knowledge context using smart RAG retrieval
         try:
