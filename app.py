@@ -75,8 +75,40 @@ def _api_retry(callable_fn, *args, **kwargs):
             if attempt == max_tries:
                 raise
             sleep_s = (base ** attempt) + random.uniform(0, 0.5)
-            print(f"[retry] OpenAI call failed ({attempt}/{max_tries}): {e}. Retrying in {sleep_s:.1f}s")
+            print(f"[retry] API call failed ({attempt}/{max_tries}): {e}. Retrying in {sleep_s:.1f}s")
             _time.sleep(sleep_s)
+
+
+def _repair_json(json_str):
+    """Attempt to repair common JSON issues from LLM responses."""
+    # Remove code block markers if present
+    if json_str.startswith("```json"):
+        json_str = json_str[7:]
+    if json_str.startswith("```"):
+        json_str = json_str[3:]
+    if json_str.endswith("```"):
+        json_str = json_str[:-3]
+
+    json_str = json_str.strip()
+
+    # Try to parse as-is first
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError as e:
+        print(f"[WARN] JSON parsing failed: {e}. Attempting repair...")
+
+    # Common fix: escape unescaped quotes within strings
+    # This is a simplified approach - for complex cases, may need more sophisticated logic
+    try:
+        # Remove trailing commas before closing braces/brackets
+        json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
+        return json.loads(json_str)
+    except json.JSONDecodeError:
+        pass
+
+    # If all repairs fail, raise the original error
+    print(f"[ERROR] Could not repair JSON. First 500 chars: {json_str[:500]}")
+    raise json.JSONDecodeError("Failed to parse JSON after repair attempts", json_str, 0)
 
 
 # ==============================
@@ -741,6 +773,9 @@ CRITICAL INSTRUCTIONS:
 - Be encouraging about successes
 - Be specific and explanatory about improvements
 - NO JARGON or academic language
+- RETURN ONLY VALID JSON - escape all quotes within strings using backslash (\")
+- Do NOT include markdown code blocks, just raw JSON
+- Ensure all strings are properly terminated with closing quotes
 """
 
     try:
@@ -761,14 +796,9 @@ CRITICAL INSTRUCTIONS:
         )
 
         response_text = gpt_response.content[0].text.strip()
-        
-        # Parse JSON
-        if response_text.startswith("```json"):
-            response_text = response_text[7:]
-        if response_text.endswith("```"):
-            response_text = response_text[:-3]
-        
-        parsed = json.loads(response_text.strip())
+
+        # Parse JSON with repair logic
+        parsed = _repair_json(response_text)
         
         # Process scores with performance-based defaults
         scores_raw = parsed.get("scores", {})
