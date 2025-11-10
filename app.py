@@ -843,9 +843,39 @@ CRITICAL INSTRUCTIONS:
 - Be encouraging about successes
 - Be specific and explanatory about improvements
 - NO JARGON or academic language
-- RETURN ONLY VALID JSON - escape all quotes within strings using backslash (\")
-- Do NOT include markdown code blocks, just raw JSON
-- Ensure all strings are properly terminated with closing quotes
+
+JSON FORMATTING REQUIREMENTS (CRITICAL - READ CAREFULLY):
+1. EVERY opening quote MUST have a closing quote on the SAME LINE
+2. NO line breaks inside string values - use a single continuous line
+3. If you need to describe multiple things, write them in ONE continuous paragraph
+4. ALL quotes inside strings MUST be escaped: use \\" not "
+5. ALL backslashes must be doubled: use \\\\ not \\
+6. Single quotes are OKAY inside double-quoted strings without escaping
+7. Do NOT include markdown, code blocks, or any text outside the JSON object
+8. The response must START with {{ and END with }}
+
+COMMON ERRORS TO AVOID:
+❌ WRONG: "30-45s": "Continues second point
+                     More content here"
+✓ CORRECT: "30-45s": "Continues second point. More content here"
+
+❌ WRONG: "text": "She said "hello" to me"
+✓ CORRECT: "text": "She said \\"hello\\" to me"
+
+❌ WRONG: "text": "First line
+Second line"
+✓ CORRECT: "text": "First line. Second line"
+
+❌ WRONG: "path": "C:\\Users\\file.txt"
+✓ CORRECT: "path": "C:\\\\Users\\\\file.txt"
+
+VALIDATION BEFORE RESPONDING:
+- Count your opening quotes - must equal closing quotes
+- Check each string ends on the same line it starts
+- Verify all internal quotes are escaped with backslash
+- Ensure the last character is }}
+
+RETURN ONLY VALID JSON - no markdown, no comments, no explanations outside the JSON.
 """
 
     # Store raw response for fallback
