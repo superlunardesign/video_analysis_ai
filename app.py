@@ -805,6 +805,69 @@ def create_visual_content_description(frames_summaries_text, audio_context=None)
         }
 
 
+def generate_timing_breakdown(duration_seconds):
+    """
+    Generate dynamic timing breakdown based on video duration.
+    Returns a formatted string for the prompt.
+    """
+    try:
+        duration = int(duration_seconds)
+    except (ValueError, TypeError):
+        duration = 30  # Default fallback
+
+    # Generate timing intervals based on video length
+    if duration <= 15:
+        # Very short videos
+        intervals = [
+            "0-1s: [Hook and opening]",
+            "1-5s: [Core content/reveal]",
+            f"5-{duration}s: [Payoff and close]"
+        ]
+    elif duration <= 30:
+        # Short videos (15-30s)
+        mid = duration // 2
+        end = duration
+        intervals = [
+            "0-1s: [Hook]",
+            "1-3s: [Promise/setup]",
+            f"3-{mid}s: [Tension/context building]",
+            f"{mid}-{end-3}s: [Building to payoff]",
+            f"{end-3}-{end}s: [Payoff and close]"
+        ]
+    elif duration <= 60:
+        # Medium videos (30-60s)
+        q1 = duration // 4
+        mid = duration // 2
+        q3 = (duration * 3) // 4
+        end = duration
+        intervals = [
+            "0-1s: [Hook]",
+            "1-3s: [Promise]",
+            f"3-{q1}s: [Initial context/stakes]",
+            f"{q1}-{mid}s: [Tension building/examples]",
+            f"{mid}-{q3}s: [Further development]",
+            f"{q3}-{end-3}s: [Final build to payoff]",
+            f"{end-3}-{end}s: [Payoff delivery and close]"
+        ]
+    else:
+        # Long videos (60s+)
+        q1 = duration // 4
+        mid = duration // 2
+        q3 = (duration * 3) // 4
+        end = duration
+        intervals = [
+            "0-1s: [Hook]",
+            "1-3s: [Promise]",
+            f"3-{q1}s: [Context and stakes]",
+            f"{q1}-{mid}s: [Tension and examples]",
+            f"{mid}-{q3}s: [Secondary loops/development]",
+            f"{q3}-{end-5}s: [Building to climax]",
+            f"{end-5}-{end}s: [Payoff and resolution]"
+        ]
+
+    return "\n".join(intervals)
+
+
 # ==============================
 # MAIN ANALYSIS FUNCTION - COMPREHENSIVE & ADAPTIVE
 # ==============================
@@ -1156,11 +1219,16 @@ promise_clarity: 7
 (Just the number, no extra text)
 
 ===TIMING_MASTERY===
-0-1s: [What happens and impact]
-1-3s: [Content and viewer state]
-3-7s: [Development and engagement]
-7-15s: [Core value delivery]
-15s+: [Resolution and sharing trigger]
+Analyze what happens at each key moment through the FULL {target_duration}s video.
+Provide specific observations for each time interval below:
+
+{generate_timing_breakdown(target_duration)}
+
+For each interval, describe:
+- What content/actions occur
+- Viewer psychological state
+- Retention tactics used (or missing)
+- How it builds toward payoff
 
 ===PERFORMANCE_PREDICTION===
 {'"This succeeded because: [Detailed analysis of why this hit ' + str(view_count) + ' - break down each success factor]. Future potential: [What it could achieve with tweaks]." if performance_level == "viral" else "With the improvements above, this could achieve: [Specific view target with detailed reasoning about what would drive that growth]."' if analysis_depth == 'deep' else '"Success factors: [2 key reasons]. Potential: [projected views with 1 sentence why]." if performance_level == "viral" else "Could reach: [view target] if [1-2 key improvements made]."'}
