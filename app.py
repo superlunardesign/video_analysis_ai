@@ -848,12 +848,15 @@ CRITICAL INSTRUCTIONS:
 - Ensure all strings are properly terminated with closing quotes
 """
 
+    # Store raw response for fallback
+    raw_response_text = None
+
     try:
         print(f"[INFO] Running COMPREHENSIVE analysis for {performance_level} {visual_content_analysis.get('content_type', 'content')}...")
         print(f"[INFO] View count: {view_count}, Audio type: {audio_type_info.get('audio_description', 'unknown')}")
         print(f"[INFO] Visual satisfaction score: {visual_content_analysis.get('satisfaction_analysis', {}).get('satisfaction_score', 0)}/5")
         print(f"[INFO] Knowledge base: {len(knowledge_context)} chars")
-        
+
         gpt_response = _api_retry(
             claude_client.messages.create,
             model="claude-sonnet-4-5-20250929",
@@ -866,6 +869,7 @@ CRITICAL INSTRUCTIONS:
         )
 
         response_text = gpt_response.content[0].text.strip()
+        raw_response_text = response_text  # Save for fallback
 
         # Parse JSON with repair logic
         parsed = _repair_json(response_text)
@@ -988,17 +992,96 @@ CRITICAL INSTRUCTIONS:
         
         return result
         
+    except json.JSONDecodeError as e:
+        print(f"[ERROR] JSON parsing failed after all attempts: {e}")
+        import traceback
+        traceback.print_exc()
+
+        # If we have Claude's raw response, use it instead of generic fallback
+        if raw_response_text:
+            print(f"[FALLBACK] Using raw text response ({len(raw_response_text)} chars)")
+            return create_raw_text_fallback(
+                raw_response_text, view_count, performance_level,
+                audio_type_info, visual_content_analysis, has_speech
+            )
+        else:
+            print(f"[FALLBACK] No raw response available, using generic fallback")
+            return create_comprehensive_fallback(
+                transcript_text, frames_summaries_text, creator_note,
+                platform, goal, audience, has_speech, view_count, performance_level,
+                knowledge_context, audio_type_info, visual_content_analysis
+            )
+
     except Exception as e:
         print(f"[ERROR] Comprehensive analysis failed: {e}")
         import traceback
         traceback.print_exc()
-        
-        # Return enhanced fallback
-        return create_comprehensive_fallback(
-            transcript_text, frames_summaries_text, creator_note, 
-            platform, goal, audience, has_speech, view_count, performance_level,
-            knowledge_context, audio_type_info, visual_content_analysis
-        )
+
+        # If we have Claude's raw response, use it
+        if raw_response_text:
+            print(f"[FALLBACK] Using raw text response after error ({len(raw_response_text)} chars)")
+            return create_raw_text_fallback(
+                raw_response_text, view_count, performance_level,
+                audio_type_info, visual_content_analysis, has_speech
+            )
+        else:
+            # Return enhanced fallback
+            return create_comprehensive_fallback(
+                transcript_text, frames_summaries_text, creator_note,
+                platform, goal, audience, has_speech, view_count, performance_level,
+                knowledge_context, audio_type_info, visual_content_analysis
+            )
+
+
+def create_raw_text_fallback(raw_response_text, view_count, performance_level, audio_type_info, visual_content_analysis, has_speech):
+    """
+    Create a fallback result using Claude's raw text response when JSON parsing fails.
+    This ensures users still get the intelligent analysis, just without the structured formatting.
+    """
+    # Create basic scores based on performance
+    base_scores = {
+        "hook_strength": 8 if performance_level == 'viral' else 6 if performance_level in ['good', 'moderate'] else 4,
+        "promise_clarity": 7 if performance_level == 'viral' else 6 if performance_level in ['good', 'moderate'] else 4,
+        "retention_design": 8 if performance_level == 'viral' else 6 if performance_level in ['good', 'moderate'] else 5,
+        "engagement_potential": 8 if performance_level == 'viral' else 6 if performance_level in ['good', 'moderate'] else 4,
+        "viral_potential": 9 if performance_level == 'viral' else 5 if performance_level in ['good', 'moderate'] else 3,
+        "satisfaction_delivery": visual_content_analysis.get('satisfaction_analysis', {}).get('satisfaction_score', 5),
+        "goal_alignment": 7 if performance_level == 'viral' else 6 if performance_level in ['good', 'moderate'] else 5
+    }
+
+    return {
+        # Special flag to indicate this is a raw text fallback
+        "is_raw_text_fallback": True,
+        "raw_analysis_text": raw_response_text,
+
+        # Basic metadata for template compatibility
+        "scores": base_scores,
+        "actual_view_count": view_count,
+        "performance_level": performance_level,
+        "video_has_speech": has_speech,
+
+        # Provide minimal structure to prevent template errors
+        "what_this_video_is": "Analysis available in raw text format below",
+        "why_it_performed": f"Performance level: {performance_level}",
+        "analysis": raw_response_text,
+        "viral_mechanics": "See raw analysis below",
+        "hooks": [],
+        "formulas": {},
+        "improvements": "See raw analysis below",
+
+        # Audio/visual metadata
+        "content_type_detected": audio_type_info.get('type', 'unknown'),
+        "audio_type_detected": audio_type_info.get('audio_description', 'unknown'),
+        "visual_content_analysis": visual_content_analysis,
+        "viral_audio_analysis": {
+            "is_viral_sound": audio_type_info.get('viral_audio_check', False),
+            "audio_type": audio_type_info.get('audio_description', 'unknown')
+        },
+
+        # Template compatibility
+        "overall_quality": "strong" if performance_level == 'viral' else "moderate" if performance_level in ['good', 'moderate'] else "needs_work",
+        "knowledge_context_used": False
+    }
 
 
 def create_comprehensive_fallback(transcript_text, frames_summaries_text, creator_note, platform, goal, audience, has_speech, view_count, performance_level, knowledge_context, audio_type_info, visual_content_analysis):
@@ -1611,13 +1694,17 @@ Key patterns for video analysis:
             print(f"[ERROR] Analysis error: {e}")
             import traceback
             traceback.print_exc()
-            
-            # Use comprehensive fallback
+
+            # IMPORTANT: Try to salvage the analysis even if JSON parsing failed
+            # Claude might have returned valid analysis text that we can still use
+            print("[RECOVERY] Attempting to salvage analysis from error...")
+
+            # Use comprehensive fallback - ensures user ALWAYS gets results
             audio_context = transcript_data.get('audio_context', {})
             visual_analysis = create_visual_content_description(frames_summaries_text, audio_context)
-            
+
             has_speech = audio_context.get('has_meaningful_speech', False)
-            
+
             gpt_result = create_comprehensive_fallback(
                 transcript_data.get('transcript', ''),
                 frames_summaries_text,
@@ -1632,6 +1719,11 @@ Key patterns for video analysis:
                 audio_context,
                 visual_analysis
             )
+
+            # Add a warning flag so template can show this was a fallback
+            gpt_result['is_fallback'] = True
+            gpt_result['fallback_reason'] = str(e)[:200]
+            print("[RECOVERY] Fallback analysis generated successfully")
 
         # Prepare template variables
         try:

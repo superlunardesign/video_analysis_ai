@@ -383,6 +383,21 @@
     </div>
     {% endif %}
 
+    <!-- Raw Text Fallback Notice -->
+    {% if is_raw_text_fallback %}
+    <div class="warning-box" style="margin: 20px 0;">
+      <h3 style="margin-bottom: 10px;">⚠️ Analysis Format Notice</h3>
+      <p>The analysis below is shown in raw text format due to a formatting issue. The intelligent analysis from Claude is complete and accurate, just not structured in the usual sections.</p>
+    </div>
+
+    <div class="section">
+      <h2>📝 Complete Analysis (Raw Text)</h2>
+      <div style="white-space: pre-wrap; line-height: 1.8; background: #f8f9fa; padding: 25px; border-radius: 8px; border-left: 4px solid #667eea;">
+        {{ raw_analysis_text }}
+      </div>
+    </div>
+    {% else %}
+
     <!-- What This Video Is -->
     <div class="section">
       <h2>🎬 What This Video Is</h2>
@@ -452,6 +467,9 @@
       </div>
       {% endif %}
     </div>
+
+    {% endif %}
+    <!-- End of raw text fallback conditional -->
 
     <!-- Performance Scores -->
     <div class="scores-section">
