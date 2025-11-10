@@ -90,6 +90,77 @@ def _api_retry(callable_fn, *args, **kwargs):
             _time.sleep(sleep_s)
 
 
+def repair_unterminated_strings(json_str):
+    """
+    Detect and repair unterminated strings in JSON.
+    Common issue: string values that span multiple lines without closing quotes.
+
+    Strategy:
+    1. Find unterminated strings (quote followed by newline without closing quote)
+    2. Close the string at the end of the line (before newline)
+    3. Continue looking for the next field
+    """
+    lines = json_str.split('\n')
+    repaired_lines = []
+    in_string = False
+    escape_next = False
+
+    for line_idx, line in enumerate(lines):
+        if not line.strip():
+            repaired_lines.append(line)
+            continue
+
+        repaired_line = []
+        i = 0
+
+        while i < len(line):
+            char = line[i]
+
+            # Handle escape sequences
+            if escape_next:
+                repaired_line.append(char)
+                escape_next = False
+                i += 1
+                continue
+
+            if char == '\\':
+                escape_next = True
+                repaired_line.append(char)
+                i += 1
+                continue
+
+            # Track string state
+            if char == '"':
+                if in_string:
+                    in_string = False
+                else:
+                    in_string = True
+                repaired_line.append(char)
+            else:
+                repaired_line.append(char)
+
+            i += 1
+
+        # If we reach end of line and still in a string, close it
+        if in_string and line_idx < len(lines) - 1:
+            # Check if next line looks like a new JSON field or continuation
+            next_line = lines[line_idx + 1].strip()
+
+            # If next line starts with a quote or looks like a new field, close this string
+            if (next_line.startswith('"') or
+                next_line.startswith('}') or
+                next_line.startswith(']') or
+                re.match(r'^\s*"[\w_]+"\s*:', next_line)):
+
+                print(f"[REPAIR] Closing unterminated string at line {line_idx + 1}")
+                repaired_line.append('"')
+                in_string = False
+
+        repaired_lines.append(''.join(repaired_line))
+
+    return '\n'.join(repaired_lines)
+
+
 def _repair_json(json_str):
     """Attempt to repair common JSON issues from LLM responses."""
     # Remove code block markers if present
@@ -130,6 +201,18 @@ def _repair_json(json_str):
         return json.loads(fixed)
     except json.JSONDecodeError:
         pass
+
+    # Try to repair unterminated strings (common error from line breaks)
+    try:
+        print("[INFO] Attempting to repair unterminated strings...")
+        repaired = repair_unterminated_strings(json_str)
+        if repaired != json_str:
+            print(f"[INFO] String repair made changes, attempting parse...")
+            return json.loads(repaired)
+    except json.JSONDecodeError as e:
+        print(f"[WARN] String repair didn't fix the issue: {e}")
+    except Exception as e:
+        print(f"[WARN] String repair error: {e}")
 
     # Try to extract JSON by finding balanced braces
     try:
@@ -843,17 +926,50 @@ CRITICAL INSTRUCTIONS:
 - Be encouraging about successes
 - Be specific and explanatory about improvements
 - NO JARGON or academic language
-- RETURN ONLY VALID JSON - escape all quotes within strings using backslash (\")
-- Do NOT include markdown code blocks, just raw JSON
-- Ensure all strings are properly terminated with closing quotes
+
+JSON FORMATTING REQUIREMENTS (CRITICAL - READ CAREFULLY):
+1. EVERY opening quote MUST have a closing quote on the SAME LINE
+2. NO line breaks inside string values - use a single continuous line
+3. If you need to describe multiple things, write them in ONE continuous paragraph
+4. ALL quotes inside strings MUST be escaped: use \\" not "
+5. ALL backslashes must be doubled: use \\\\ not \\
+6. Single quotes are OKAY inside double-quoted strings without escaping
+7. Do NOT include markdown, code blocks, or any text outside the JSON object
+8. The response must START with {{ and END with }}
+
+COMMON ERRORS TO AVOID:
+❌ WRONG: "30-45s": "Continues second point
+                     More content here"
+✓ CORRECT: "30-45s": "Continues second point. More content here"
+
+❌ WRONG: "text": "She said "hello" to me"
+✓ CORRECT: "text": "She said \\"hello\\" to me"
+
+❌ WRONG: "text": "First line
+Second line"
+✓ CORRECT: "text": "First line. Second line"
+
+❌ WRONG: "path": "C:\\Users\\file.txt"
+✓ CORRECT: "path": "C:\\\\Users\\\\file.txt"
+
+VALIDATION BEFORE RESPONDING:
+- Count your opening quotes - must equal closing quotes
+- Check each string ends on the same line it starts
+- Verify all internal quotes are escaped with backslash
+- Ensure the last character is }}
+
+RETURN ONLY VALID JSON - no markdown, no comments, no explanations outside the JSON.
 """
+
+    # Store raw response for fallback
+    raw_response_text = None
 
     try:
         print(f"[INFO] Running COMPREHENSIVE analysis for {performance_level} {visual_content_analysis.get('content_type', 'content')}...")
         print(f"[INFO] View count: {view_count}, Audio type: {audio_type_info.get('audio_description', 'unknown')}")
         print(f"[INFO] Visual satisfaction score: {visual_content_analysis.get('satisfaction_analysis', {}).get('satisfaction_score', 0)}/5")
         print(f"[INFO] Knowledge base: {len(knowledge_context)} chars")
-        
+
         gpt_response = _api_retry(
             claude_client.messages.create,
             model="claude-sonnet-4-5-20250929",
@@ -866,6 +982,7 @@ CRITICAL INSTRUCTIONS:
         )
 
         response_text = gpt_response.content[0].text.strip()
+        raw_response_text = response_text  # Save for fallback
 
         # Parse JSON with repair logic
         parsed = _repair_json(response_text)
@@ -988,17 +1105,96 @@ CRITICAL INSTRUCTIONS:
         
         return result
         
+    except json.JSONDecodeError as e:
+        print(f"[ERROR] JSON parsing failed after all attempts: {e}")
+        import traceback
+        traceback.print_exc()
+
+        # If we have Claude's raw response, use it instead of generic fallback
+        if raw_response_text:
+            print(f"[FALLBACK] Using raw text response ({len(raw_response_text)} chars)")
+            return create_raw_text_fallback(
+                raw_response_text, view_count, performance_level,
+                audio_type_info, visual_content_analysis, has_speech
+            )
+        else:
+            print(f"[FALLBACK] No raw response available, using generic fallback")
+            return create_comprehensive_fallback(
+                transcript_text, frames_summaries_text, creator_note,
+                platform, goal, audience, has_speech, view_count, performance_level,
+                knowledge_context, audio_type_info, visual_content_analysis
+            )
+
     except Exception as e:
         print(f"[ERROR] Comprehensive analysis failed: {e}")
         import traceback
         traceback.print_exc()
-        
-        # Return enhanced fallback
-        return create_comprehensive_fallback(
-            transcript_text, frames_summaries_text, creator_note, 
-            platform, goal, audience, has_speech, view_count, performance_level,
-            knowledge_context, audio_type_info, visual_content_analysis
-        )
+
+        # If we have Claude's raw response, use it
+        if raw_response_text:
+            print(f"[FALLBACK] Using raw text response after error ({len(raw_response_text)} chars)")
+            return create_raw_text_fallback(
+                raw_response_text, view_count, performance_level,
+                audio_type_info, visual_content_analysis, has_speech
+            )
+        else:
+            # Return enhanced fallback
+            return create_comprehensive_fallback(
+                transcript_text, frames_summaries_text, creator_note,
+                platform, goal, audience, has_speech, view_count, performance_level,
+                knowledge_context, audio_type_info, visual_content_analysis
+            )
+
+
+def create_raw_text_fallback(raw_response_text, view_count, performance_level, audio_type_info, visual_content_analysis, has_speech):
+    """
+    Create a fallback result using Claude's raw text response when JSON parsing fails.
+    This ensures users still get the intelligent analysis, just without the structured formatting.
+    """
+    # Create basic scores based on performance
+    base_scores = {
+        "hook_strength": 8 if performance_level == 'viral' else 6 if performance_level in ['good', 'moderate'] else 4,
+        "promise_clarity": 7 if performance_level == 'viral' else 6 if performance_level in ['good', 'moderate'] else 4,
+        "retention_design": 8 if performance_level == 'viral' else 6 if performance_level in ['good', 'moderate'] else 5,
+        "engagement_potential": 8 if performance_level == 'viral' else 6 if performance_level in ['good', 'moderate'] else 4,
+        "viral_potential": 9 if performance_level == 'viral' else 5 if performance_level in ['good', 'moderate'] else 3,
+        "satisfaction_delivery": visual_content_analysis.get('satisfaction_analysis', {}).get('satisfaction_score', 5),
+        "goal_alignment": 7 if performance_level == 'viral' else 6 if performance_level in ['good', 'moderate'] else 5
+    }
+
+    return {
+        # Special flag to indicate this is a raw text fallback
+        "is_raw_text_fallback": True,
+        "raw_analysis_text": raw_response_text,
+
+        # Basic metadata for template compatibility
+        "scores": base_scores,
+        "actual_view_count": view_count,
+        "performance_level": performance_level,
+        "video_has_speech": has_speech,
+
+        # Provide minimal structure to prevent template errors
+        "what_this_video_is": "Analysis available in raw text format below",
+        "why_it_performed": f"Performance level: {performance_level}",
+        "analysis": raw_response_text,
+        "viral_mechanics": "See raw analysis below",
+        "hooks": [],
+        "formulas": {},
+        "improvements": "See raw analysis below",
+
+        # Audio/visual metadata
+        "content_type_detected": audio_type_info.get('type', 'unknown'),
+        "audio_type_detected": audio_type_info.get('audio_description', 'unknown'),
+        "visual_content_analysis": visual_content_analysis,
+        "viral_audio_analysis": {
+            "is_viral_sound": audio_type_info.get('viral_audio_check', False),
+            "audio_type": audio_type_info.get('audio_description', 'unknown')
+        },
+
+        # Template compatibility
+        "overall_quality": "strong" if performance_level == 'viral' else "moderate" if performance_level in ['good', 'moderate'] else "needs_work",
+        "knowledge_context_used": False
+    }
 
 
 def create_comprehensive_fallback(transcript_text, frames_summaries_text, creator_note, platform, goal, audience, has_speech, view_count, performance_level, knowledge_context, audio_type_info, visual_content_analysis):
@@ -1611,13 +1807,17 @@ Key patterns for video analysis:
             print(f"[ERROR] Analysis error: {e}")
             import traceback
             traceback.print_exc()
-            
-            # Use comprehensive fallback
+
+            # IMPORTANT: Try to salvage the analysis even if JSON parsing failed
+            # Claude might have returned valid analysis text that we can still use
+            print("[RECOVERY] Attempting to salvage analysis from error...")
+
+            # Use comprehensive fallback - ensures user ALWAYS gets results
             audio_context = transcript_data.get('audio_context', {})
             visual_analysis = create_visual_content_description(frames_summaries_text, audio_context)
-            
+
             has_speech = audio_context.get('has_meaningful_speech', False)
-            
+
             gpt_result = create_comprehensive_fallback(
                 transcript_data.get('transcript', ''),
                 frames_summaries_text,
@@ -1632,6 +1832,11 @@ Key patterns for video analysis:
                 audio_context,
                 visual_analysis
             )
+
+            # Add a warning flag so template can show this was a fallback
+            gpt_result['is_fallback'] = True
+            gpt_result['fallback_reason'] = str(e)[:200]
+            print("[RECOVERY] Fallback analysis generated successfully")
 
         # Prepare template variables
         try:
