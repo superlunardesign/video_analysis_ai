@@ -594,32 +594,76 @@ function generatePdf() {
 
   console.log('[PDF] Starting PDF generation...');
 
+  // Generate dynamic filename with timestamp and video identifier
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+  const timeStr = now.toTimeString().slice(0, 5).replace(':', ''); // HHMM
+
+  // Try to extract video title from "What This Video Is" section
+  let videoTitle = 'analysis';
+  const titleElement = element.querySelector('h2');
+  if (titleElement) {
+    const whatThisIs = titleElement.parentElement.textContent;
+    // Extract first few words for filename
+    const match = whatThisIs.match(/This is (?:a |an )?([^.]+)/i);
+    if (match) {
+      videoTitle = match[1]
+        .replace(/[^a-zA-Z0-9\s]/g, '')  // Remove special chars
+        .trim()
+        .split(/\s+/)
+        .slice(0, 4)  // First 4 words max
+        .join('_')
+        .toLowerCase();
+    }
+  }
+
+  const filename = `tiktok_${videoTitle}_${dateStr}_${timeStr}.pdf`;
+  console.log('[PDF] Filename:', filename);
+
   const opt = {
-    margin: 10,
-    filename: 'tiktok_analysis.pdf',
-    image: { type: 'jpeg', quality: 0.95 },
+    margin: [10, 10, 10, 10],  // Top, Right, Bottom, Left
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
     html2canvas: {
       scale: 2,
-      scrollY: -window.scrollY,
+      scrollY: 0,  // Start from top of element
+      scrollX: 0,
+      windowHeight: element.scrollHeight,  // Capture full height
       windowWidth: element.scrollWidth,
-      useCORS: true
+      useCORS: true,
+      logging: false,
+      letterRendering: true,
+      allowTaint: false
     },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    jsPDF: {
+      unit: 'mm',
+      format: 'a4',
+      orientation: 'portrait',
+      compress: true
+    },
     pagebreak: {
-      mode: ['avoid-all','css','legacy']
+      mode: ['avoid-all', 'css'],
+      before: '.section',  // Try to break before sections
+      after: [],
+      avoid: ['h2', 'h3', '.score-card']  // Don't break these
     }
   };
 
   try {
-    html2pdf()
-      .from(element)
-      .set(opt)
-      .save()
-      .then(() => console.log('[PDF] PDF generated successfully'))
-      .catch((err) => {
-        console.error('[PDF] Generation failed:', err);
-        alert('PDF generation failed: ' + err.message);
-      });
+    // Scroll to top first to ensure everything is visible
+    window.scrollTo(0, 0);
+
+    setTimeout(() => {
+      html2pdf()
+        .from(element)
+        .set(opt)
+        .save()
+        .then(() => console.log('[PDF] PDF generated successfully:', filename))
+        .catch((err) => {
+          console.error('[PDF] Generation failed:', err);
+          alert('PDF generation failed: ' + err.message);
+        });
+    }, 100);  // Small delay to let scroll complete
   } catch (err) {
     console.error('[PDF] Exception during PDF generation:', err);
     alert('Failed to generate PDF: ' + err.message);
