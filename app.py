@@ -6,6 +6,7 @@ import re
 from collections import Counter
 from flask import Flask, request, render_template
 from openai import OpenAI
+from anthropic import Anthropic
 
 from processing import (
     extract_audio_and_frames,
@@ -28,30 +29,39 @@ from rag_helper import retrieve_smart_context, retrieve_all_context
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 app = Flask(__name__)
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=600.0)
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=600.0)
+claude_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 
 def validate_dependencies():
     """Check if all required dependencies are available"""
     missing_deps = []
-    
+
     try:
         from pypdf import PdfReader
     except ImportError:
         missing_deps.append("pypdf (for PDF processing)")
-    
+
     try:
         from openai import OpenAI
     except ImportError:
         missing_deps.append("openai")
-    
+
+    try:
+        from anthropic import Anthropic
+    except ImportError:
+        missing_deps.append("anthropic")
+
     if not os.getenv("OPENAI_API_KEY"):
         missing_deps.append("OPENAI_API_KEY environment variable")
-    
+
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        missing_deps.append("ANTHROPIC_API_KEY environment variable")
+
     if missing_deps:
         print(f"WARNING: Missing dependencies: {', '.join(missing_deps)}")
         print("Some features may not work properly.")
-    
+
     return len(missing_deps) == 0
 
 
@@ -740,20 +750,17 @@ CRITICAL INSTRUCTIONS:
         print(f"[INFO] Knowledge base: {len(knowledge_context)} chars")
         
         gpt_response = _api_retry(
-            client.chat.completions.create,
-            model="gpt-4o",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an expert in viral psychology and content analysis. Provide DEEP, specific insights about why content succeeds or fails. Always explain the psychological mechanisms. Never give surface-level observations. Correctly interpret audio based on visual context - if someone is drawing, sounds are likely marker/pen sounds, not animal noises."
-                },
-                {"role": "user", "content": prompt}
-            ],
+            claude_client.messages.create,
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=6000,
             temperature=0.7,
-            max_tokens=6000
+            system="You are an expert in viral psychology and content analysis. Provide DEEP, specific insights about why content succeeds or fails. Always explain the psychological mechanisms. Never give surface-level observations. Correctly interpret audio based on visual context - if someone is drawing, sounds are likely marker/pen sounds, not animal noises.",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
         )
 
-        response_text = gpt_response.choices[0].message.content.strip()
+        response_text = gpt_response.content[0].text.strip()
         
         # Parse JSON
         if response_text.startswith("```json"):
