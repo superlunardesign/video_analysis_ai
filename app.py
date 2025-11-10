@@ -1422,24 +1422,67 @@ def process():
         )
         print(f"[SUCCESS] Extracted {len(frame_paths)} frames")
 
-        # Quick transcription FIRST (for enhanced frame analysis)
-        basic_transcript = ""
-        try:
-            basic_transcript = transcribe_audio(audio_path)
-            print(f"[SUCCESS] Basic transcription complete: {len(basic_transcript)} chars")
-        except Exception as e:
-            print(f"[WARNING] Basic transcription failed: {e}, continuing without transcript")
-            basic_transcript = ""
+        # 4. PARALLEL ANALYSIS of independent components (REAL speedup!)
+        print("[INFO] Starting parallel analysis of audio and frames...")
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        # Analyze frames WITH transcript context for better text classification
-        try:
-            frames_summaries_text, gallery_data_urls = analyze_frames_batch(frame_paths, basic_transcript)
-            print(f"[SUCCESS] Enhanced frame analysis complete with text classification")
-            print(f"[INFO] Frame analysis preview: {frames_summaries_text[:200]}...")
-        except Exception as e:
-            print(f"[ERROR] Frame analysis error: {e}")
-            frames_summaries_text = ""
-            gallery_data_urls = []
+        analysis_results = {
+            'transcript': '',
+            'frames_summaries': '',
+            'gallery_urls': [],
+            'audio_analysis': {'viral_sound': {'is_viral': False}}
+        }
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {}
+
+            # Submit independent tasks that use different APIs/services
+            futures['transcription'] = executor.submit(transcribe_audio, audio_path)
+            futures['audio_analysis'] = executor.submit(enhanced_audio_analysis, audio_path)
+            # Frame analysis needs to wait for transcription for context, so we'll do it after
+
+            # Wait for transcription first (needed for frame analysis context)
+            try:
+                basic_transcript = futures['transcription'].result(timeout=60)
+                analysis_results['transcript'] = basic_transcript
+                print(f"[PARALLEL] Transcription complete: {len(basic_transcript)} chars")
+            except Exception as e:
+                print(f"[WARNING] Transcription failed: {e}")
+                basic_transcript = ""
+
+            # Now start frame analysis with transcript context
+            futures['frames'] = executor.submit(analyze_frames_batch, frame_paths, basic_transcript)
+
+            # Collect remaining results
+            for name, future in futures.items():
+                if name == 'transcription':  # Already handled
+                    continue
+                try:
+                    if name == 'frames':
+                        frames_summaries_text, gallery_data_urls = future.result(timeout=120)
+                        analysis_results['frames_summaries'] = frames_summaries_text
+                        analysis_results['gallery_urls'] = gallery_data_urls
+                        print(f"[PARALLEL] Frame analysis complete: {len(frames_summaries_text)} chars")
+                    elif name == 'audio_analysis':
+                        audio_analysis = future.result(timeout=30)
+                        analysis_results['audio_analysis'] = audio_analysis
+                        print(f"[PARALLEL] Audio analysis complete")
+
+                        if audio_analysis.get('viral_sound', {}).get('is_viral'):
+                            sound_info = audio_analysis['viral_sound']
+                            print(f"[VIRAL SOUND] Detected: {sound_info.get('sound_name')} by {sound_info.get('artist')}")
+                            form_data['creator_note'] += f" | Viral Sound: {sound_info.get('sound_name')} by {sound_info.get('artist')}"
+                except Exception as e:
+                    print(f"[WARNING] {name} failed: {type(e).__name__}: {e}")
+                    if name == 'frames':
+                        analysis_results['frames_summaries'] = ""
+                        analysis_results['gallery_urls'] = []
+
+        # Extract results
+        basic_transcript = analysis_results['transcript']
+        frames_summaries_text = analysis_results['frames_summaries']
+        gallery_data_urls = analysis_results['gallery_urls']
+        audio_analysis = analysis_results['audio_analysis']
 
         # Enhanced audio transcription WITH visual context
         try:
@@ -1458,21 +1501,6 @@ def process():
                 'is_reliable': bool(basic_transcript),
                 'audio_context': {}
             }
-
-        # 4. ENHANCED AUDIO ANALYSIS with viral sound detection
-        audio_analysis = {'viral_sound': {'is_viral': False}}
-        try:
-            print("[INFO] Running enhanced audio analysis with viral sound detection...")
-            audio_analysis = enhanced_audio_analysis(audio_path)
-
-            if audio_analysis.get('viral_sound', {}).get('is_viral'):
-                sound_info = audio_analysis['viral_sound']
-                print(f"[VIRAL SOUND] Detected: {sound_info.get('sound_name')} by {sound_info.get('artist')}")
-                # Add to creator note for analysis
-                form_data['creator_note'] += f" | Viral Sound: {sound_info.get('sound_name')} by {sound_info.get('artist')}"
-        except Exception as e:
-            print(f"[WARNING] Audio analysis failed: {e}, continuing without it")
-            audio_analysis = {'viral_sound': {'is_viral': False}, 'error': str(e)}
 
         # Get knowledge context using smart RAG retrieval
         try:
