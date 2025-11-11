@@ -1974,6 +1974,7 @@ def process():
             'goal': request.form.get("goal", "follower_growth").strip(),
             'tone': request.form.get("tone", "confident, friendly").strip(),
             'audience': request.form.get("audience", "creators and small business owners").strip(),
+            'analysis_depth': request.form.get("analysis_depth", "standard").strip(),  # Get analysis depth selection
         }
 
         # 1. CHECK CACHE FIRST (unless force_refresh is requested)
