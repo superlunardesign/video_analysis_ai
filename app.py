@@ -3,8 +3,11 @@ import random
 import time as _time
 import json
 import re
+import asyncio
+import hashlib
 from collections import Counter
-from flask import Flask, request, render_template
+from datetime import datetime
+from flask import Flask, request, render_template, make_response
 from openai import OpenAI
 from anthropic import Anthropic
 
@@ -41,7 +44,8 @@ claude_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 # Initialize optimization components
 cache = AnalysisCache()
 tracker = AnalysisPerformanceTracker()
-print("[INFO] Optimization components initialized: cache, tracker")
+pdf_cache = {}  # Simple in-memory cache for PDF generation data
+print("[INFO] Optimization components initialized: cache, tracker, pdf_cache")
 
 
 def validate_dependencies():
@@ -866,6 +870,80 @@ def generate_timing_breakdown(duration_seconds):
         ]
 
     return "\n".join(intervals)
+
+
+# ==============================
+# PDF GENERATION - SERVER-SIDE WITH PUPPETEER
+# ==============================
+
+async def generate_pdf_from_html(html_content, output_path=None):
+    """
+    Generate PDF from HTML using pyppeteer (headless Chrome).
+    Returns PDF bytes if output_path is None, otherwise saves to file.
+    """
+    from pyppeteer import launch
+
+    browser = None
+    try:
+        print("[PDF] Launching headless browser...")
+        browser = await launch({
+            'headless': True,
+            'args': ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        })
+
+        page = await browser.newPage()
+
+        # Set viewport for consistent rendering
+        await page.setViewport({'width': 1200, 'height': 1600})
+
+        print("[PDF] Loading HTML content...")
+        await page.setContent(html_content, {'waitUntil': 'networkidle0', 'timeout': 30000})
+
+        # Wait a bit for any dynamic content to render
+        await asyncio.sleep(1)
+
+        print("[PDF] Generating PDF...")
+        pdf_options = {
+            'format': 'A4',
+            'printBackground': True,
+            'margin': {
+                'top': '10mm',
+                'right': '10mm',
+                'bottom': '10mm',
+                'left': '10mm'
+            }
+        }
+
+        if output_path:
+            pdf_options['path'] = output_path
+            await page.pdf(pdf_options)
+            print(f"[PDF] Saved to {output_path}")
+            return output_path
+        else:
+            pdf_bytes = await page.pdf(pdf_options)
+            print(f"[PDF] Generated {len(pdf_bytes)} bytes")
+            return pdf_bytes
+
+    except Exception as e:
+        print(f"[PDF ERROR] Failed to generate PDF: {e}")
+        raise
+    finally:
+        if browser:
+            await browser.close()
+            print("[PDF] Browser closed")
+
+
+def generate_pdf_sync(html_content, output_path=None):
+    """Synchronous wrapper for async PDF generation"""
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(generate_pdf_from_html(html_content, output_path))
+        loop.close()
+        return result
+    except Exception as e:
+        print(f"[PDF ERROR] Sync wrapper failed: {e}")
+        raise
 
 
 # ==============================
@@ -1872,6 +1950,27 @@ def process():
             cached_result = cache.get_cached_analysis(form_data['tiktok_url'])
             if cached_result:
                 print(f"[CACHE HIT] Returning cached analysis")
+
+                # Generate cache key for PDF even for cached results
+                try:
+                    cache_key = hashlib.md5(
+                        f"{form_data['tiktok_url']}{_time.time()}".encode()
+                    ).hexdigest()[:16]
+
+                    metadata = cached_result.get('metadata', {})
+                    video_title = metadata.get('title', 'analysis') if metadata else 'analysis'
+
+                    pdf_cache[cache_key] = {
+                        'template_vars': cached_result,
+                        'video_title': video_title,
+                        'timestamp': _time.time()
+                    }
+
+                    cached_result['pdf_cache_key'] = cache_key
+                    print(f"[PDF CACHE] Cached result stored for PDF with key: {cache_key}")
+                except Exception as e:
+                    print(f"[WARNING] Failed to cache PDF data for cached result: {e}")
+
                 return render_template("results.html", **cached_result)
 
         # 2. EXTRACT METADATA AUTOMATICALLY (includes saves!)
@@ -2245,6 +2344,31 @@ Key patterns for video analysis:
         elapsed = _time.time() - start_time
         print(f"[SUCCESS] Analysis completed in {elapsed:.1f}s")
 
+        # 7. STORE DATA FOR PDF GENERATION
+        try:
+            # Generate unique cache key for PDF
+            cache_key = hashlib.md5(
+                f"{form_data['tiktok_url']}{_time.time()}".encode()
+            ).hexdigest()[:16]
+
+            # Get video title for PDF filename
+            video_title = metadata.get('title', 'analysis') if metadata else 'analysis'
+
+            # Store in pdf_cache
+            pdf_cache[cache_key] = {
+                'template_vars': template_vars,
+                'video_title': video_title,
+                'timestamp': _time.time()
+            }
+
+            # Add cache_key to template_vars so it can be used in template
+            template_vars['pdf_cache_key'] = cache_key
+
+            print(f"[PDF CACHE] Stored data with key: {cache_key}")
+        except Exception as e:
+            print(f"[WARNING] Failed to cache PDF data: {e}")
+            # Continue anyway - PDF generation is optional
+
         print("[INFO] Rendering results template")
         return render_template("results.html", **template_vars)
 
@@ -2310,6 +2434,59 @@ Key patterns for video analysis:
         import traceback
         traceback.print_exc()
         return f"Unexpected error: {str(e)}", 500
+
+
+@app.route("/download_pdf/<cache_key>", methods=["GET"])
+def download_pdf(cache_key):
+    """
+    Generate and download PDF from cached analysis results.
+    Uses server-side rendering with Puppeteer for reliable PDF generation.
+    """
+    print(f"[PDF] Download request for cache_key: {cache_key}")
+
+    # Retrieve cached data
+    if cache_key not in pdf_cache:
+        print(f"[PDF ERROR] Cache key not found: {cache_key}")
+        return "PDF data not found. The analysis may have expired. Please re-run the analysis.", 404
+
+    try:
+        cached_data = pdf_cache[cache_key]
+        template_vars = cached_data['template_vars']
+        video_title = cached_data.get('video_title', 'analysis')
+
+        print(f"[PDF] Rendering HTML template for: {video_title}")
+
+        # Render the HTML template with all the data
+        html_content = render_template("results.html", **template_vars)
+
+        # Generate filename with timestamp
+        now = datetime.now()
+        date_str = now.strftime('%Y-%m-%d')
+        time_str = now.strftime('%H%M')
+
+        # Sanitize video title for filename
+        safe_title = re.sub(r'[^\w\s-]', '', video_title)[:50]
+        safe_title = re.sub(r'[-\s]+', '_', safe_title)
+        filename = f"tiktok_{safe_title}_{date_str}_{time_str}.pdf"
+
+        print(f"[PDF] Generating PDF: {filename}")
+
+        # Generate PDF using pyppeteer
+        pdf_bytes = generate_pdf_sync(html_content)
+
+        # Create response
+        response = make_response(pdf_bytes)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        print(f"[PDF SUCCESS] Generated {len(pdf_bytes)} bytes")
+        return response
+
+    except Exception as e:
+        print(f"[PDF ERROR] Failed to generate PDF: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"Failed to generate PDF: {str(e)}", 500
 
 
 if __name__ == "__main__":
