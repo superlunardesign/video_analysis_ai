@@ -905,7 +905,7 @@ async def generate_pdf_from_html(html_content, output_path=None):
         print("[PDF] Generating PDF...")
         pdf_options = {
             'format': 'A4',
-            'printBackground': True,
+            'printBackground': False,  # Plain text on white background
             'scale': 0.5,  # Shrink content to fit more on page
             'margin': {
                 'top': '10mm',
