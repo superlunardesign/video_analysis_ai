@@ -1263,12 +1263,30 @@ formula_name: The [Name] Formula
 structure: 0-Xs: [what to do], X-Ys: [next step], Y-Zs: [final step]
 
 scenarios_for_same_niche:
-- [Specific scenario 1 for their niche and full script + scenes to capture and hold attention]
-- [Specific scenario 2 for their niche and full script + scenes to capture and hold attention]
+IMPORTANT: Format each scenario with a clear title and spacing for readability.
+
+**Scenario 1: [Descriptive Title]**
+[Full script + scenes to capture and hold attention]
+
+**Scenario 2: [Descriptive Title]**
+[Full script + scenes to capture and hold attention]
 
 why_it_works: This formula works because [psychological explanation in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]
 
-text_template: Use text like: '[specific full word for word script for the given video length with suggested hooks, pattern interrupts, and tension builders as a script template they can copy]'
+text_template:
+IMPORTANT: Break down into individual timestamped sections for easy reading. Format like this:
+
+**Added Text:** "[TEXT OVERLAY 1]"
+
+**0-3s:** "[Hook text]"
+
+**3-8s:** "[Promise/setup text]"
+
+**8-12s:** "[Context/credibility text]"
+
+[Continue with all remaining timestamped sections based on video length]
+
+**[Final seconds]:** "[Payoff/CTA text]"
 
 visual_requirements: Show [specific visuals needed. Give 2-3 ideas that could help them capture attention and/or increase viewer retention and explain why they would work.]
 
