@@ -2275,72 +2275,85 @@ Key patterns for video analysis:
 """
             knowledge_citations = ["Basic patterns fallback"]
 
-        # Run comprehensive analysis with metadata and audio insights
-        try:
-            gpt_result = run_main_analysis(
-                transcript_data.get('transcript', ''),
-                frames_summaries_text,
-                form_data['creator_note'],
-                form_data['platform'],
-                form_data['target_duration'],
-                form_data['goal'],
-                form_data['tone'],
-                form_data['audience'],
-                knowledge_context,
-                view_count,
-                performance_level,
-                metadata=metadata,  # Pass metadata with saves
-                audio_insights=audio_analysis,  # Pass audio analysis
-                analysis_depth=form_data.get('analysis_depth', 'standard')  # Pass analysis depth
-            )
+        # Check if user only wants extraction (no AI analysis)
+        if form_data.get('analysis_depth') == 'extraction_only':
+            print("[INFO] Extraction-only mode: Skipping AI analysis")
+            # Create minimal result with just extraction data
+            gpt_result = {
+                'extraction_only': True,
+                'transcript_quality': transcript_data,
+                'actual_view_count': view_count,
+                'performance_level': performance_level,
+                'metadata': metadata,
+                'audio_analysis': audio_analysis,
+            }
+        else:
+            # Run comprehensive analysis with metadata and audio insights
+            try:
+                gpt_result = run_main_analysis(
+                    transcript_data.get('transcript', ''),
+                    frames_summaries_text,
+                    form_data['creator_note'],
+                    form_data['platform'],
+                    form_data['target_duration'],
+                    form_data['goal'],
+                    form_data['tone'],
+                    form_data['audience'],
+                    knowledge_context,
+                    view_count,
+                    performance_level,
+                    metadata=metadata,  # Pass metadata with saves
+                    audio_insights=audio_analysis,  # Pass audio analysis
+                    analysis_depth=form_data.get('analysis_depth', 'standard')  # Pass analysis depth
+                )
 
-            # Add transcript quality info, view data, and new metrics
-            gpt_result['transcript_quality'] = transcript_data
-            gpt_result['actual_view_count'] = view_count
-            gpt_result['performance_level'] = performance_level
-            gpt_result['metadata'] = metadata
-            gpt_result['audio_analysis'] = audio_analysis
-            gpt_result['save_insights'] = analyze_save_metrics(metadata) if metadata else {}
+                # Add transcript quality info, view data, and new metrics
+                gpt_result['transcript_quality'] = transcript_data
+                gpt_result['actual_view_count'] = view_count
+                gpt_result['performance_level'] = performance_level
+                gpt_result['metadata'] = metadata
+                gpt_result['audio_analysis'] = audio_analysis
+                gpt_result['save_insights'] = analyze_save_metrics(metadata) if metadata else {}
 
-            print("[SUCCESS] Analysis complete")
-            print(f"[INFO] Content type: {gpt_result.get('content_type_detected', 'unknown')}")
-            print(f"[INFO] Audio type: {gpt_result.get('audio_type_detected', 'unknown')}")
-            print(f"[INFO] Performance level: {gpt_result.get('performance_level', 'unknown')}")
+                print("[SUCCESS] Analysis complete")
+                print(f"[INFO] Content type: {gpt_result.get('content_type_detected', 'unknown')}")
+                print(f"[INFO] Audio type: {gpt_result.get('audio_type_detected', 'unknown')}")
+                print(f"[INFO] Performance level: {gpt_result.get('performance_level', 'unknown')}")
 
-        except Exception as e:
-            print(f"[ERROR] Analysis error: {e}")
-            import traceback
-            traceback.print_exc()
+            except Exception as e:
+                print(f"[ERROR] Analysis error: {e}")
+                import traceback
+                traceback.print_exc()
 
-            # IMPORTANT: Try to salvage the analysis even if JSON parsing failed
-            # Claude might have returned valid analysis text that we can still use
-            print("[RECOVERY] Attempting to salvage analysis from error...")
+                # IMPORTANT: Try to salvage the analysis even if JSON parsing failed
+                # Claude might have returned valid analysis text that we can still use
+                print("[RECOVERY] Attempting to salvage analysis from error...")
 
-            # Use comprehensive fallback - ensures user ALWAYS gets results
-            audio_context = transcript_data.get('audio_context', {})
-            visual_analysis = create_visual_content_description(frames_summaries_text, audio_context)
+                # Use comprehensive fallback - ensures user ALWAYS gets results
+                audio_context = transcript_data.get('audio_context', {})
+                visual_analysis = create_visual_content_description(frames_summaries_text, audio_context)
 
-            has_speech = audio_context.get('has_meaningful_speech', False)
+                has_speech = audio_context.get('has_meaningful_speech', False)
 
-            gpt_result = create_comprehensive_fallback(
-                transcript_data.get('transcript', ''),
-                frames_summaries_text,
-                form_data['creator_note'],
-                form_data['platform'],
-                form_data['goal'],
-                form_data['audience'],
-                has_speech,
-                view_count,
-                performance_level,
-                knowledge_context,
-                audio_context,
-                visual_analysis
-            )
+                gpt_result = create_comprehensive_fallback(
+                    transcript_data.get('transcript', ''),
+                    frames_summaries_text,
+                    form_data['creator_note'],
+                    form_data['platform'],
+                    form_data['goal'],
+                    form_data['audience'],
+                    has_speech,
+                    view_count,
+                    performance_level,
+                    knowledge_context,
+                    audio_context,
+                    visual_analysis
+                )
 
-            # Add a warning flag so template can show this was a fallback
-            gpt_result['is_fallback'] = True
-            gpt_result['fallback_reason'] = str(e)[:200]
-            print("[RECOVERY] Fallback analysis generated successfully")
+                # Add a warning flag so template can show this was a fallback
+                gpt_result['is_fallback'] = True
+                gpt_result['fallback_reason'] = str(e)[:200]
+                print("[RECOVERY] Fallback analysis generated successfully")
 
         # Prepare template variables
         try:
