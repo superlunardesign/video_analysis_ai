@@ -295,6 +295,127 @@
             outline-offset: 2px;
         }
 
+        /* Toggle Switch */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-lg);
+            margin: 1.5rem 0;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-container:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 13px;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+        }
+
+        input[type="checkbox"]:checked + .toggle-switch {
+            background: var(--solar-lime);
+        }
+
+        input[type="checkbox"]:checked + .toggle-switch::before {
+            transform: translateX(24px);
+        }
+
+        .toggle-checkbox {
+            display: none;
+        }
+
+        .toggle-label {
+            flex: 1;
+            font-weight: 600;
+            color: var(--stellar-cream);
+        }
+
+        /* Accordion */
+        .accordion {
+            margin: 1.5rem 0;
+        }
+
+        .accordion-header {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s ease;
+            user-select: none;
+        }
+
+        .accordion-header:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .accordion-title {
+            font-weight: 600;
+            color: var(--stellar-cream);
+        }
+
+        .accordion-icon {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+            color: var(--celestial-lavender);
+        }
+
+        .accordion.active .accordion-icon {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .accordion.active .accordion-content {
+            max-height: 1000px;
+        }
+
+        .accordion-body {
+            padding: 1.5rem 1rem;
+        }
+
+        /* Collapsible Section */
+        .collapsible-section {
+            display: none;
+            margin-top: 1rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: var(--radius-lg);
+            border-left: 3px solid var(--solar-lime);
+        }
+
+        .collapsible-section.active {
+            display: block;
+            animation: fadeInUp 0.4s ease-out;
+        }
+
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
@@ -325,124 +446,132 @@
         <div class="form-container">
             <form action="/analyze_async" method="POST">
                 <div class="form-grid">
-                    <!-- URL Input - Full Width -->
+                    <!-- Essential Fields -->
                     <div class="field-group full-width">
-                        <label for="tiktok_url">TikTok URL</label>
-                        <input 
-                            type="text" 
-                            id="tiktok_url" 
-                            name="tiktok_url" 
-                            placeholder="https://www.tiktok.com/@user/video/..." 
+                        <label for="tiktok_url">🔗 TikTok URL</label>
+                        <input
+                            type="text"
+                            id="tiktok_url"
+                            name="tiktok_url"
+                            placeholder="https://www.tiktok.com/@user/video/..."
                             required
                         >
-<div class="form-group">
-  <label for="view_count">View Count (optional - auto-detected):</label>
-  <input type="text" id="view_count" name="view_count" placeholder="Leave blank for auto-detection (259k, 1.2M, 50000)">
-  <small style="color: var(--celestial-lavender); font-size: 0.85rem; display: block; margin-top: 0.25rem;">
-    💡 Leave blank to automatically extract views, likes, saves, and engagement metrics
-  </small>
-</div>
                     </div>
 
-                    <!-- Creator Note - Full Width -->
                     <div class="field-group full-width">
-                        <label for="creator_note">Creator Note (Optional)</label>
-                        <textarea 
-                            id="creator_note" 
-                            name="creator_note" 
-                            placeholder="e.g. Lots of comments, few follows; include a stronger CTA"
+                        <label for="view_count">👁️ View Count <span style="opacity: 0.7; font-weight: normal;">(optional - auto-detected)</span></label>
+                        <input type="text" id="view_count" name="view_count" placeholder="259k, 1.2M, or 50000">
+                        <span class="helper-text">💡 Leave blank to automatically extract views, likes, saves, and engagement metrics</span>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="analysis_depth">📊 Analysis Depth</label>
+                        <select id="analysis_depth" name="analysis_depth">
+                            <option value="standard" selected>Standard (Quick & Actionable)</option>
+                            <option value="deep">Deep (Full Psychology)</option>
+                            <option value="extraction_only">Extraction Only (Raw Data)</option>
+                        </select>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="results_speed">⚡ Speed</label>
+                        <select id="results_speed" name="results_speed">
+                            <option value="ultra_fast">Ultra Fast (~1min)</option>
+                            <option value="fast">Fast (~2min)</option>
+                            <option value="standard" selected>Standard (~3min)</option>
+                            <option value="thorough">Thorough (~5min)</option>
+                        </select>
+                    </div>
+
+                    <div class="field-group full-width">
+                        <label for="creator_note">📝 Notes <span style="opacity: 0.7; font-weight: normal;">(optional)</span></label>
+                        <textarea
+                            id="creator_note"
+                            name="creator_note"
+                            placeholder="e.g., Lots of comments but few follows - include stronger CTA"
+                            rows="2"
                         ></textarea>
                     </div>
 
-                    <!-- Sampling Section -->
-                    <div class="form-section">
-                        <h3 class="section-title">Sampling</h3>
-                        
-                        <div class="field-group">
-                            <label for="strategy">Strategy</label>
-                            <select id="strategy" name="strategy">
-                                <option value="smart" selected>Smart (intro/outro + scene+settle + blur filter + dedupe + OCR)</option>
-                                <option value="uniform">Uniform (by duration)</option>
-                            </select>
-                        </div>
+                    <!-- Video Ideas Toggle -->
+                    <div class="full-width">
+                        <label class="toggle-container" for="nicheIdeasToggle">
+                            <input type="checkbox" id="nicheIdeasToggle" class="toggle-checkbox">
+                            <div class="toggle-switch"></div>
+                            <span class="toggle-label">💡 Want video ideas for your niche?</span>
+                        </label>
 
-                        <div class="field-group">
-                            <label for="frames_per_minute">Frames per minute (uniform)</label>
-                            <input type="text" id="frames_per_minute" name="frames_per_minute" value="12">
-                            <span class="helper-text">Used only when strategy = uniform</span>
-                        </div>
+                        <div id="nicheIdeasSection" class="collapsible-section">
+                            <div class="field-group">
+                                <label for="platform">Platform</label>
+                                <select id="platform" name="platform">
+                                    <option value="tiktok" selected>TikTok</option>
+                                    <option value="reels">Instagram Reels</option>
+                                    <option value="shorts">YouTube Shorts</option>
+                                </select>
+                            </div>
 
-                        <div class="field-group">
-                            <label for="cap">Max frames (cap)</label>
-                            <input type="text" id="cap" name="cap" value="60">
-                        </div>
+                            <div class="field-group">
+                                <label for="target_duration">Target Duration (seconds)</label>
+                                <input type="text" id="target_duration" name="target_duration" value="30">
+                            </div>
 
-                        <div class="field-group">
-                            <label for="scene_threshold">Scene threshold (smart)</label>
-                            <input type="text" id="scene_threshold" name="scene_threshold" value="0.35">
-                            <span class="helper-text">Higher = fewer frames; lower = more frames</span>
+                            <div class="field-group">
+                                <label for="goal">Goal</label>
+                                <select id="goal" name="goal">
+                                    <option value="viral_reach">Viral Reach</option>
+                                    <option value="follower_growth" selected>Follower Growth</option>
+                                    <option value="sales_conversions">Sales / Conversions</option>
+                                </select>
+                            </div>
+
+                            <div class="field-group">
+                                <label for="tone">Tone</label>
+                                <input type="text" id="tone" name="tone" value="same as video">
+                            </div>
+
+                            <div class="field-group">
+                                <label for="audience">Audience</label>
+                                <input type="text" id="audience" name="audience" value="same as video">
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Script Preferences Section -->
-                    <div class="form-section">
-                        <h3 class="section-title">Script Preferences</h3>
-                        
-                        <div class="field-group">
-                            <label for="platform">Platform</label>
-                            <select id="platform" name="platform">
-                                <option value="tiktok" selected>TikTok</option>
-                                <option value="reels">Instagram Reels</option>
-                                <option value="shorts">YouTube Shorts</option>
-                            </select>
-                        </div>
+                    <!-- Advanced Options Accordion -->
+                    <div class="full-width">
+                        <div class="accordion" id="advancedAccordion">
+                            <div class="accordion-header">
+                                <span class="accordion-title">⚙️ Advanced Options</span>
+                                <span class="accordion-icon">▼</span>
+                            </div>
+                            <div class="accordion-content">
+                                <div class="accordion-body">
+                                    <div class="field-group">
+                                        <label for="strategy">Sampling Strategy</label>
+                                        <select id="strategy" name="strategy">
+                                            <option value="smart" selected>Smart (Intelligent frame selection)</option>
+                                            <option value="uniform">Uniform (Even intervals)</option>
+                                        </select>
+                                    </div>
 
-                        <div class="field-group">
-                            <label for="target_duration">Target Duration (seconds)</label>
-                            <input type="text" id="target_duration" name="target_duration" value="30">
-                        </div>
+                                    <div class="field-group">
+                                        <label for="frames_per_minute">Frames per Minute</label>
+                                        <input type="text" id="frames_per_minute" name="frames_per_minute" value="12">
+                                        <span class="helper-text">For uniform strategy only</span>
+                                    </div>
 
-                        <div class="field-group">
-                        <!-- ▼ Add just this block inside your existing form -->
-<label for="goal"><strong>Goal</strong></label>
-<select id="goal" name="goal" required>
-  <option value="viral_reach">Viral Reach</option>
-  <option value="follower_growth">Follower Growth</option>
-  <option value="sales_conversions">Sales / Conversions</option>
-</select>
-<!-- ▲ -->
+                                    <div class="field-group">
+                                        <label for="cap">Max Frames Cap</label>
+                                        <input type="text" id="cap" name="cap" value="60">
+                                    </div>
 
-                        </div>
-
-                        <div class="field-group">
-                            <label for="tone">Tone</label>
-                            <input type="text" id="tone" name="tone" value="same as video">
-                        </div>
-
-                        <div class="field-group">
-                            <label for="audience">Audience</label>
-                            <input type="text" id="audience" name="audience" value="same as video">
-                        </div>
-
-                        <div class="field-group">
-                            <label for="analysis_depth">Analysis Depth</label>
-                            <select id="analysis_depth" name="analysis_depth">
-                                <option value="standard" selected>Standard (Concise & Actionable)</option>
-                                <option value="deep">Deep Analysis (Comprehensive Detail)</option>
-                                <option value="extraction_only">Extraction Only (Transcript & Frames)</option>
-                            </select>
-                            <span class="helper-text">💡 Standard: Brief insights. Deep: Full psychology. Extraction: Raw data only (no AI analysis).</span>
-                        </div>
-
-                        <div class="field-group">
-                            <label for="results_speed">Results Speed</label>
-                            <select id="results_speed" name="results_speed">
-                                <option value="ultra_fast">Ultra Fast (~30-60s) - Transcript + 1 frame</option>
-                                <option value="fast">Fast (~1-2min) - 20 frames</option>
-                                <option value="standard" selected>Standard (~2-4min) - 40 frames</option>
-                                <option value="thorough">Thorough (~4-6min) - 70 frames + motion detection</option>
-                            </select>
-                            <span class="helper-text">⚠️ Deep analysis requires more video frames and longer analysis time. Choose your options here.</span>
+                                    <div class="field-group">
+                                        <label for="scene_threshold">Scene Threshold</label>
+                                        <input type="text" id="scene_threshold" name="scene_threshold" value="0.35">
+                                        <span class="helper-text">Higher = fewer frames, Lower = more frames</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -456,5 +585,27 @@
             </form>
         </div>
     </div>
+
+    <script>
+        // Toggle for Niche Ideas Section
+        const nicheToggle = document.getElementById('nicheIdeasToggle');
+        const nicheSection = document.getElementById('nicheIdeasSection');
+
+        nicheToggle.addEventListener('change', function() {
+            if (this.checked) {
+                nicheSection.classList.add('active');
+            } else {
+                nicheSection.classList.remove('active');
+            }
+        });
+
+        // Accordion for Advanced Options
+        const accordion = document.getElementById('advancedAccordion');
+        const accordionHeader = accordion.querySelector('.accordion-header');
+
+        accordionHeader.addEventListener('click', function() {
+            accordion.classList.toggle('active');
+        });
+    </script>
 </body>
 </html>
