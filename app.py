@@ -48,6 +48,19 @@ pdf_cache = {}  # Simple in-memory cache for PDF generation data
 print("[INFO] Optimization components initialized: cache, tracker, pdf_cache")
 
 
+# Custom Jinja filter to convert markdown-style bold to HTML
+@app.template_filter('markdown_bold')
+def markdown_bold_filter(text, color='#fff'):
+    """Convert **text** to <strong>text</strong>"""
+    if not text:
+        return text
+    # Use regex to properly match **text** patterns
+    import re
+    pattern = r'\*\*([^*]+)\*\*'
+    replacement = f'<strong style="color: {color};">\\1</strong>'
+    return re.sub(pattern, replacement, str(text))
+
+
 def validate_dependencies():
     """Check if all required dependencies are available"""
     missing_deps = []
