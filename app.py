@@ -2184,7 +2184,7 @@ def process():
                     continue
                 try:
                     if name == 'frames':
-                        frames_summaries_text, gallery_data_urls = future.result(timeout=120)
+                        frames_summaries_text, gallery_data_urls = future.result(timeout=480)
                         analysis_results['frames_summaries'] = frames_summaries_text
                         analysis_results['gallery_urls'] = gallery_data_urls
                         print(f"[PARALLEL] Frame analysis complete: {len(frames_summaries_text)} chars")
