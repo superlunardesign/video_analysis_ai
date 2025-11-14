@@ -886,65 +886,65 @@ def generate_timing_breakdown(duration_seconds):
 
 
 # ==============================
-# PDF GENERATION - SERVER-SIDE WITH PUPPETEER
+# PDF GENERATION - SERVER-SIDE WITH PLAYWRIGHT
 # ==============================
 
 async def generate_pdf_from_html(html_content, output_path=None):
     """
-    Generate PDF from HTML using pyppeteer (headless Chrome).
+    Generate PDF from HTML using playwright (headless Chrome).
     Returns PDF bytes if output_path is None, otherwise saves to file.
     """
-    from pyppeteer import launch
+    from playwright.async_api import async_playwright
 
-    browser = None
     try:
         print("[PDF] Launching headless browser...")
-        browser = await launch({
-            'headless': True,
-            'args': ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-        })
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(
+                headless=True,
+                args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+            )
 
-        page = await browser.newPage()
+            page = await browser.new_page()
 
-        # Set viewport for consistent rendering
-        await page.setViewport({'width': 1200, 'height': 1600})
+            # Set viewport for consistent rendering
+            await page.set_viewport_size({'width': 1200, 'height': 1600})
 
-        print("[PDF] Loading HTML content...")
-        await page.setContent(html_content, {'waitUntil': 'networkidle0', 'timeout': 30000})
+            print("[PDF] Loading HTML content...")
+            await page.set_content(html_content, wait_until='networkidle', timeout=30000)
 
-        # Wait a bit for any dynamic content to render
-        await asyncio.sleep(1)
+            # Wait a bit for any dynamic content to render
+            await asyncio.sleep(1)
 
-        print("[PDF] Generating PDF...")
-        pdf_options = {
-            'format': 'A4',
-            'printBackground': False,  # Plain text on white background
-            'scale': 0.5,  # Shrink content to fit more on page
-            'margin': {
-                'top': '10mm',
-                'right': '10mm',
-                'bottom': '10mm',
-                'left': '10mm'
+            print("[PDF] Generating PDF...")
+            pdf_options = {
+                'format': 'A4',
+                'print_background': False,  # Plain text on white background
+                'scale': 0.5,  # Shrink content to fit more on page
+                'margin': {
+                    'top': '10mm',
+                    'right': '10mm',
+                    'bottom': '10mm',
+                    'left': '10mm'
+                }
             }
-        }
 
-        if output_path:
-            pdf_options['path'] = output_path
-            await page.pdf(pdf_options)
-            print(f"[PDF] Saved to {output_path}")
-            return output_path
-        else:
-            pdf_bytes = await page.pdf(pdf_options)
-            print(f"[PDF] Generated {len(pdf_bytes)} bytes")
-            return pdf_bytes
+            if output_path:
+                pdf_options['path'] = output_path
+                await page.pdf(**pdf_options)
+                print(f"[PDF] Saved to {output_path}")
+                await browser.close()
+                print("[PDF] Browser closed")
+                return output_path
+            else:
+                pdf_bytes = await page.pdf(**pdf_options)
+                print(f"[PDF] Generated {len(pdf_bytes)} bytes")
+                await browser.close()
+                print("[PDF] Browser closed")
+                return pdf_bytes
 
     except Exception as e:
         print(f"[PDF ERROR] Failed to generate PDF: {e}")
         raise
-    finally:
-        if browser:
-            await browser.close()
-            print("[PDF] Browser closed")
 
 
 def generate_pdf_sync(html_content, output_path=None):

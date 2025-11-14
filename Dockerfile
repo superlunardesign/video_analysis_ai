@@ -17,7 +17,8 @@ ENV KMP_DUPLICATE_LIB_OK=TRUE \
 WORKDIR /app
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
- && pip install --no-cache-dir -r requirements.txt
+ && pip install --no-cache-dir -r requirements.txt \
+ && playwright install --with-deps chromium
 
 COPY . /app
 
