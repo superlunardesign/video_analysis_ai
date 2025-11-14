@@ -70,8 +70,33 @@ def download_video(tiktok_url: str) -> str:
         "retries": 5,
         "noprogress": True,
     }
-    with YoutubeDL(ydl_opts) as ydl:
-        ydl.download([tiktok_url])
+
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            ydl.download([tiktok_url])
+    except Exception as e:
+        error_msg = str(e)
+
+        # Handle specific TikTok errors with user-friendly messages
+        if "status code 10204" in error_msg or "Video not available" in error_msg:
+            raise ValueError(
+                "❌ This TikTok video is not accessible. Common causes:\n"
+                "• Video is private or deleted\n"
+                "• Video requires login to view\n"
+                "• Video is geo-restricted\n"
+                "• Creator has restricted sharing\n\n"
+                "Try a different public video or check if the link is correct."
+            )
+        elif "Sign in to confirm you're not a bot" in error_msg:
+            raise ValueError(
+                "❌ TikTok is blocking automated access. This can happen when:\n"
+                "• Too many requests in short time\n"
+                "• TikTok's anti-bot protection is active\n\n"
+                "Wait a few minutes and try again with a different video."
+            )
+        else:
+            # Re-raise original error if not a known case
+            raise
 
     mp4s = sorted(Path("downloads").glob(f"vid_{stamp}*.mp4"))
     if mp4s:
@@ -738,8 +763,8 @@ def extract_video_metadata(tiktok_url):
                 'view_count': info.get('view_count', 0),
                 'like_count': info.get('like_count', 0),
                 'comment_count': info.get('comment_count', 0),
-                'share_count': info.get('repost_count', 0),
-                'save_count': save_count,  # SAVES/BOOKMARKS
+                'repost_count': info.get('repost_count', 0),  # Changed from share_count
+                'save_count': save_count,  # SAVES/BOOKMARKS (keeping for backwards compatibility)
 
                 # Video details
                 'duration': info.get('duration', 0),
@@ -747,48 +772,54 @@ def extract_video_metadata(tiktok_url):
                 'timestamp': info.get('timestamp', ''),
 
                 # Creator info
-                'uploader': info.get('uploader', ''),
+                'uploader': info.get('uploader', 'Unknown'),  # Video creator/uploader
                 'uploader_id': info.get('uploader_id', ''),
+
+                # Audio/Music info
+                'track': info.get('track', ''),  # Song/audio track name
+                'artist': info.get('artist', ''),  # Artist name
 
                 # Content
                 'hashtags': extract_hashtags(info.get('description', '')),
-                'music': {
-                    'artist': info.get('artist', ''),
-                    'track': info.get('track', ''),
-                },
 
                 # Technical
                 'thumbnail': info.get('thumbnail', ''),
                 'video_id': info.get('id', ''),
             }
 
-            # Calculate engagement rates including save rate
+            # Calculate engagement rates
             if metadata['view_count'] > 0:
                 views = metadata['view_count']
                 metadata['engagement_metrics'] = {
                     'like_rate': round((metadata['like_count'] / views) * 100, 2),
                     'comment_rate': round((metadata['comment_count'] / views) * 100, 2),
-                    'share_rate': round((metadata['share_count'] / views) * 100, 2),
+                    'repost_rate': round((metadata['repost_count'] / views) * 100, 2),
                     'save_rate': round((metadata['save_count'] / views) * 100, 2),
                     'total_engagement_rate': round(
                         ((metadata['like_count'] + metadata['comment_count'] +
-                          metadata['share_count'] + metadata['save_count']) / views) * 100, 2
+                          metadata['repost_count'] + metadata['save_count']) / views) * 100, 2
                     ),
                     'save_to_like_ratio': round(
                         metadata['save_count'] / metadata['like_count'], 3
                     ) if metadata['like_count'] > 0 else 0,
+                    'repost_to_like_ratio': round(
+                        metadata['repost_count'] / metadata['like_count'], 3
+                    ) if metadata['like_count'] > 0 else 0,
                 }
 
-                # High-value content flag
-                metadata['high_value_content'] = metadata['engagement_metrics']['save_rate'] > 1.5
+                # High-value content flag (reposts indicate shareability)
+                metadata['high_value_content'] = (
+                    metadata['engagement_metrics']['save_rate'] > 1.5 or
+                    metadata['engagement_metrics']['repost_rate'] > 2.0
+                )
 
-            # Performance level with saves considered
+            # Performance level with reposts considered
             views = metadata['view_count']
-            save_rate = metadata['engagement_metrics'].get('save_rate', 0) if metadata.get('engagement_metrics') else 0
+            repost_rate = metadata['engagement_metrics'].get('repost_rate', 0) if metadata.get('engagement_metrics') else 0
 
             if views >= 1000000:
                 metadata['performance_level'] = 'viral'
-            elif views >= 100000 or (views >= 50000 and save_rate > 2):
+            elif views >= 100000 or (views >= 50000 and repost_rate > 2):
                 metadata['performance_level'] = 'good'
             elif views >= 10000:
                 metadata['performance_level'] = 'moderate'
@@ -796,10 +827,12 @@ def extract_video_metadata(tiktok_url):
                 metadata['performance_level'] = 'low'
 
             print(f"[SUCCESS] Metadata extracted:")
+            print(f"  Uploader: {metadata['uploader']}")
+            print(f"  Track: {metadata['track'] or 'None'}")
             print(f"  Views: {metadata['view_count']:,}")
             print(f"  Likes: {metadata['like_count']:,}")
-            print(f"  SAVES: {metadata['save_count']:,}")
-            print(f"  Save Rate: {metadata['engagement_metrics'].get('save_rate', 0)}%")
+            print(f"  Reposts: {metadata['repost_count']:,} ({metadata['engagement_metrics'].get('repost_rate', 0)}%)")
+            print(f"  Comments: {metadata['comment_count']:,}")
 
             return metadata
 

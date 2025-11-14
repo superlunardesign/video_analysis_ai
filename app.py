@@ -3,8 +3,11 @@ import random
 import time as _time
 import json
 import re
+import asyncio
+import hashlib
 from collections import Counter
-from flask import Flask, request, render_template
+from datetime import datetime
+from flask import Flask, request, render_template, make_response
 from openai import OpenAI
 from anthropic import Anthropic
 
@@ -41,7 +44,21 @@ claude_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 # Initialize optimization components
 cache = AnalysisCache()
 tracker = AnalysisPerformanceTracker()
-print("[INFO] Optimization components initialized: cache, tracker")
+pdf_cache = {}  # Simple in-memory cache for PDF generation data
+print("[INFO] Optimization components initialized: cache, tracker, pdf_cache")
+
+
+# Custom Jinja filter to convert markdown-style bold to HTML
+@app.template_filter('markdown_bold')
+def markdown_bold_filter(text, color='#fff'):
+    """Convert **text** to <strong>text</strong>"""
+    if not text:
+        return text
+    # Use regex to properly match **text** patterns
+    import re
+    pattern = r'\*\*([^*]+)\*\*'
+    replacement = f'<strong style="color: {color};">\\1</strong>'
+    return re.sub(pattern, replacement, str(text))
 
 
 def validate_dependencies():
@@ -805,6 +822,144 @@ def create_visual_content_description(frames_summaries_text, audio_context=None)
         }
 
 
+def generate_timing_breakdown(duration_seconds):
+    """
+    Generate dynamic timing breakdown based on video duration.
+    Returns a formatted string for the prompt.
+    """
+    try:
+        duration = int(duration_seconds)
+    except (ValueError, TypeError):
+        duration = 30  # Default fallback
+
+    # Generate timing intervals based on video length
+    if duration <= 15:
+        # Very short videos
+        intervals = [
+            "0-1s: [Hook and opening]",
+            "1-5s: [Core content/reveal]",
+            f"5-{duration}s: [Payoff and close]"
+        ]
+    elif duration <= 30:
+        # Short videos (15-30s)
+        mid = duration // 2
+        end = duration
+        intervals = [
+            "0-1s: [Hook]",
+            "1-3s: [Promise/setup]",
+            f"3-{mid}s: [Tension/context building]",
+            f"{mid}-{end-3}s: [Building to payoff]",
+            f"{end-3}-{end}s: [Payoff and close]"
+        ]
+    elif duration <= 60:
+        # Medium videos (30-60s)
+        q1 = duration // 4
+        mid = duration // 2
+        q3 = (duration * 3) // 4
+        end = duration
+        intervals = [
+            "0-1s: [Hook]",
+            "1-3s: [Promise]",
+            f"3-{q1}s: [Initial context/stakes]",
+            f"{q1}-{mid}s: [Tension building/examples]",
+            f"{mid}-{q3}s: [Further development]",
+            f"{q3}-{end-3}s: [Final build to payoff]",
+            f"{end-3}-{end}s: [Payoff delivery and close]"
+        ]
+    else:
+        # Long videos (60s+)
+        q1 = duration // 4
+        mid = duration // 2
+        q3 = (duration * 3) // 4
+        end = duration
+        intervals = [
+            "0-1s: [Hook]",
+            "1-3s: [Promise]",
+            f"3-{q1}s: [Context and stakes]",
+            f"{q1}-{mid}s: [Tension and examples]",
+            f"{mid}-{q3}s: [Secondary loops/development]",
+            f"{q3}-{end-5}s: [Building to climax]",
+            f"{end-5}-{end}s: [Payoff and resolution]"
+        ]
+
+    return "\n".join(intervals)
+
+
+# ==============================
+# PDF GENERATION - SERVER-SIDE WITH PUPPETEER
+# ==============================
+
+async def generate_pdf_from_html(html_content, output_path=None):
+    """
+    Generate PDF from HTML using pyppeteer (headless Chrome).
+    Returns PDF bytes if output_path is None, otherwise saves to file.
+    """
+    from pyppeteer import launch
+
+    browser = None
+    try:
+        print("[PDF] Launching headless browser...")
+        browser = await launch({
+            'headless': True,
+            'args': ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        })
+
+        page = await browser.newPage()
+
+        # Set viewport for consistent rendering
+        await page.setViewport({'width': 1200, 'height': 1600})
+
+        print("[PDF] Loading HTML content...")
+        await page.setContent(html_content, {'waitUntil': 'networkidle0', 'timeout': 30000})
+
+        # Wait a bit for any dynamic content to render
+        await asyncio.sleep(1)
+
+        print("[PDF] Generating PDF...")
+        pdf_options = {
+            'format': 'A4',
+            'printBackground': False,  # Plain text on white background
+            'scale': 0.5,  # Shrink content to fit more on page
+            'margin': {
+                'top': '10mm',
+                'right': '10mm',
+                'bottom': '10mm',
+                'left': '10mm'
+            }
+        }
+
+        if output_path:
+            pdf_options['path'] = output_path
+            await page.pdf(pdf_options)
+            print(f"[PDF] Saved to {output_path}")
+            return output_path
+        else:
+            pdf_bytes = await page.pdf(pdf_options)
+            print(f"[PDF] Generated {len(pdf_bytes)} bytes")
+            return pdf_bytes
+
+    except Exception as e:
+        print(f"[PDF ERROR] Failed to generate PDF: {e}")
+        raise
+    finally:
+        if browser:
+            await browser.close()
+            print("[PDF] Browser closed")
+
+
+def generate_pdf_sync(html_content, output_path=None):
+    """Synchronous wrapper for async PDF generation"""
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(generate_pdf_from_html(html_content, output_path))
+        loop.close()
+        return result
+    except Exception as e:
+        print(f"[PDF ERROR] Sync wrapper failed: {e}")
+        raise
+
+
 # ==============================
 # MAIN ANALYSIS FUNCTION - COMPREHENSIVE & ADAPTIVE
 # ==============================
@@ -1121,12 +1276,30 @@ formula_name: The [Name] Formula
 structure: 0-Xs: [what to do], X-Ys: [next step], Y-Zs: [final step]
 
 scenarios_for_same_niche:
-- [Specific scenario 1 for their niche and full script + scenes to capture and hold attention]
-- [Specific scenario 2 for their niche and full script + scenes to capture and hold attention]
+IMPORTANT: Format each scenario with a clear title and spacing for readability.
+
+**Scenario 1: [Descriptive Title]**
+[Full script + scenes to capture and hold attention]
+
+**Scenario 2: [Descriptive Title]**
+[Full script + scenes to capture and hold attention]
 
 why_it_works: This formula works because [psychological explanation in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]
 
-text_template: Use text like: '[specific full word for word script for the given video length with suggested hooks, pattern interrupts, and tension builders as a script template they can copy]'
+text_template:
+IMPORTANT: Break down into individual timestamped sections for easy reading. Format like this:
+
+**Added Text:** "[TEXT OVERLAY 1]"
+
+**0-3s:** "[Hook text]"
+
+**3-8s:** "[Promise/setup text]"
+
+**8-12s:** "[Context/credibility text]"
+
+[Continue with all remaining timestamped sections based on video length]
+
+**[Final seconds]:** "[Payoff/CTA text]"
 
 visual_requirements: Show [specific visuals needed. Give 2-3 ideas that could help them capture attention and/or increase viewer retention and explain why they would work.]
 
@@ -1156,11 +1329,16 @@ promise_clarity: 7
 (Just the number, no extra text)
 
 ===TIMING_MASTERY===
-0-1s: [What happens and impact]
-1-3s: [Content and viewer state]
-3-7s: [Development and engagement]
-7-15s: [Core value delivery]
-15s+: [Resolution and sharing trigger]
+Analyze what happens at each key moment through the FULL {target_duration}s video.
+Provide specific observations for each time interval below:
+
+{generate_timing_breakdown(target_duration)}
+
+For each interval, describe:
+- What content/actions occur
+- Viewer psychological state
+- Retention tactics used (or missing)
+- How it builds toward payoff
 
 ===PERFORMANCE_PREDICTION===
 {'"This succeeded because: [Detailed analysis of why this hit ' + str(view_count) + ' - break down each success factor]. Future potential: [What it could achieve with tweaks]." if performance_level == "viral" else "With the improvements above, this could achieve: [Specific view target with detailed reasoning about what would drive that growth]."' if analysis_depth == 'deep' else '"Success factors: [2 key reasons]. Potential: [projected views with 1 sentence why]." if performance_level == "viral" else "Could reach: [view target] if [1-2 key improvements made]."'}
@@ -1796,6 +1974,7 @@ def process():
             'goal': request.form.get("goal", "follower_growth").strip(),
             'tone': request.form.get("tone", "confident, friendly").strip(),
             'audience': request.form.get("audience", "creators and small business owners").strip(),
+            'analysis_depth': request.form.get("analysis_depth", "standard").strip(),  # Get analysis depth selection
         }
 
         # 1. CHECK CACHE FIRST (unless force_refresh is requested)
@@ -1804,6 +1983,27 @@ def process():
             cached_result = cache.get_cached_analysis(form_data['tiktok_url'])
             if cached_result:
                 print(f"[CACHE HIT] Returning cached analysis")
+
+                # Generate cache key for PDF even for cached results
+                try:
+                    cache_key = hashlib.md5(
+                        f"{form_data['tiktok_url']}{_time.time()}".encode()
+                    ).hexdigest()[:16]
+
+                    metadata = cached_result.get('metadata', {})
+                    video_title = metadata.get('title', 'analysis') if metadata else 'analysis'
+
+                    pdf_cache[cache_key] = {
+                        'template_vars': cached_result,
+                        'video_title': video_title,
+                        'timestamp': _time.time()
+                    }
+
+                    cached_result['pdf_cache_key'] = cache_key
+                    print(f"[PDF CACHE] Cached result stored for PDF with key: {cache_key}")
+                except Exception as e:
+                    print(f"[WARNING] Failed to cache PDF data for cached result: {e}")
+
                 return render_template("results.html", **cached_result)
 
         # 2. EXTRACT METADATA AUTOMATICALLY (includes saves!)
@@ -1827,15 +2027,18 @@ def process():
                 view_count = f"{view_count_raw} views"
                 performance_level = metadata.get('performance_level', 'low')
 
+            print(f"[AUTO-DETECTED] Uploader: {metadata.get('uploader', 'Unknown')}")
+            if metadata.get('track'):
+                print(f"[AUTO-DETECTED] Track: {metadata.get('track')} by {metadata.get('artist', 'Unknown')}")
             print(f"[AUTO-DETECTED] Views: {view_count}")
             print(f"[AUTO-DETECTED] Likes: {metadata.get('like_count', 0):,}")
-            print(f"[AUTO-DETECTED] SAVES: {metadata.get('save_count', 0):,} ({metadata.get('engagement_metrics', {}).get('save_rate', 0)}%)")
+            print(f"[AUTO-DETECTED] Reposts: {metadata.get('repost_count', 0):,} ({metadata.get('engagement_metrics', {}).get('repost_rate', 0)}%)")
             print(f"[AUTO-DETECTED] Engagement: {metadata.get('engagement_metrics', {}).get('total_engagement_rate', 0)}%")
 
-            # Add save insights to creator note
-            save_analysis = analyze_save_metrics(metadata)
-            if save_analysis.get('save_rate', 0) > 1.5:
-                form_data['creator_note'] += f" | HIGH SAVE RATE: {save_analysis['save_rate']:.1f}% - Valuable reference content"
+            # Add repost insights to creator note (high reposts = viral potential)
+            repost_rate = metadata.get('engagement_metrics', {}).get('repost_rate', 0)
+            if repost_rate > 2.0:
+                form_data['creator_note'] += f" | HIGH REPOST RATE: {repost_rate:.1f}% - Strong shareability"
         else:
             # Fallback to manual parsing if auto-extraction fails
             print("[WARNING] Auto-extraction failed, trying manual parsing")
@@ -2072,72 +2275,85 @@ Key patterns for video analysis:
 """
             knowledge_citations = ["Basic patterns fallback"]
 
-        # Run comprehensive analysis with metadata and audio insights
-        try:
-            gpt_result = run_main_analysis(
-                transcript_data.get('transcript', ''),
-                frames_summaries_text,
-                form_data['creator_note'],
-                form_data['platform'],
-                form_data['target_duration'],
-                form_data['goal'],
-                form_data['tone'],
-                form_data['audience'],
-                knowledge_context,
-                view_count,
-                performance_level,
-                metadata=metadata,  # Pass metadata with saves
-                audio_insights=audio_analysis,  # Pass audio analysis
-                analysis_depth=form_data.get('analysis_depth', 'standard')  # Pass analysis depth
-            )
+        # Check if user only wants extraction (no AI analysis)
+        if form_data.get('analysis_depth') == 'extraction_only':
+            print("[INFO] Extraction-only mode: Skipping AI analysis")
+            # Create minimal result with just extraction data
+            gpt_result = {
+                'extraction_only': True,
+                'transcript_quality': transcript_data,
+                'actual_view_count': view_count,
+                'performance_level': performance_level,
+                'metadata': metadata,
+                'audio_analysis': audio_analysis,
+            }
+        else:
+            # Run comprehensive analysis with metadata and audio insights
+            try:
+                gpt_result = run_main_analysis(
+                    transcript_data.get('transcript', ''),
+                    frames_summaries_text,
+                    form_data['creator_note'],
+                    form_data['platform'],
+                    form_data['target_duration'],
+                    form_data['goal'],
+                    form_data['tone'],
+                    form_data['audience'],
+                    knowledge_context,
+                    view_count,
+                    performance_level,
+                    metadata=metadata,  # Pass metadata with saves
+                    audio_insights=audio_analysis,  # Pass audio analysis
+                    analysis_depth=form_data.get('analysis_depth', 'standard')  # Pass analysis depth
+                )
 
-            # Add transcript quality info, view data, and new metrics
-            gpt_result['transcript_quality'] = transcript_data
-            gpt_result['actual_view_count'] = view_count
-            gpt_result['performance_level'] = performance_level
-            gpt_result['metadata'] = metadata
-            gpt_result['audio_analysis'] = audio_analysis
-            gpt_result['save_insights'] = analyze_save_metrics(metadata) if metadata else {}
+                # Add transcript quality info, view data, and new metrics
+                gpt_result['transcript_quality'] = transcript_data
+                gpt_result['actual_view_count'] = view_count
+                gpt_result['performance_level'] = performance_level
+                gpt_result['metadata'] = metadata
+                gpt_result['audio_analysis'] = audio_analysis
+                gpt_result['save_insights'] = analyze_save_metrics(metadata) if metadata else {}
 
-            print("[SUCCESS] Analysis complete")
-            print(f"[INFO] Content type: {gpt_result.get('content_type_detected', 'unknown')}")
-            print(f"[INFO] Audio type: {gpt_result.get('audio_type_detected', 'unknown')}")
-            print(f"[INFO] Performance level: {gpt_result.get('performance_level', 'unknown')}")
+                print("[SUCCESS] Analysis complete")
+                print(f"[INFO] Content type: {gpt_result.get('content_type_detected', 'unknown')}")
+                print(f"[INFO] Audio type: {gpt_result.get('audio_type_detected', 'unknown')}")
+                print(f"[INFO] Performance level: {gpt_result.get('performance_level', 'unknown')}")
 
-        except Exception as e:
-            print(f"[ERROR] Analysis error: {e}")
-            import traceback
-            traceback.print_exc()
+            except Exception as e:
+                print(f"[ERROR] Analysis error: {e}")
+                import traceback
+                traceback.print_exc()
 
-            # IMPORTANT: Try to salvage the analysis even if JSON parsing failed
-            # Claude might have returned valid analysis text that we can still use
-            print("[RECOVERY] Attempting to salvage analysis from error...")
+                # IMPORTANT: Try to salvage the analysis even if JSON parsing failed
+                # Claude might have returned valid analysis text that we can still use
+                print("[RECOVERY] Attempting to salvage analysis from error...")
 
-            # Use comprehensive fallback - ensures user ALWAYS gets results
-            audio_context = transcript_data.get('audio_context', {})
-            visual_analysis = create_visual_content_description(frames_summaries_text, audio_context)
+                # Use comprehensive fallback - ensures user ALWAYS gets results
+                audio_context = transcript_data.get('audio_context', {})
+                visual_analysis = create_visual_content_description(frames_summaries_text, audio_context)
 
-            has_speech = audio_context.get('has_meaningful_speech', False)
+                has_speech = audio_context.get('has_meaningful_speech', False)
 
-            gpt_result = create_comprehensive_fallback(
-                transcript_data.get('transcript', ''),
-                frames_summaries_text,
-                form_data['creator_note'],
-                form_data['platform'],
-                form_data['goal'],
-                form_data['audience'],
-                has_speech,
-                view_count,
-                performance_level,
-                knowledge_context,
-                audio_context,
-                visual_analysis
-            )
+                gpt_result = create_comprehensive_fallback(
+                    transcript_data.get('transcript', ''),
+                    frames_summaries_text,
+                    form_data['creator_note'],
+                    form_data['platform'],
+                    form_data['goal'],
+                    form_data['audience'],
+                    has_speech,
+                    view_count,
+                    performance_level,
+                    knowledge_context,
+                    audio_context,
+                    visual_analysis
+                )
 
-            # Add a warning flag so template can show this was a fallback
-            gpt_result['is_fallback'] = True
-            gpt_result['fallback_reason'] = str(e)[:200]
-            print("[RECOVERY] Fallback analysis generated successfully")
+                # Add a warning flag so template can show this was a fallback
+                gpt_result['is_fallback'] = True
+                gpt_result['fallback_reason'] = str(e)[:200]
+                print("[RECOVERY] Fallback analysis generated successfully")
 
         # Prepare template variables
         try:
@@ -2174,14 +2390,149 @@ Key patterns for video analysis:
         elapsed = _time.time() - start_time
         print(f"[SUCCESS] Analysis completed in {elapsed:.1f}s")
 
+        # 7. STORE DATA FOR PDF GENERATION
+        try:
+            # Generate unique cache key for PDF
+            cache_key = hashlib.md5(
+                f"{form_data['tiktok_url']}{_time.time()}".encode()
+            ).hexdigest()[:16]
+
+            # Get video title for PDF filename
+            video_title = metadata.get('title', 'analysis') if metadata else 'analysis'
+
+            # Store in pdf_cache
+            pdf_cache[cache_key] = {
+                'template_vars': template_vars,
+                'video_title': video_title,
+                'timestamp': _time.time()
+            }
+
+            # Add cache_key to template_vars so it can be used in template
+            template_vars['pdf_cache_key'] = cache_key
+
+            print(f"[PDF CACHE] Stored data with key: {cache_key}")
+        except Exception as e:
+            print(f"[WARNING] Failed to cache PDF data: {e}")
+            # Continue anyway - PDF generation is optional
+
         print("[INFO] Rendering results template")
         return render_template("results.html", **template_vars)
+
+    except ValueError as e:
+        # User-friendly errors (video access issues, etc.)
+        print(f"[USER ERROR] {str(e)}")
+        error_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Video Access Error</title>
+            <style>
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                }}
+                .error-container {{
+                    background: white;
+                    border-radius: 16px;
+                    padding: 40px;
+                    max-width: 600px;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                }}
+                h1 {{ color: #e74c3c; margin-bottom: 20px; }}
+                pre {{
+                    background: #f8f9fa;
+                    padding: 20px;
+                    border-radius: 8px;
+                    border-left: 4px solid #e74c3c;
+                    white-space: pre-wrap;
+                    line-height: 1.6;
+                }}
+                .back-link {{
+                    display: inline-block;
+                    background: #667eea;
+                    color: white;
+                    text-decoration: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    margin-top: 20px;
+                }}
+                .back-link:hover {{ background: #5568d3; }}
+            </style>
+        </head>
+        <body>
+            <div class="error-container">
+                <h1>⚠️ Video Access Error</h1>
+                <pre>{str(e)}</pre>
+                <a href="/" class="back-link">← Try Another Video</a>
+            </div>
+        </body>
+        </html>
+        """
+        return error_html, 400
 
     except Exception as e:
         print(f"[ERROR] Unexpected error: {str(e)}")
         import traceback
         traceback.print_exc()
         return f"Unexpected error: {str(e)}", 500
+
+
+@app.route("/download_pdf/<cache_key>", methods=["GET"])
+def download_pdf(cache_key):
+    """
+    Generate and download PDF from cached analysis results.
+    Uses server-side rendering with Puppeteer for reliable PDF generation.
+    """
+    print(f"[PDF] Download request for cache_key: {cache_key}")
+
+    # Retrieve cached data
+    if cache_key not in pdf_cache:
+        print(f"[PDF ERROR] Cache key not found: {cache_key}")
+        return "PDF data not found. The analysis may have expired. Please re-run the analysis.", 404
+
+    try:
+        cached_data = pdf_cache[cache_key]
+        template_vars = cached_data['template_vars']
+        video_title = cached_data.get('video_title', 'analysis')
+
+        print(f"[PDF] Rendering HTML template for: {video_title}")
+
+        # Render the HTML template with all the data
+        html_content = render_template("results.html", **template_vars)
+
+        # Generate filename with timestamp
+        now = datetime.now()
+        date_str = now.strftime('%Y-%m-%d')
+        time_str = now.strftime('%H%M')
+
+        # Sanitize video title for filename
+        safe_title = re.sub(r'[^\w\s-]', '', video_title)[:50]
+        safe_title = re.sub(r'[-\s]+', '_', safe_title)
+        filename = f"tiktok_{safe_title}_{date_str}_{time_str}.pdf"
+
+        print(f"[PDF] Generating PDF: {filename}")
+
+        # Generate PDF using pyppeteer
+        pdf_bytes = generate_pdf_sync(html_content)
+
+        # Create response
+        response = make_response(pdf_bytes)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        print(f"[PDF SUCCESS] Generated {len(pdf_bytes)} bytes")
+        return response
+
+    except Exception as e:
+        print(f"[PDF ERROR] Failed to generate PDF: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"Failed to generate PDF: {str(e)}", 500
 
 
 if __name__ == "__main__":
