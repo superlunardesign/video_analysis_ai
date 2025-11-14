@@ -2535,6 +2535,20 @@ def download_pdf(cache_key):
         return f"Failed to generate PDF: {str(e)}", 500
 
 
+@app.route("/clear_cache", methods=["POST"])
+def clear_cache():
+    """
+    Clear all cached analyses to force fresh analysis on next request.
+    Useful when fixes are deployed that affect analysis quality.
+    """
+    try:
+        cache.clear_cache()
+        return {"status": "success", "message": "Cache cleared successfully"}, 200
+    except Exception as e:
+        print(f"[CACHE ERROR] Failed to clear cache: {e}")
+        return {"status": "error", "message": str(e)}, 500
+
+
 if __name__ == "__main__":
     validate_dependencies()
     app.run(host="0.0.0.0", port=10000, debug=True)
