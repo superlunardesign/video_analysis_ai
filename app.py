@@ -2184,7 +2184,7 @@ def process():
                     continue
                 try:
                     if name == 'frames':
-                        frames_summaries_text, gallery_data_urls = future.result(timeout=120)
+                        frames_summaries_text, gallery_data_urls = future.result(timeout=480)
                         analysis_results['frames_summaries'] = frames_summaries_text
                         analysis_results['gallery_urls'] = gallery_data_urls
                         print(f"[PARALLEL] Frame analysis complete: {len(frames_summaries_text)} chars")
@@ -2533,6 +2533,20 @@ def download_pdf(cache_key):
         import traceback
         traceback.print_exc()
         return f"Failed to generate PDF: {str(e)}", 500
+
+
+@app.route("/clear_cache", methods=["POST"])
+def clear_cache():
+    """
+    Clear all cached analyses to force fresh analysis on next request.
+    Useful when fixes are deployed that affect analysis quality.
+    """
+    try:
+        cache.clear_cache()
+        return {"status": "success", "message": "Cache cleared successfully"}, 200
+    except Exception as e:
+        print(f"[CACHE ERROR] Failed to clear cache: {e}")
+        return {"status": "error", "message": str(e)}, 500
 
 
 if __name__ == "__main__":

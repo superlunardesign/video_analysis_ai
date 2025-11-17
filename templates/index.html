@@ -247,6 +247,32 @@
             left: 100%;
         }
 
+        /* Cache Clear Button */
+        .clear-cache-btn {
+            background: transparent;
+            color: var(--stellar-cream);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: var(--space-xs) var(--space-md);
+            border-radius: var(--radius-full);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: var(--space-sm);
+            opacity: 0.7;
+        }
+
+        .clear-cache-btn:hover {
+            opacity: 1;
+            border-color: var(--solar-lime);
+            color: var(--solar-lime);
+            transform: translateY(-1px);
+        }
+
+        .clear-cache-btn:active {
+            transform: translateY(0);
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .container {
@@ -577,9 +603,14 @@
 
                     <!-- Submit Button -->
                     <div class="submit-container">
-                        <button type="submit" class="submit-btn">
-                            Analyze Content
-                        </button>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                            <button type="submit" class="submit-btn">
+                                Analyze Content
+                            </button>
+                            <button type="button" class="clear-cache-btn" onclick="clearCache()" title="Clear cached analyses to force fresh analysis">
+                                Clear Cache
+                            </button>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -606,6 +637,43 @@
         accordionHeader.addEventListener('click', function() {
             accordion.classList.toggle('active');
         });
+
+        // Clear Cache Function
+        async function clearCache() {
+            if (!confirm('Clear all cached analyses? This will force fresh analysis on the next request.')) {
+                return;
+            }
+
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = 'Clearing...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/clear_cache', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    btn.textContent = '✓ Cleared!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error(data.message || 'Failed to clear cache');
+                }
+            } catch (error) {
+                alert('Error clearing cache: ' + error.message);
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>
