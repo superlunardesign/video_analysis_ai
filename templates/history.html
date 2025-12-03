@@ -6,9 +6,30 @@
 <style>
     .history-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        grid-template-columns: 1fr;
         gap: var(--space-lg);
         margin-top: var(--space-lg);
+    }
+
+    /* Tablet: 2 columns */
+    @media (min-width: 600px) {
+        .history-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    /* Desktop: 3 columns */
+    @media (min-width: 900px) {
+        .history-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    /* Large desktop: 4 columns */
+    @media (min-width: 1200px) {
+        .history-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
     }
 
     .analysis-card {
