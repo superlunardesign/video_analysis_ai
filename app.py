@@ -7,7 +7,8 @@ import asyncio
 import hashlib
 from collections import Counter
 from datetime import datetime
-from flask import Flask, request, render_template, make_response
+from flask import Flask, request, render_template, make_response, redirect, url_for, flash, jsonify
+from flask_login import login_required, current_user
 from openai import OpenAI
 from anthropic import Anthropic
 
@@ -30,10 +31,12 @@ from processing import (
     analyze_save_metrics
 )
 from rag_helper import retrieve_smart_context, retrieve_all_context
-from cache_manager import AnalysisCache
+from cache_manager import AnalysisCache, PdfCache
 from analysis_optimization import intelligent_frame_extraction, parallel_video_processing, optimize_frame_selection
 from audio_analysis import enhanced_audio_analysis, ViralSoundDetector
 from performance_tracker import AnalysisPerformanceTracker
+from models import db, User, Analysis, init_db
+from auth import auth_bp, init_auth
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
@@ -41,11 +44,17 @@ app = Flask(__name__)
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=600.0)
 claude_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
+# Initialize database and authentication
+init_db(app)
+init_auth(app)
+app.register_blueprint(auth_bp)
+
 # Initialize optimization components
 cache = AnalysisCache()
 tracker = AnalysisPerformanceTracker()
-pdf_cache = {}  # Simple in-memory cache for PDF generation data
+pdf_cache = PdfCache()  # Persistent PDF cache that survives server restarts
 print("[INFO] Optimization components initialized: cache, tracker, pdf_cache")
+print("[INFO] Database and authentication initialized")
 
 
 # Custom Jinja filter to convert markdown-style bold to HTML
@@ -1957,6 +1966,9 @@ def analyze_async():
 
 @app.route("/process", methods=["POST"])
 def process():
+    # Track analysis ID for this request (used for updating status)
+    current_analysis_id = None
+
     try:
         start_time = _time.time()
 
@@ -1976,6 +1988,22 @@ def process():
             'audience': request.form.get("audience", "creators and small business owners").strip(),
             'analysis_depth': request.form.get("analysis_depth", "standard").strip(),  # Get analysis depth selection
         }
+
+        # CHECK FOR IN-PROGRESS ANALYSIS (only for authenticated users)
+        if current_user and current_user.is_authenticated:
+            processing_analysis = get_user_processing_analysis(current_user.id)
+            if processing_analysis:
+                # User already has an analysis in progress - redirect to processing page
+                print(f"[INFO] User {current_user.id} has analysis {processing_analysis.id} in progress")
+                return render_template("processing.html",
+                    analysis_id=processing_analysis.id,
+                    video_url=processing_analysis.video_url
+                )
+
+            # Create a new processing analysis record
+            processing_record = create_processing_analysis(current_user.id, form_data['tiktok_url'])
+            if processing_record:
+                current_analysis_id = processing_record.id
 
         # 1. CHECK CACHE FIRST (unless force_refresh is requested)
         force_refresh = request.form.get('force_refresh', 'false').lower() == 'true'
@@ -2413,12 +2441,48 @@ Key patterns for video analysis:
             print(f"[PDF CACHE] Stored data with key: {cache_key}")
         except Exception as e:
             print(f"[WARNING] Failed to cache PDF data: {e}")
+            cache_key = None
             # Continue anyway - PDF generation is optional
+
+        # 8. SAVE TO USER'S HISTORY (if logged in)
+        if current_user.is_authenticated:
+            try:
+                # Get thumbnail from first frame in gallery
+                thumbnail_url = None
+                if template_vars.get('frame_gallery'):
+                    thumbnail_url = template_vars['frame_gallery'][0]
+
+                if current_analysis_id:
+                    # Update the existing processing analysis to completed
+                    complete_analysis(
+                        analysis_id=current_analysis_id,
+                        video_title=video_title,
+                        thumbnail_url=thumbnail_url,
+                        template_vars=template_vars,
+                        pdf_cache_key=cache_key
+                    )
+                else:
+                    # Legacy: Create new analysis record
+                    save_analysis_to_db(
+                        user_id=current_user.id,
+                        video_url=form_data['tiktok_url'],
+                        video_title=video_title,
+                        thumbnail_url=thumbnail_url,
+                        template_vars=template_vars,
+                        pdf_cache_key=cache_key
+                    )
+            except Exception as e:
+                print(f"[WARNING] Failed to save to user history: {e}")
+                # Continue anyway - this shouldn't block the response
 
         print("[INFO] Rendering results template")
         return render_template("results.html", **template_vars)
 
     except ValueError as e:
+        # Mark analysis as failed if we had one in progress
+        if current_analysis_id:
+            fail_analysis(current_analysis_id, str(e))
+
         # User-friendly errors (video access issues, etc.)
         print(f"[USER ERROR] {str(e)}")
         error_html = f"""
@@ -2476,6 +2540,10 @@ Key patterns for video analysis:
         return error_html, 400
 
     except Exception as e:
+        # Mark analysis as failed if we had one in progress
+        if current_analysis_id:
+            fail_analysis(current_analysis_id, str(e))
+
         print(f"[ERROR] Unexpected error: {str(e)}")
         import traceback
         traceback.print_exc()
@@ -2486,17 +2554,17 @@ Key patterns for video analysis:
 def download_pdf(cache_key):
     """
     Generate and download PDF from cached analysis results.
-    Uses server-side rendering with Puppeteer for reliable PDF generation.
+    Uses server-side rendering with Playwright for reliable PDF generation.
     """
     print(f"[PDF] Download request for cache_key: {cache_key}")
 
-    # Retrieve cached data
-    if cache_key not in pdf_cache:
+    # Retrieve cached data (checks both memory and disk cache)
+    cached_data = pdf_cache.get(cache_key)
+    if cached_data is None:
         print(f"[PDF ERROR] Cache key not found: {cache_key}")
         return "PDF data not found. The analysis may have expired. Please re-run the analysis.", 404
 
     try:
-        cached_data = pdf_cache[cache_key]
         template_vars = cached_data['template_vars']
         video_title = cached_data.get('video_title', 'analysis')
 
@@ -2517,7 +2585,7 @@ def download_pdf(cache_key):
 
         print(f"[PDF] Generating PDF: {filename}")
 
-        # Generate PDF using pyppeteer
+        # Generate PDF using playwright
         pdf_bytes = generate_pdf_sync(html_content)
 
         # Create response
@@ -2547,6 +2615,292 @@ def clear_cache():
     except Exception as e:
         print(f"[CACHE ERROR] Failed to clear cache: {e}")
         return {"status": "error", "message": str(e)}, 500
+
+
+# ==============================
+# USER HISTORY AND ANALYSIS MANAGEMENT
+# ==============================
+
+@app.route("/history")
+@login_required
+def history():
+    """Display user's analysis history."""
+    page = request.args.get('page', 1, type=int)
+    per_page = 12
+
+    # Check for any in-progress analysis
+    processing = Analysis.query.filter_by(
+        user_id=current_user.id,
+        status='processing'
+    ).first()
+
+    # Show completed analyses (and legacy ones without status)
+    pagination = Analysis.query.filter_by(user_id=current_user.id)\
+        .filter(Analysis.status.in_(['completed', None]))\
+        .order_by(Analysis.created_at.desc())\
+        .paginate(page=page, per_page=per_page, error_out=False)
+
+    return render_template(
+        'history.html',
+        analyses=pagination.items,
+        pagination=pagination,
+        processing=processing
+    )
+
+
+@app.route("/analysis/<int:analysis_id>")
+@login_required
+def view_analysis(analysis_id):
+    """View a specific past analysis."""
+    analysis = Analysis.query.filter_by(id=analysis_id, user_id=current_user.id).first()
+
+    if not analysis:
+        flash('Analysis not found.', 'error')
+        return redirect(url_for('history'))
+
+    # Use the lightweight summary template for viewing past analyses
+    # The full results.html requires many variables we don't store
+    template_vars = analysis.analysis_data or {}
+
+    # Add additional context for the summary template
+    template_vars['video_url'] = analysis.video_url
+    template_vars['video_title'] = analysis.video_title
+    template_vars['thumbnail_url'] = analysis.thumbnail_url
+    template_vars['created_at'] = analysis.created_at
+    template_vars['analysis_id'] = analysis.id
+
+    return render_template("analysis_summary.html", **template_vars)
+
+
+@app.route("/analysis/<int:analysis_id>", methods=["DELETE"])
+@login_required
+def delete_analysis(analysis_id):
+    """Delete a specific analysis."""
+    analysis = Analysis.query.filter_by(id=analysis_id, user_id=current_user.id).first()
+
+    if not analysis:
+        return jsonify({'error': 'Analysis not found'}), 404
+
+    try:
+        db.session.delete(analysis)
+        db.session.commit()
+        return jsonify({'status': 'success'}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"[ERROR] Failed to delete analysis: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route("/analysis/<int:analysis_id>/status")
+@login_required
+def analysis_status(analysis_id):
+    """Check the status of an analysis."""
+    analysis = Analysis.query.filter_by(id=analysis_id, user_id=current_user.id).first()
+
+    if not analysis:
+        return jsonify({'error': 'Analysis not found'}), 404
+
+    return jsonify({
+        'status': analysis.status or 'completed',  # Default to completed for older records
+        'video_title': analysis.video_title,
+        'created_at': analysis.created_at.strftime('%B %d, %Y at %I:%M %p') if analysis.created_at else None
+    })
+
+
+@app.route("/check_existing", methods=["POST"])
+@login_required
+def check_existing():
+    """Check if user has already analyzed this video URL."""
+    data = request.get_json()
+    video_url = data.get('url', '').strip()
+
+    if not video_url:
+        return jsonify({'exists': False})
+
+    # Normalize URL for comparison (remove query params, etc.)
+    normalized_url = normalize_video_url(video_url)
+
+    # Check for existing analysis
+    existing = Analysis.query.filter_by(
+        user_id=current_user.id,
+        video_url=normalized_url
+    ).order_by(Analysis.created_at.desc()).first()
+
+    if existing:
+        return jsonify({
+            'exists': True,
+            'analysis_id': existing.id,
+            'video_title': existing.video_title,
+            'created_at': existing.created_at.strftime('%B %d, %Y')
+        })
+
+    return jsonify({'exists': False})
+
+
+def normalize_video_url(url):
+    """Normalize TikTok URL for comparison."""
+    # Extract video ID from various TikTok URL formats
+    import re
+
+    # Remove query parameters
+    url = url.split('?')[0]
+
+    # Handle various TikTok URL formats
+    patterns = [
+        r'tiktok\.com/@[\w.]+/video/(\d+)',
+        r'tiktok\.com/t/(\w+)',
+        r'vm\.tiktok\.com/(\w+)',
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return url  # Return cleaned URL
+
+    return url
+
+
+def get_user_processing_analysis(user_id):
+    """Check if user has an analysis currently in progress."""
+    try:
+        # Find any analysis with status='processing' for this user
+        processing = Analysis.query.filter_by(
+            user_id=user_id,
+            status='processing'
+        ).first()
+        return processing
+    except Exception as e:
+        print(f"[DB ERROR] Failed to check processing analysis: {e}")
+        return None
+
+
+def create_processing_analysis(user_id, video_url):
+    """Create a new analysis record with status='processing'."""
+    try:
+        normalized_url = normalize_video_url(video_url)
+
+        analysis = Analysis(
+            user_id=user_id,
+            video_url=normalized_url,
+            status='processing'
+        )
+
+        db.session.add(analysis)
+        db.session.commit()
+
+        print(f"[DB] Created processing analysis {analysis.id} for user {user_id}")
+        return analysis
+    except Exception as e:
+        db.session.rollback()
+        print(f"[DB ERROR] Failed to create processing analysis: {e}")
+        return None
+
+
+def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pdf_cache_key):
+    """Update a processing analysis to completed with results."""
+    try:
+        analysis = Analysis.query.get(analysis_id)
+        if not analysis:
+            print(f"[DB ERROR] Analysis {analysis_id} not found")
+            return False
+
+        # Create lightweight analysis data (exclude large base64 images)
+        lightweight_data = {
+            'video_title': template_vars.get('video_title'),
+            'creator': template_vars.get('creator'),
+            'goal_analysis': template_vars.get('goal_analysis'),
+            'view_count': template_vars.get('view_count'),
+            'like_count': template_vars.get('like_count'),
+            'comment_count': template_vars.get('comment_count'),
+            'share_count': template_vars.get('share_count'),
+            'video_description': template_vars.get('video_description'),
+            'hashtags': template_vars.get('hashtags'),
+            'overall_assessment': template_vars.get('overall_assessment'),
+            'primary_strengths': template_vars.get('primary_strengths'),
+            'areas_for_improvement': template_vars.get('areas_for_improvement'),
+            'audio_type': template_vars.get('audio_type'),
+            'music_info': template_vars.get('music_info'),
+        }
+
+        analysis.video_title = video_title
+        analysis.thumbnail_url = thumbnail_url
+        analysis.analysis_data = lightweight_data
+        analysis.pdf_cache_key = pdf_cache_key
+        analysis.status = 'completed'
+        analysis.completed_at = datetime.utcnow()
+
+        db.session.commit()
+
+        print(f"[DB] Completed analysis {analysis_id}: {video_title}")
+        return True
+    except Exception as e:
+        db.session.rollback()
+        print(f"[DB ERROR] Failed to complete analysis: {e}")
+        return False
+
+
+def fail_analysis(analysis_id, error_message=None):
+    """Mark an analysis as failed."""
+    try:
+        analysis = Analysis.query.get(analysis_id)
+        if analysis:
+            analysis.status = 'failed'
+            analysis.analysis_data = {'error': error_message} if error_message else None
+            db.session.commit()
+            print(f"[DB] Marked analysis {analysis_id} as failed")
+    except Exception as e:
+        db.session.rollback()
+        print(f"[DB ERROR] Failed to mark analysis as failed: {e}")
+
+
+def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template_vars, pdf_cache_key):
+    """Save analysis results to database for the user (legacy function for backward compatibility)."""
+    try:
+        # Normalize URL
+        normalized_url = normalize_video_url(video_url)
+
+        # Create lightweight analysis data (exclude large base64 images)
+        # The full data is preserved in pdf_cache for PDF downloads
+        lightweight_data = {
+            'video_title': template_vars.get('video_title'),
+            'creator': template_vars.get('creator'),
+            'goal_analysis': template_vars.get('goal_analysis'),
+            'view_count': template_vars.get('view_count'),
+            'like_count': template_vars.get('like_count'),
+            'comment_count': template_vars.get('comment_count'),
+            'share_count': template_vars.get('share_count'),
+            'video_description': template_vars.get('video_description'),
+            'hashtags': template_vars.get('hashtags'),
+            'overall_assessment': template_vars.get('overall_assessment'),
+            'primary_strengths': template_vars.get('primary_strengths'),
+            'areas_for_improvement': template_vars.get('areas_for_improvement'),
+            'audio_type': template_vars.get('audio_type'),
+            'music_info': template_vars.get('music_info'),
+            # Exclude: frame_gallery (base64 images ~200KB)
+            # Exclude: frame_analyses (detailed per-frame data)
+        }
+
+        # Create analysis record
+        analysis = Analysis(
+            user_id=user_id,
+            video_url=normalized_url,
+            video_title=video_title,
+            thumbnail_url=thumbnail_url,
+            analysis_data=lightweight_data,
+            pdf_cache_key=pdf_cache_key,
+            status='completed',
+            completed_at=datetime.utcnow()
+        )
+
+        db.session.add(analysis)
+        db.session.commit()
+
+        print(f"[DB] Saved analysis for user {user_id}: {video_title}")
+        return analysis.id
+    except Exception as e:
+        db.session.rollback()
+        print(f"[DB ERROR] Failed to save analysis: {e}")
+        return None
 
 
 if __name__ == "__main__":

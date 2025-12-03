@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block title %}My Analyses{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .history-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: var(--space-lg);
+        margin-top: var(--space-lg);
+    }
+
+    .analysis-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .analysis-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-thumbnail {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .card-thumbnail.placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        background: linear-gradient(135deg, var(--eclipse-plum), var(--lunar-blush));
+    }
+
+    .card-content {
+        padding: var(--space-md);
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--stellar-cream);
+        margin-bottom: var(--space-xs);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .card-date {
+        font-size: 0.85rem;
+        color: var(--celestial-lavender);
+        opacity: 0.8;
+        margin-bottom: var(--space-md);
+    }
+
+    .card-actions {
+        display: flex;
+        gap: var(--space-sm);
+        flex-wrap: wrap;
+    }
+
+    .card-btn {
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-full);
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: none;
+    }
+
+    .card-btn.primary {
+        background: var(--accent-gradient);
+        color: var(--cosmic-indigo);
+    }
+
+    .card-btn.primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(106, 116, 207, 0.3);
+    }
+
+    .card-btn.secondary {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: var(--stellar-cream);
+    }
+
+    .card-btn.secondary:hover {
+        border-color: var(--solar-lime);
+        color: var(--solar-lime);
+    }
+
+    .card-btn.danger {
+        background: transparent;
+        border: 1px solid rgba(244, 67, 54, 0.5);
+        color: #ef9a9a;
+    }
+
+    .card-btn.danger:hover {
+        background: rgba(244, 67, 54, 0.2);
+        border-color: #ef9a9a;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: var(--space-xl) var(--space-md);
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius-lg);
+        margin-top: var(--space-lg);
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: var(--space-md);
+    }
+
+    .empty-state h2 {
+        color: var(--stellar-cream);
+        margin-bottom: var(--space-sm);
+    }
+
+    .empty-state p {
+        color: var(--celestial-lavender);
+        margin-bottom: var(--space-lg);
+    }
+
+    .empty-state .submit-btn {
+        display: inline-block;
+        width: auto;
+        text-decoration: none;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: var(--space-sm);
+        margin-top: var(--space-xl);
+    }
+
+    .page-link {
+        padding: var(--space-xs) var(--space-sm);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: var(--radius-sm);
+        color: var(--stellar-cream);
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .page-link:hover,
+    .page-link.active {
+        background: var(--accent-gradient);
+        color: var(--cosmic-indigo);
+        border-color: transparent;
+    }
+
+    /* Delete confirmation modal */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal {
+        background: var(--cosmic-indigo);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-lg);
+        padding: var(--space-xl);
+        max-width: 400px;
+        text-align: center;
+    }
+
+    .modal h3 {
+        color: var(--stellar-cream);
+        margin-bottom: var(--space-md);
+    }
+
+    .modal p {
+        color: var(--celestial-lavender);
+        margin-bottom: var(--space-lg);
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: var(--space-md);
+        justify-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header">
+    <h1>My Analyses</h1>
+    <p class="tagline">View and manage your past video analyses</p>
+</header>
+
+{% if processing %}
+<div class="processing-banner" style="background: linear-gradient(135deg, rgba(106, 116, 207, 0.3), rgba(183, 180, 237, 0.2)); border: 1px solid rgba(106, 116, 207, 0.5); border-radius: var(--radius-lg); padding: var(--space-lg); margin-bottom: var(--space-lg); text-align: center;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: var(--space-md); flex-wrap: wrap;">
+        <div class="spinner" style="width: 24px; height: 24px; border: 3px solid rgba(255,255,255,0.2); border-top-color: var(--solar-lime); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <span style="color: var(--stellar-cream); font-weight: 600;">Analysis in Progress</span>
+    </div>
+    <p style="color: var(--celestial-lavender); margin: var(--space-sm) 0 var(--space-md) 0; font-size: 0.9rem;">{{ processing.video_url[:60] }}{% if processing.video_url|length > 60 %}...{% endif %}</p>
+    <a href="/analysis/{{ processing.id }}/status" onclick="event.preventDefault(); window.location.href='/';" class="card-btn primary" style="display: inline-block;">View Progress</a>
+</div>
+<style>
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+{% endif %}
+
+{% if analyses %}
+<div class="history-grid">
+    {% for analysis in analyses %}
+    <div class="analysis-card" data-id="{{ analysis.id }}">
+        {% if analysis.thumbnail_url %}
+            <img src="{{ analysis.thumbnail_url }}" alt="Video thumbnail" class="card-thumbnail" loading="lazy">
+        {% else %}
+            <div class="card-thumbnail placeholder">
+                <span>🎬</span>
+            </div>
+        {% endif %}
+
+        <div class="card-content">
+            <h3 class="card-title">{{ analysis.video_title or 'Untitled Video' }}</h3>
+            <p class="card-date">{{ analysis.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+
+            <div class="card-actions">
+                <a href="/analysis/{{ analysis.id }}" class="card-btn primary">View Analysis</a>
+                {% if analysis.pdf_cache_key %}
+                <a href="/download_pdf/{{ analysis.pdf_cache_key }}" class="card-btn secondary">PDF</a>
+                {% endif %}
+                <button class="card-btn danger" onclick="confirmDelete({{ analysis.id }})">Delete</button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if pagination %}
+<div class="pagination">
+    {% if pagination.has_prev %}
+        <a href="/history?page={{ pagination.prev_num }}" class="page-link">&laquo; Prev</a>
+    {% endif %}
+
+    {% for page_num in pagination.iter_pages() %}
+        {% if page_num %}
+            <a href="/history?page={{ page_num }}" class="page-link {% if page_num == pagination.page %}active{% endif %}">
+                {{ page_num }}
+            </a>
+        {% endif %}
+    {% endfor %}
+
+    {% if pagination.has_next %}
+        <a href="/history?page={{ pagination.next_num }}" class="page-link">Next &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">📊</div>
+    <h2>No analyses yet</h2>
+    <p>Analyze your first TikTok video to see it here!</p>
+    <a href="/" class="submit-btn">Analyze a Video</a>
+</div>
+{% endif %}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+        <h3>Delete Analysis?</h3>
+        <p>This will permanently remove this analysis from your history. This action cannot be undone.</p>
+        <div class="modal-actions">
+            <button class="card-btn secondary" onclick="closeModal()">Cancel</button>
+            <button class="card-btn danger" id="confirmDeleteBtn">Delete</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let deleteId = null;
+
+    function confirmDelete(id) {
+        deleteId = id;
+        document.getElementById('deleteModal').classList.add('active');
+    }
+
+    function closeModal() {
+        deleteId = null;
+        document.getElementById('deleteModal').classList.remove('active');
+    }
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+        if (!deleteId) return;
+
+        try {
+            const response = await fetch(`/analysis/${deleteId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                // Remove card from DOM
+                const card = document.querySelector(`.analysis-card[data-id="${deleteId}"]`);
+                if (card) {
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.9)';
+                    setTimeout(() => card.remove(), 300);
+                }
+                closeModal();
+
+                // Reload if no cards left
+                setTimeout(() => {
+                    if (document.querySelectorAll('.analysis-card').length === 0) {
+                        window.location.reload();
+                    }
+                }, 400);
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Failed to delete analysis');
+            }
+        } catch (error) {
+            alert('Error deleting analysis: ' + error.message);
+        }
+
+        closeModal();
+    });
+
+    // Close modal on overlay click
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
+</script>
+{% endblock %}

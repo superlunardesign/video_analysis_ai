@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TikTok Analyzer{% endblock %} - Superlunar Design Co.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cosmic-indigo: #17172D;
+            --eclipse-plum: #3F4B9E;
+            --celestial-lavender: #B7B4ED;
+            --lunar-blush: #6A74CE;
+            --solar-lime: #F5FFA0;
+            --stellar-cream: #F0EAE0;
+            --primary-gradient: linear-gradient(135deg, var(--cosmic-indigo) 0%, var(--eclipse-plum) 50%, var(--celestial-lavender) 100%);
+            --accent-gradient: linear-gradient(45deg, var(--lunar-blush) 0%, var(--celestial-lavender) 100%);
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --space-xs: 0.5rem;
+            --space-sm: 1rem;
+            --space-md: 1.5rem;
+            --space-lg: 2rem;
+            --space-xl: 3rem;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --radius-full: 999px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-primary);
+            line-height: 1.6;
+            color: white;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            padding: var(--space-md);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-md);
+        }
+
+        /* Navigation */
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-lg);
+            padding: var(--space-sm) 0;
+        }
+
+        .nav-brand {
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
+        }
+
+        .nav-brand-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--solar-lime);
+        }
+
+        .nav-brand-subtitle {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.7rem;
+            color: var(--celestial-lavender);
+            margin-top: 2px;
+        }
+
+        .nav-brand-subtitle img {
+            height: 14px;
+            width: auto;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: var(--space-md);
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--stellar-cream);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+        }
+
+        .nav-link:hover {
+            color: var(--solar-lime);
+        }
+
+        .nav-link.btn {
+            background: var(--accent-gradient);
+            color: var(--cosmic-indigo);
+            font-weight: 600;
+        }
+
+        .nav-link.btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(106, 116, 207, 0.3);
+        }
+
+        .nav-link.btn-outline {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: transparent;
+            color: var(--stellar-cream);
+        }
+
+        .nav-link.btn-outline:hover {
+            border-color: var(--solar-lime);
+            color: var(--solar-lime);
+        }
+
+        .user-email {
+            color: var(--celestial-lavender);
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* Flash Messages */
+        .flash-messages {
+            margin-bottom: var(--space-lg);
+        }
+
+        .flash {
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-sm);
+            font-weight: 500;
+        }
+
+        .flash.success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            color: #a5d6a7;
+        }
+
+        .flash.error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            color: #ef9a9a;
+        }
+
+        .flash.info {
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid rgba(33, 150, 243, 0.5);
+            color: #90caf9;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: var(--space-xl);
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+            background: linear-gradient(45deg, var(--solar-lime), var(--celestial-lavender));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            font-size: 1.1rem;
+            color: var(--stellar-cream);
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Form Container */
+        .form-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .form-container.compact {
+            max-width: 450px;
+            margin: 0 auto;
+        }
+
+        /* Form Fields */
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
+            margin-bottom: var(--space-md);
+        }
+
+        label {
+            font-weight: 600;
+            color: var(--stellar-cream);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        textarea,
+        select {
+            padding: var(--space-md);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-family: var(--font-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            width: 100%;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--lunar-blush);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 3px rgba(106, 116, 207, 0.2);
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            background: var(--accent-gradient);
+            color: var(--cosmic-indigo);
+            border: none;
+            padding: var(--space-md) var(--space-xl);
+            border-radius: var(--radius-full);
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+            margin-top: var(--space-md);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(106, 116, 207, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Links */
+        .form-footer {
+            text-align: center;
+            margin-top: var(--space-lg);
+            color: var(--stellar-cream);
+        }
+
+        .form-footer a {
+            color: var(--solar-lime);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .form-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Checkbox */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin: var(--space-md) 0;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--lunar-blush);
+        }
+
+        .checkbox-group label {
+            text-transform: none;
+            font-weight: 400;
+            cursor: pointer;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container { padding: 0 var(--space-sm); }
+            .form-container { padding: var(--space-lg); }
+            .nav { flex-direction: column; gap: var(--space-sm); }
+            .nav-links { flex-wrap: wrap; justify-content: center; }
+        }
+
+        {% block extra_styles %}{% endblock %}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <a href="/" class="nav-brand">
+                <span class="nav-brand-title">TikTok Analyzer</span>
+                <span class="nav-brand-subtitle">by <a href="https://superlunardesign.com" target="_blank" style="display: inline-flex;"><img src="https://static.wixstatic.com/media/b8193e_7a6acb78bc174e469ca5b4a7664e7d2f~mv2.webp/v1/fill/w_229,h_50,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/Light-Primary-Logo.webp" alt="Superlunar Design Co."></a></span>
+            </a>
+            <div class="nav-links">
+                {% if current_user.is_authenticated %}
+                    <a href="/" class="nav-link">Analyze</a>
+                    <a href="/history" class="nav-link">History</a>
+                    <span class="user-email">{{ current_user.email }}</span>
+                    <a href="/logout" class="nav-link btn-outline">Logout</a>
+                {% else %}
+                    <a href="/login" class="nav-link btn-outline">Login</a>
+                    <a href="/signup" class="nav-link btn">Sign Up</a>
+                {% endif %}
+            </div>
+        </nav>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

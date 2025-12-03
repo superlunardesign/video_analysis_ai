@@ -460,10 +460,193 @@
         ::-webkit-scrollbar-thumb:hover {
             background: var(--celestial-lavender);
         }
+
+        /* Navigation */
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-lg);
+            padding: var(--space-sm) 0;
+        }
+
+        .nav-brand {
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
+        }
+
+        .nav-brand-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--solar-lime);
+        }
+
+        .nav-brand-subtitle {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.7rem;
+            color: var(--celestial-lavender);
+            margin-top: 2px;
+        }
+
+        .nav-brand-subtitle img {
+            height: 14px;
+            width: auto;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: var(--space-md);
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--stellar-cream);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+        }
+
+        .nav-link:hover {
+            color: var(--solar-lime);
+        }
+
+        .nav-link.btn {
+            background: var(--accent-gradient);
+            color: var(--cosmic-indigo);
+            font-weight: 600;
+        }
+
+        .nav-link.btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(106, 116, 207, 0.3);
+        }
+
+        .nav-link.btn-outline {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: transparent;
+            color: var(--stellar-cream);
+        }
+
+        .nav-link.btn-outline:hover {
+            border-color: var(--solar-lime);
+            color: var(--solar-lime);
+        }
+
+        .user-email {
+            color: var(--celestial-lavender);
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* Existing Analysis Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--cosmic-indigo);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            max-width: 450px;
+            text-align: center;
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        .modal h3 {
+            color: var(--stellar-cream);
+            margin-bottom: var(--space-sm);
+            font-size: 1.3rem;
+        }
+
+        .modal p {
+            color: var(--celestial-lavender);
+            margin-bottom: var(--space-lg);
+            font-size: 0.95rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: var(--space-md);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .modal-btn {
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+        }
+
+        .modal-btn.primary {
+            background: var(--accent-gradient);
+            color: var(--cosmic-indigo);
+        }
+
+        .modal-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(106, 116, 207, 0.3);
+        }
+
+        .modal-btn.secondary {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--stellar-cream);
+        }
+
+        .modal-btn.secondary:hover {
+            border-color: var(--solar-lime);
+            color: var(--solar-lime);
+        }
+
+        @media (max-width: 768px) {
+            .nav { flex-direction: column; gap: var(--space-sm); }
+            .nav-links { flex-wrap: wrap; justify-content: center; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <nav class="nav">
+            <a href="/" class="nav-brand">
+                <span class="nav-brand-title">TikTok Analyzer</span>
+                <span class="nav-brand-subtitle">by <a href="https://superlunardesign.com" target="_blank" style="display: inline-flex;"><img src="https://static.wixstatic.com/media/b8193e_7a6acb78bc174e469ca5b4a7664e7d2f~mv2.webp/v1/fill/w_229,h_50,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/Light-Primary-Logo.webp" alt="Superlunar Design Co."></a></span>
+            </a>
+            <div class="nav-links">
+                {% if current_user.is_authenticated %}
+                    <a href="/" class="nav-link">Analyze</a>
+                    <a href="/history" class="nav-link">History</a>
+                    <span class="user-email">{{ current_user.email }}</span>
+                    <a href="/logout" class="nav-link btn-outline">Logout</a>
+                {% else %}
+                    <a href="/login" class="nav-link btn-outline">Login</a>
+                    <a href="/signup" class="nav-link btn">Sign Up</a>
+                {% endif %}
+            </div>
+        </nav>
+
         <header class="header">
             <h1>TikTok Analyzer</h1>
             <p class="tagline">Out of this world analysis for content that drives results</p>
@@ -617,6 +800,18 @@
         </div>
     </div>
 
+    <!-- Existing Analysis Modal -->
+    <div class="modal-overlay" id="existingModal">
+        <div class="modal">
+            <h3>Video Already Analyzed</h3>
+            <p id="existingModalText">You analyzed this video on <span id="existingDate"></span>.</p>
+            <div class="modal-actions">
+                <a href="#" id="viewExistingBtn" class="modal-btn primary">View Existing</a>
+                <button type="button" id="reanalyzeBtn" class="modal-btn secondary">Re-analyze</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Toggle for Niche Ideas Section
         const nicheToggle = document.getElementById('nicheIdeasToggle');
@@ -636,6 +831,75 @@
 
         accordionHeader.addEventListener('click', function() {
             accordion.classList.toggle('active');
+        });
+
+        // Check for existing analysis on form submit
+        const form = document.querySelector('form');
+        const urlInput = document.getElementById('tiktok_url');
+        const existingModal = document.getElementById('existingModal');
+        const viewExistingBtn = document.getElementById('viewExistingBtn');
+        const reanalyzeBtn = document.getElementById('reanalyzeBtn');
+        const existingDate = document.getElementById('existingDate');
+        const isAuthenticated = {{ 'true' if current_user.is_authenticated else 'false' }};
+
+        form.addEventListener('submit', async function(e) {
+            // Only check for logged-in users
+            if (!isAuthenticated) return;
+
+            const url = urlInput.value.trim();
+            if (!url) return;
+
+            // Prevent form submission while we check
+            e.preventDefault();
+
+            try {
+                const response = await fetch('/check_existing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const data = await response.json();
+
+                if (data.exists) {
+                    // Show modal
+                    existingDate.textContent = data.created_at;
+                    viewExistingBtn.href = `/analysis/${data.analysis_id}`;
+                    existingModal.classList.add('active');
+                } else {
+                    // No existing analysis, submit form
+                    form.submit();
+                }
+            } catch (error) {
+                console.error('Error checking existing:', error);
+                // On error, just submit the form
+                form.submit();
+            }
+        });
+
+        // Re-analyze button
+        reanalyzeBtn.addEventListener('click', function() {
+            existingModal.classList.remove('active');
+            // Remove the event listener temporarily and submit
+            const newForm = form.cloneNode(true);
+            form.parentNode.replaceChild(newForm, form);
+            newForm.submit();
+        });
+
+        // Close modal on overlay click
+        existingModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                existingModal.classList.remove('active');
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                existingModal.classList.remove('active');
+            }
         });
 
         // Clear Cache Function
