@@ -214,6 +214,22 @@
     <p class="tagline">View and manage your past video analyses</p>
 </header>
 
+{% if processing %}
+<div class="processing-banner" style="background: linear-gradient(135deg, rgba(106, 116, 207, 0.3), rgba(183, 180, 237, 0.2)); border: 1px solid rgba(106, 116, 207, 0.5); border-radius: var(--radius-lg); padding: var(--space-lg); margin-bottom: var(--space-lg); text-align: center;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: var(--space-md); flex-wrap: wrap;">
+        <div class="spinner" style="width: 24px; height: 24px; border: 3px solid rgba(255,255,255,0.2); border-top-color: var(--solar-lime); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <span style="color: var(--stellar-cream); font-weight: 600;">Analysis in Progress</span>
+    </div>
+    <p style="color: var(--celestial-lavender); margin: var(--space-sm) 0 var(--space-md) 0; font-size: 0.9rem;">{{ processing.video_url[:60] }}{% if processing.video_url|length > 60 %}...{% endif %}</p>
+    <a href="/analysis/{{ processing.id }}/status" onclick="event.preventDefault(); window.location.href='/';" class="card-btn primary" style="display: inline-block;">View Progress</a>
+</div>
+<style>
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+{% endif %}
+
 {% if analyses %}
 <div class="history-grid">
     {% for analysis in analyses %}

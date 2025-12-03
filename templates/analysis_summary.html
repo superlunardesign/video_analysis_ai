@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}{{ video_title or 'Analysis Summary' }}{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .summary-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .summary-header {
+        text-align: center;
+        margin-bottom: var(--space-xl);
+    }
+
+    .summary-header h1 {
+        font-size: 1.8rem;
+        color: var(--stellar-cream);
+        margin-bottom: var(--space-sm);
+    }
+
+    .summary-meta {
+        color: var(--celestial-lavender);
+        font-size: 0.9rem;
+    }
+
+    .thumbnail-wrapper {
+        text-align: center;
+        margin-bottom: var(--space-xl);
+    }
+
+    .thumbnail-wrapper img {
+        max-width: 300px;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: var(--space-md);
+        margin-bottom: var(--space-xl);
+    }
+
+    .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius-md);
+        padding: var(--space-md);
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--solar-lime);
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: var(--celestial-lavender);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .section {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        margin-bottom: var(--space-lg);
+    }
+
+    .section h2 {
+        font-size: 1.2rem;
+        color: var(--stellar-cream);
+        margin-bottom: var(--space-md);
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+    }
+
+    .section-content {
+        color: var(--celestial-lavender);
+        line-height: 1.6;
+    }
+
+    .list-items {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .list-items li {
+        padding: var(--space-sm) 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--celestial-lavender);
+    }
+
+    .list-items li:last-child {
+        border-bottom: none;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: var(--space-md);
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: var(--space-xl);
+    }
+
+    .action-btn {
+        padding: var(--space-sm) var(--space-lg);
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: none;
+        font-size: 1rem;
+    }
+
+    .action-btn.primary {
+        background: var(--accent-gradient);
+        color: var(--cosmic-indigo);
+    }
+
+    .action-btn.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(106, 116, 207, 0.4);
+    }
+
+    .action-btn.secondary {
+        background: transparent;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: var(--stellar-cream);
+    }
+
+    .action-btn.secondary:hover {
+        border-color: var(--solar-lime);
+        color: var(--solar-lime);
+    }
+
+    .notice-box {
+        background: rgba(106, 116, 207, 0.2);
+        border: 1px solid rgba(106, 116, 207, 0.3);
+        border-radius: var(--radius-md);
+        padding: var(--space-md);
+        margin-bottom: var(--space-lg);
+        text-align: center;
+    }
+
+    .notice-box p {
+        color: var(--celestial-lavender);
+        margin: 0;
+    }
+
+    .hashtags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-xs);
+    }
+
+    .hashtag {
+        background: rgba(106, 116, 207, 0.3);
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-full);
+        font-size: 0.85rem;
+        color: var(--stellar-cream);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="summary-container">
+    <div class="summary-header">
+        <h1>{{ video_title or 'Video Analysis' }}</h1>
+        <p class="summary-meta">
+            {% if creator %}by @{{ creator }} | {% endif %}
+            Analyzed {{ created_at.strftime('%B %d, %Y at %I:%M %p') if created_at else 'Recently' }}
+        </p>
+    </div>
+
+    {% if thumbnail_url %}
+    <div class="thumbnail-wrapper">
+        <img src="{{ thumbnail_url }}" alt="Video thumbnail">
+    </div>
+    {% endif %}
+
+    <div class="notice-box">
+        <p>This is a summary view. For full analysis with frame-by-frame breakdown and PDF export, please re-run the analysis.</p>
+    </div>
+
+    {% if view_count or like_count or comment_count or share_count %}
+    <div class="stats-grid">
+        {% if view_count %}
+        <div class="stat-card">
+            <div class="stat-value">{{ view_count }}</div>
+            <div class="stat-label">Views</div>
+        </div>
+        {% endif %}
+        {% if like_count %}
+        <div class="stat-card">
+            <div class="stat-value">{{ like_count }}</div>
+            <div class="stat-label">Likes</div>
+        </div>
+        {% endif %}
+        {% if comment_count %}
+        <div class="stat-card">
+            <div class="stat-value">{{ comment_count }}</div>
+            <div class="stat-label">Comments</div>
+        </div>
+        {% endif %}
+        {% if share_count %}
+        <div class="stat-card">
+            <div class="stat-value">{{ share_count }}</div>
+            <div class="stat-label">Shares</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if overall_assessment %}
+    <div class="section">
+        <h2>Overall Assessment</h2>
+        <div class="section-content">{{ overall_assessment }}</div>
+    </div>
+    {% endif %}
+
+    {% if primary_strengths %}
+    <div class="section">
+        <h2>Primary Strengths</h2>
+        <ul class="list-items">
+            {% for strength in primary_strengths %}
+            <li>{{ strength }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if areas_for_improvement %}
+    <div class="section">
+        <h2>Areas for Improvement</h2>
+        <ul class="list-items">
+            {% for area in areas_for_improvement %}
+            <li>{{ area }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if video_description %}
+    <div class="section">
+        <h2>Video Description</h2>
+        <div class="section-content">{{ video_description }}</div>
+    </div>
+    {% endif %}
+
+    {% if hashtags %}
+    <div class="section">
+        <h2>Hashtags</h2>
+        <div class="hashtags">
+            {% for tag in hashtags %}
+            <span class="hashtag">{{ tag }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if audio_type or music_info %}
+    <div class="section">
+        <h2>Audio</h2>
+        <div class="section-content">
+            {% if audio_type %}<p><strong>Type:</strong> {{ audio_type }}</p>{% endif %}
+            {% if music_info %}<p>{{ music_info }}</p>{% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="action-buttons">
+        <a href="/?url={{ video_url|urlencode }}" class="action-btn primary">Re-run Full Analysis</a>
+        <a href="/history" class="action-btn secondary">Back to History</a>
+    </div>
+</div>
+{% endblock %}

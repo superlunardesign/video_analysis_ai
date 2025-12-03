@@ -44,6 +44,9 @@ class Analysis(db.Model):
     video_title = db.Column(db.String(500))
     thumbnail_url = db.Column(db.Text)  # Base64 or URL
 
+    # Analysis status: 'processing', 'completed', 'failed'
+    status = db.Column(db.String(20), default='processing', index=True)
+
     # Analysis data stored as JSON
     analysis_data = db.Column(db.JSON)
 
@@ -52,6 +55,7 @@ class Analysis(db.Model):
 
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    completed_at = db.Column(db.DateTime)
 
     def __repr__(self):
         return f'<Analysis {self.id}: {self.video_title[:30] if self.video_title else "Untitled"}>'
