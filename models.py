@@ -47,6 +47,10 @@ class Analysis(db.Model):
     # Analysis status: 'processing', 'completed', 'failed'
     status = db.Column(db.String(20), default='processing', index=True)
 
+    # Current processing stage for real-time progress
+    current_stage = db.Column(db.String(50), default='queued')
+    stage_progress = db.Column(db.Integer, default=0)  # 0-100 for current stage
+
     # Analysis data stored as JSON
     analysis_data = db.Column(db.JSON)
 
@@ -168,3 +172,35 @@ def _run_migrations(app, database_url):
                 print("[DB MIGRATION] 'completed_at' column already exists (added by another worker)")
             else:
                 print(f"[DB MIGRATION ERROR] Failed to add 'completed_at': {e}")
+
+    # Migration: Add 'current_stage' column if it doesn't exist
+    if 'current_stage' not in columns:
+        try:
+            print("[DB MIGRATION] Adding 'current_stage' column to analyses table...")
+            db.session.execute(text(
+                "ALTER TABLE analyses ADD COLUMN current_stage VARCHAR(50) DEFAULT 'queued'"
+            ))
+            db.session.commit()
+            print("[DB MIGRATION] Added 'current_stage' column")
+        except Exception as e:
+            db.session.rollback()
+            if 'already exists' in str(e).lower() or 'duplicate' in str(e).lower():
+                print("[DB MIGRATION] 'current_stage' column already exists (added by another worker)")
+            else:
+                print(f"[DB MIGRATION ERROR] Failed to add 'current_stage': {e}")
+
+    # Migration: Add 'stage_progress' column if it doesn't exist
+    if 'stage_progress' not in columns:
+        try:
+            print("[DB MIGRATION] Adding 'stage_progress' column to analyses table...")
+            db.session.execute(text(
+                "ALTER TABLE analyses ADD COLUMN stage_progress INTEGER DEFAULT 0"
+            ))
+            db.session.commit()
+            print("[DB MIGRATION] Added 'stage_progress' column")
+        except Exception as e:
+            db.session.rollback()
+            if 'already exists' in str(e).lower() or 'duplicate' in str(e).lower():
+                print("[DB MIGRATION] 'stage_progress' column already exists (added by another worker)")
+            else:
+                print(f"[DB MIGRATION ERROR] Failed to add 'stage_progress': {e}")

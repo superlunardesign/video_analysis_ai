@@ -1956,6 +1956,17 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
 
 @app.route("/", methods=["GET"])
 def index():
+    # Check if logged-in user has an analysis in progress
+    if current_user.is_authenticated:
+        in_progress = Analysis.query.filter_by(
+            user_id=current_user.id,
+            status='processing'
+        ).first()
+
+        if in_progress:
+            # Redirect to waiting page instead of showing form
+            return redirect(url_for('analysis_waiting', analysis_id=in_progress.id))
+
     return render_template("index.html")
 
 
@@ -2203,6 +2214,9 @@ def process():
         print(f"[INFO] Strategy: {form_data['strategy']}, Goal: {form_data['goal']}")
         print(f"[INFO] Results Speed: {results_speed} (cap={cap}, threshold={scene_threshold})")
 
+        # Update stage: downloading
+        update_analysis_stage(current_analysis_id, 'downloading')
+
         # 3. VIDEO EXTRACTION (sequential is more reliable than parallel for video processing)
         print("[INFO] Extracting audio and frames...")
         audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
@@ -2213,6 +2227,23 @@ def process():
             scene_threshold=scene_threshold,
         )
         print(f"[SUCCESS] Extracted {len(frame_paths)} frames")
+
+        # Update stage: extracting complete, now analyzing
+        # Also try to get thumbnail from first frame
+        thumbnail_url = None
+        if frame_paths:
+            try:
+                import base64
+                with open(frame_paths[0], 'rb') as f:
+                    thumbnail_data = base64.b64encode(f.read()).decode('utf-8')
+                    ext = frame_paths[0].rsplit('.', 1)[-1].lower()
+                    mime = 'image/jpeg' if ext in ['jpg', 'jpeg'] else 'image/png'
+                    thumbnail_url = f"data:{mime};base64,{thumbnail_data}"
+            except Exception as e:
+                print(f"[WARNING] Could not create thumbnail: {e}")
+
+        update_analysis_stage(current_analysis_id, 'extracting', thumbnail_url=thumbnail_url,
+                             video_title=metadata.get('title', 'Processing...'))
 
         # 4. PARALLEL ANALYSIS of independent components (REAL speedup!)
         print("[INFO] Starting parallel analysis of audio and frames...")
@@ -2241,6 +2272,9 @@ def process():
             except Exception as e:
                 print(f"[WARNING] Transcription failed: {e}")
                 basic_transcript = ""
+
+            # Update stage: analyzing frames
+            update_analysis_stage(current_analysis_id, 'analyzing_frames')
 
             # Now start frame analysis with transcript context
             futures['frames'] = executor.submit(analyze_frames_batch, frame_paths, basic_transcript)
@@ -2345,6 +2379,7 @@ Key patterns for video analysis:
         # Check if user only wants extraction (no AI analysis)
         if form_data.get('analysis_depth') == 'extraction_only':
             print("[INFO] Extraction-only mode: Skipping AI analysis")
+            update_analysis_stage(current_analysis_id, 'finalizing')
             # Create minimal result with just extraction data
             gpt_result = {
                 'extraction_only': True,
@@ -2355,6 +2390,9 @@ Key patterns for video analysis:
                 'audio_analysis': audio_analysis,
             }
         else:
+            # Update stage: deep analysis
+            update_analysis_stage(current_analysis_id, 'deep_analysis')
+
             # Run comprehensive analysis with metadata and audio insights
             try:
                 gpt_result = run_main_analysis(
@@ -2519,6 +2557,9 @@ Key patterns for video analysis:
                 print(f"[WARNING] Failed to save to user history: {e}")
                 traceback.print_exc()
                 # Continue anyway - this shouldn't block the response
+
+        # Update stage: finalizing (before we mark complete)
+        update_analysis_stage(current_analysis_id, 'finalizing')
 
         print("[INFO] Rendering results template")
         return render_template("results.html", **template_vars)
@@ -2783,8 +2824,40 @@ def analysis_status(analysis_id):
     return jsonify({
         'status': analysis.status or 'completed',  # Default to completed for older records
         'video_title': analysis.video_title,
+        'thumbnail_url': analysis.thumbnail_url,
+        'current_stage': getattr(analysis, 'current_stage', None) or 'processing',
+        'stage_progress': getattr(analysis, 'stage_progress', 0) or 0,
         'created_at': analysis.created_at.strftime('%B %d, %Y at %I:%M %p') if analysis.created_at else None
     })
+
+
+@app.route("/analysis/<int:analysis_id>/waiting")
+@login_required
+def analysis_waiting(analysis_id):
+    """Show waiting page for in-progress analysis."""
+    analysis = Analysis.query.filter_by(id=analysis_id, user_id=current_user.id).first()
+
+    if not analysis:
+        flash('Analysis not found.', 'error')
+        return redirect(url_for('index'))
+
+    # If analysis is done, redirect to results
+    if analysis.status == 'completed':
+        return redirect(url_for('view_analysis', analysis_id=analysis_id))
+
+    if analysis.status == 'failed':
+        flash('Analysis failed. Please try again.', 'error')
+        return redirect(url_for('index'))
+
+    return render_template("waiting.html",
+        analysis=analysis,
+        analysis_id=analysis_id,
+        video_url=analysis.video_url,
+        video_title=analysis.video_title,
+        thumbnail_url=analysis.thumbnail_url,
+        current_stage=getattr(analysis, 'current_stage', 'processing'),
+        created_at=analysis.created_at
+    )
 
 
 @app.route("/check_existing", methods=["POST"])
@@ -2874,6 +2947,25 @@ def create_processing_analysis(user_id, video_url):
         db.session.rollback()
         print(f"[DB ERROR] Failed to create processing analysis: {e}")
         return None
+
+
+def update_analysis_stage(analysis_id, stage, thumbnail_url=None, video_title=None):
+    """Update the current processing stage of an analysis."""
+    if not analysis_id:
+        return
+    try:
+        analysis = Analysis.query.get(analysis_id)
+        if analysis and analysis.status == 'processing':
+            analysis.current_stage = stage
+            if thumbnail_url:
+                analysis.thumbnail_url = thumbnail_url
+            if video_title:
+                analysis.video_title = video_title
+            db.session.commit()
+            print(f"[DB] Updated analysis {analysis_id} stage: {stage}")
+    except Exception as e:
+        db.session.rollback()
+        print(f"[DB ERROR] Failed to update stage: {e}")
 
 
 def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pdf_cache_key):
