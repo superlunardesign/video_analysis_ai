@@ -60,13 +60,29 @@ class Analysis(db.Model):
 def init_db(app):
     """Initialize database with app context."""
     # Get database URL from environment or use default
-    database_url = os.environ.get('DATABASE_URL', '').strip()
+    raw_url = os.environ.get('DATABASE_URL', '')
+    database_url = raw_url.strip()
 
-    # Debug: print what we got (masked)
+    # Debug: detailed logging
+    print(f"[DB] Raw DATABASE_URL length: {len(raw_url)}")
+    print(f"[DB] Stripped DATABASE_URL length: {len(database_url)}")
+
     if database_url:
-        # Mask password for logging
-        masked = database_url[:20] + '...' if len(database_url) > 20 else database_url
-        print(f"[DB] DATABASE_URL found (starts with: {masked})")
+        # Check for common issues
+        if database_url.startswith('"') or database_url.startswith("'"):
+            print("[DB WARNING] DATABASE_URL starts with quote - removing quotes")
+            database_url = database_url.strip('"\'')
+
+        # Mask password for logging but show structure
+        if '://' in database_url:
+            protocol = database_url.split('://')[0]
+            print(f"[DB] Protocol detected: {protocol}")
+        else:
+            print(f"[DB ERROR] No '://' found in URL. First 50 chars: {database_url[:50]}")
+
+        # Show masked version
+        masked = database_url[:25] + '...' if len(database_url) > 25 else database_url
+        print(f"[DB] DATABASE_URL starts with: {masked}")
 
     # Handle Heroku-style postgres:// URLs (need to be postgresql://)
     if database_url and database_url.startswith('postgres://'):
@@ -76,7 +92,7 @@ def init_db(app):
     # Validate URL format
     if database_url and not database_url.startswith(('postgresql://', 'sqlite://')):
         print(f"[DB ERROR] Invalid DATABASE_URL format. Must start with 'postgresql://' or 'sqlite://'")
-        print(f"[DB ERROR] Got: {database_url[:30]}...")
+        print(f"[DB ERROR] First 50 chars: {database_url[:50]}")
         print("[DB] Falling back to SQLite")
         database_url = ''
 
