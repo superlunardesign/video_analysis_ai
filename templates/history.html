@@ -9,6 +9,7 @@
         grid-template-columns: 1fr;
         gap: var(--space-lg);
         margin-top: var(--space-lg);
+        width: 100%;
     }
 
     /* Tablet: 2 columns */
@@ -26,7 +27,7 @@
     }
 
     /* Large desktop: 4 columns */
-    @media (min-width: 1200px) {
+    @media (min-width: 1100px) {
         .history-grid {
             grid-template-columns: repeat(4, 1fr);
         }
@@ -39,6 +40,8 @@
         border-radius: var(--radius-lg);
         overflow: hidden;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
+        min-width: 0; /* Prevent grid blowout */
+        width: 100%;
     }
 
     .analysis-card:hover {
@@ -283,7 +286,7 @@
 
         <div class="card-content">
             <h3 class="card-title">{{ analysis.video_title or 'Untitled Video' }}</h3>
-            <p class="card-date">{{ analysis.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+            <p class="card-date" data-utc="{{ analysis.created_at.isoformat() }}Z">{{ analysis.created_at.strftime('%B %d, %Y at %I:%M %p') }} UTC</p>
             <p class="card-url">
                 <a href="{{ analysis.video_url }}" target="_blank" title="{{ analysis.video_url }}">
                     🔗 {{ analysis.video_url[:40] }}{% if analysis.video_url|length > 40 %}...{% endif %}
@@ -408,6 +411,20 @@
         if (e.key === 'Escape') {
             closeModal();
         }
+    });
+
+    // Convert UTC times to local timezone
+    document.querySelectorAll('[data-utc]').forEach(el => {
+        const utcDate = new Date(el.dataset.utc);
+        const options = {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        };
+        el.textContent = utcDate.toLocaleDateString('en-US', options);
     });
 </script>
 {% endblock %}
