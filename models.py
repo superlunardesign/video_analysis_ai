@@ -60,16 +60,30 @@ class Analysis(db.Model):
 def init_db(app):
     """Initialize database with app context."""
     # Get database URL from environment or use default
-    database_url = os.environ.get('DATABASE_URL')
+    database_url = os.environ.get('DATABASE_URL', '').strip()
+
+    # Debug: print what we got (masked)
+    if database_url:
+        # Mask password for logging
+        masked = database_url[:20] + '...' if len(database_url) > 20 else database_url
+        print(f"[DB] DATABASE_URL found (starts with: {masked})")
 
     # Handle Heroku-style postgres:// URLs (need to be postgresql://)
     if database_url and database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        print("[DB] Converted postgres:// to postgresql://")
+
+    # Validate URL format
+    if database_url and not database_url.startswith(('postgresql://', 'sqlite://')):
+        print(f"[DB ERROR] Invalid DATABASE_URL format. Must start with 'postgresql://' or 'sqlite://'")
+        print(f"[DB ERROR] Got: {database_url[:30]}...")
+        print("[DB] Falling back to SQLite")
+        database_url = ''
 
     # Default to SQLite for local development if no DATABASE_URL
     if not database_url:
         database_url = 'sqlite:///video_analysis.db'
-        print("[DB] No DATABASE_URL found, using SQLite for local development")
+        print("[DB] No valid DATABASE_URL found, using SQLite for local development")
 
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
