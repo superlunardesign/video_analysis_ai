@@ -59,7 +59,24 @@
         font-size: 0.85rem;
         color: var(--celestial-lavender);
         opacity: 0.8;
+        margin-bottom: var(--space-xs);
+    }
+
+    .card-url {
+        font-size: 0.75rem;
         margin-bottom: var(--space-md);
+        word-break: break-all;
+    }
+
+    .card-url a {
+        color: var(--lunar-blush);
+        text-decoration: none;
+        opacity: 0.9;
+    }
+
+    .card-url a:hover {
+        color: var(--solar-lime);
+        text-decoration: underline;
     }
 
     .card-actions {
@@ -245,6 +262,11 @@
         <div class="card-content">
             <h3 class="card-title">{{ analysis.video_title or 'Untitled Video' }}</h3>
             <p class="card-date">{{ analysis.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+            <p class="card-url">
+                <a href="{{ analysis.video_url }}" target="_blank" title="{{ analysis.video_url }}">
+                    🔗 {{ analysis.video_url[:40] }}{% if analysis.video_url|length > 40 %}...{% endif %}
+                </a>
+            </p>
 
             <div class="card-actions">
                 <a href="/analysis/{{ analysis.id }}" class="card-btn primary">View Analysis</a>

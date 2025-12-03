@@ -234,10 +234,19 @@
         <h1>{{ video_title or 'Video Analysis' }}</h1>
         <p class="summary-meta">
             {% if creator %}by @{{ creator }} | {% endif %}
-            {% if platform %}{{ platform.title() }} | {% endif %}
             {% if goal %}Goal: {{ goal.replace('_', ' ').title() }} | {% endif %}
             Analyzed {{ created_at.strftime('%B %d, %Y') if created_at else 'Recently' }}
         </p>
+        {% if video_url %}
+        <p style="margin-top: 0.5rem;">
+            <a href="{{ video_url }}" target="_blank" style="color: var(--solar-lime); text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                🔗 View Original Video <span style="font-size: 0.8rem; opacity: 0.7;">↗</span>
+            </a>
+        </p>
+        <p style="font-size: 0.75rem; color: var(--celestial-lavender); opacity: 0.7; word-break: break-all; margin-top: 0.25rem;">
+            {{ video_url[:60] }}{% if video_url|length > 60 %}...{% endif %}
+        </p>
+        {% endif %}
     </div>
 
     {% if thumbnail_url %}
