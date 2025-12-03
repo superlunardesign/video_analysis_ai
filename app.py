@@ -7,7 +7,8 @@ import asyncio
 import hashlib
 from collections import Counter
 from datetime import datetime
-from flask import Flask, request, render_template, make_response
+from flask import Flask, request, render_template, make_response, redirect, url_for, flash, jsonify
+from flask_login import login_required, current_user
 from openai import OpenAI
 from anthropic import Anthropic
 
@@ -34,6 +35,8 @@ from cache_manager import AnalysisCache, PdfCache
 from analysis_optimization import intelligent_frame_extraction, parallel_video_processing, optimize_frame_selection
 from audio_analysis import enhanced_audio_analysis, ViralSoundDetector
 from performance_tracker import AnalysisPerformanceTracker
+from models import db, User, Analysis, init_db
+from auth import auth_bp, init_auth
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
@@ -41,11 +44,17 @@ app = Flask(__name__)
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=600.0)
 claude_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
+# Initialize database and authentication
+init_db(app)
+init_auth(app)
+app.register_blueprint(auth_bp)
+
 # Initialize optimization components
 cache = AnalysisCache()
 tracker = AnalysisPerformanceTracker()
 pdf_cache = PdfCache()  # Persistent PDF cache that survives server restarts
 print("[INFO] Optimization components initialized: cache, tracker, pdf_cache")
+print("[INFO] Database and authentication initialized")
 
 
 # Custom Jinja filter to convert markdown-style bold to HTML
@@ -2413,7 +2422,28 @@ Key patterns for video analysis:
             print(f"[PDF CACHE] Stored data with key: {cache_key}")
         except Exception as e:
             print(f"[WARNING] Failed to cache PDF data: {e}")
+            cache_key = None
             # Continue anyway - PDF generation is optional
+
+        # 8. SAVE TO USER'S HISTORY (if logged in)
+        if current_user.is_authenticated:
+            try:
+                # Get thumbnail from first frame in gallery
+                thumbnail_url = None
+                if template_vars.get('frame_gallery'):
+                    thumbnail_url = template_vars['frame_gallery'][0]
+
+                save_analysis_to_db(
+                    user_id=current_user.id,
+                    video_url=form_data['tiktok_url'],
+                    video_title=video_title,
+                    thumbnail_url=thumbnail_url,
+                    template_vars=template_vars,
+                    pdf_cache_key=cache_key
+                )
+            except Exception as e:
+                print(f"[WARNING] Failed to save to user history: {e}")
+                # Continue anyway - this shouldn't block the response
 
         print("[INFO] Rendering results template")
         return render_template("results.html", **template_vars)
@@ -2547,6 +2577,155 @@ def clear_cache():
     except Exception as e:
         print(f"[CACHE ERROR] Failed to clear cache: {e}")
         return {"status": "error", "message": str(e)}, 500
+
+
+# ==============================
+# USER HISTORY AND ANALYSIS MANAGEMENT
+# ==============================
+
+@app.route("/history")
+@login_required
+def history():
+    """Display user's analysis history."""
+    page = request.args.get('page', 1, type=int)
+    per_page = 12
+
+    pagination = Analysis.query.filter_by(user_id=current_user.id)\
+        .order_by(Analysis.created_at.desc())\
+        .paginate(page=page, per_page=per_page, error_out=False)
+
+    return render_template(
+        'history.html',
+        analyses=pagination.items,
+        pagination=pagination
+    )
+
+
+@app.route("/analysis/<int:analysis_id>")
+@login_required
+def view_analysis(analysis_id):
+    """View a specific past analysis."""
+    analysis = Analysis.query.filter_by(id=analysis_id, user_id=current_user.id).first()
+
+    if not analysis:
+        flash('Analysis not found.', 'error')
+        return redirect(url_for('history'))
+
+    # Restore the analysis data to render the results template
+    template_vars = analysis.analysis_data or {}
+
+    # Ensure pdf_cache_key is available for PDF download
+    if analysis.pdf_cache_key:
+        template_vars['pdf_cache_key'] = analysis.pdf_cache_key
+
+        # Also ensure PDF cache has the data
+        if analysis.pdf_cache_key not in pdf_cache:
+            pdf_cache[analysis.pdf_cache_key] = {
+                'template_vars': template_vars,
+                'video_title': analysis.video_title or 'analysis',
+                'timestamp': _time.time()
+            }
+
+    return render_template("results.html", **template_vars)
+
+
+@app.route("/analysis/<int:analysis_id>", methods=["DELETE"])
+@login_required
+def delete_analysis(analysis_id):
+    """Delete a specific analysis."""
+    analysis = Analysis.query.filter_by(id=analysis_id, user_id=current_user.id).first()
+
+    if not analysis:
+        return jsonify({'error': 'Analysis not found'}), 404
+
+    try:
+        db.session.delete(analysis)
+        db.session.commit()
+        return jsonify({'status': 'success'}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"[ERROR] Failed to delete analysis: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route("/check_existing", methods=["POST"])
+@login_required
+def check_existing():
+    """Check if user has already analyzed this video URL."""
+    data = request.get_json()
+    video_url = data.get('url', '').strip()
+
+    if not video_url:
+        return jsonify({'exists': False})
+
+    # Normalize URL for comparison (remove query params, etc.)
+    normalized_url = normalize_video_url(video_url)
+
+    # Check for existing analysis
+    existing = Analysis.query.filter_by(
+        user_id=current_user.id,
+        video_url=normalized_url
+    ).order_by(Analysis.created_at.desc()).first()
+
+    if existing:
+        return jsonify({
+            'exists': True,
+            'analysis_id': existing.id,
+            'video_title': existing.video_title,
+            'created_at': existing.created_at.strftime('%B %d, %Y')
+        })
+
+    return jsonify({'exists': False})
+
+
+def normalize_video_url(url):
+    """Normalize TikTok URL for comparison."""
+    # Extract video ID from various TikTok URL formats
+    import re
+
+    # Remove query parameters
+    url = url.split('?')[0]
+
+    # Handle various TikTok URL formats
+    patterns = [
+        r'tiktok\.com/@[\w.]+/video/(\d+)',
+        r'tiktok\.com/t/(\w+)',
+        r'vm\.tiktok\.com/(\w+)',
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return url  # Return cleaned URL
+
+    return url
+
+
+def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template_vars, pdf_cache_key):
+    """Save analysis results to database for the user."""
+    try:
+        # Normalize URL
+        normalized_url = normalize_video_url(video_url)
+
+        # Create analysis record
+        analysis = Analysis(
+            user_id=user_id,
+            video_url=normalized_url,
+            video_title=video_title,
+            thumbnail_url=thumbnail_url,
+            analysis_data=template_vars,
+            pdf_cache_key=pdf_cache_key
+        )
+
+        db.session.add(analysis)
+        db.session.commit()
+
+        print(f"[DB] Saved analysis for user {user_id}: {video_title}")
+        return analysis.id
+    except Exception as e:
+        db.session.rollback()
+        print(f"[DB ERROR] Failed to save analysis: {e}")
+        return None
 
 
 if __name__ == "__main__":
