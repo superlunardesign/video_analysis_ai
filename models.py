@@ -17,6 +17,15 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Password reset fields
+    reset_token = db.Column(db.String(6))  # 6-digit code
+    reset_token_expires = db.Column(db.DateTime)
+
+    # Email change fields
+    pending_email = db.Column(db.String(255))
+    email_confirm_token = db.Column(db.String(6))
+    email_confirm_expires = db.Column(db.DateTime)
+
     # Relationship to analyses
     analyses = db.relationship('Analysis', backref='user', lazy='dynamic', cascade='all, delete-orphan')
 
@@ -134,11 +143,42 @@ def _run_migrations(app, database_url):
     if not database_url.startswith('postgresql'):
         return
 
+    inspector = inspect(db.engine)
+
+    # --- User table migrations ---
     try:
-        inspector = inspect(db.engine)
+        user_columns = [col['name'] for col in inspector.get_columns('users')]
+    except Exception as e:
+        print(f"[DB MIGRATION] Could not inspect users table: {e}")
+        user_columns = []
+
+    user_migrations = [
+        ('reset_token', "ALTER TABLE users ADD COLUMN reset_token VARCHAR(6)"),
+        ('reset_token_expires', "ALTER TABLE users ADD COLUMN reset_token_expires TIMESTAMP"),
+        ('pending_email', "ALTER TABLE users ADD COLUMN pending_email VARCHAR(255)"),
+        ('email_confirm_token', "ALTER TABLE users ADD COLUMN email_confirm_token VARCHAR(6)"),
+        ('email_confirm_expires', "ALTER TABLE users ADD COLUMN email_confirm_expires TIMESTAMP"),
+    ]
+
+    for col_name, sql in user_migrations:
+        if col_name not in user_columns:
+            try:
+                print(f"[DB MIGRATION] Adding '{col_name}' column to users table...")
+                db.session.execute(text(sql))
+                db.session.commit()
+                print(f"[DB MIGRATION] Added '{col_name}' column")
+            except Exception as e:
+                db.session.rollback()
+                if 'already exists' in str(e).lower() or 'duplicate' in str(e).lower():
+                    print(f"[DB MIGRATION] '{col_name}' column already exists")
+                else:
+                    print(f"[DB MIGRATION ERROR] Failed to add '{col_name}': {e}")
+
+    # --- Analyses table migrations ---
+    try:
         columns = [col['name'] for col in inspector.get_columns('analyses')]
     except Exception as e:
-        print(f"[DB MIGRATION] Could not inspect table: {e}")
+        print(f"[DB MIGRATION] Could not inspect analyses table: {e}")
         return
 
     # Migration: Add 'status' column if it doesn't exist

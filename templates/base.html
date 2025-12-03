@@ -347,7 +347,7 @@
                 {% if current_user.is_authenticated %}
                     <a href="/" class="nav-link">Analyze</a>
                     <a href="/history" class="nav-link">History</a>
-                    <span class="user-email">{{ current_user.email }}</span>
+                    <a href="/account" class="nav-link user-email">{{ current_user.email }}</a>
                     <a href="/logout" class="nav-link btn-outline">Logout</a>
                 {% else %}
                     <a href="/login" class="nav-link btn-outline">Login</a>

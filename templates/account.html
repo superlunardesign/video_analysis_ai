@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}My Account{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .account-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .account-section {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        margin-bottom: var(--space-lg);
+    }
+
+    .account-section h2 {
+        color: var(--solar-lime);
+        font-size: 1.2rem;
+        margin-bottom: var(--space-md);
+        padding-bottom: var(--space-sm);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .account-info {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-sm) 0;
+    }
+
+    .info-label {
+        color: var(--celestial-lavender);
+        font-size: 0.9rem;
+    }
+
+    .info-value {
+        color: var(--stellar-cream);
+        font-weight: 500;
+    }
+
+    .section-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+    }
+
+    .form-row {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+    }
+
+    .form-row label {
+        font-size: 0.85rem;
+        text-transform: none;
+    }
+
+    .form-row input {
+        padding: var(--space-sm);
+    }
+
+    .btn-row {
+        display: flex;
+        gap: var(--space-sm);
+        margin-top: var(--space-sm);
+    }
+
+    .btn {
+        padding: var(--space-sm) var(--space-lg);
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        font-size: 0.9rem;
+    }
+
+    .btn-primary {
+        background: var(--accent-gradient);
+        color: var(--cosmic-indigo);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(106, 116, 207, 0.3);
+    }
+
+    .btn-secondary {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: var(--stellar-cream);
+    }
+
+    .btn-secondary:hover {
+        border-color: var(--solar-lime);
+        color: var(--solar-lime);
+    }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .success-message {
+        background: rgba(76, 175, 80, 0.2);
+        border: 1px solid rgba(76, 175, 80, 0.5);
+        color: #a5d6a7;
+        padding: var(--space-sm) var(--space-md);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-md);
+    }
+
+    .error-message {
+        background: rgba(244, 67, 54, 0.2);
+        border: 1px solid rgba(244, 67, 54, 0.5);
+        color: #ef9a9a;
+        padding: var(--space-sm) var(--space-md);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-md);
+    }
+
+    .pending-change {
+        background: rgba(255, 193, 7, 0.2);
+        border: 1px solid rgba(255, 193, 7, 0.5);
+        color: #ffe082;
+        padding: var(--space-sm) var(--space-md);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-md);
+        font-size: 0.9rem;
+    }
+
+    .code-input {
+        display: flex;
+        gap: var(--space-sm);
+        align-items: center;
+    }
+
+    .code-input input {
+        flex: 1;
+        letter-spacing: 4px;
+        text-align: center;
+        font-size: 1.2rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-md);
+    }
+
+    .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        padding: var(--space-md);
+        border-radius: var(--radius-md);
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--solar-lime);
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+        color: var(--celestial-lavender);
+        margin-top: var(--space-xs);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header">
+    <h1>My Account</h1>
+    <p class="tagline">Manage your account settings</p>
+</header>
+
+<div class="account-container">
+    <!-- Account Info -->
+    <div class="account-section">
+        <h2>Account Information</h2>
+        <div class="account-info">
+            <div class="info-row">
+                <span class="info-label">Email</span>
+                <span class="info-value">{{ current_user.email }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Member Since</span>
+                <span class="info-value" data-utc="{{ current_user.created_at.isoformat() }}Z">{{ current_user.created_at.strftime('%B %d, %Y') }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Stats -->
+    <div class="account-section">
+        <h2>Your Stats</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ analysis_count }}</div>
+                <div class="stat-label">Analyses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ pdf_count }}</div>
+                <div class="stat-label">PDFs Generated</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Email -->
+    <div class="account-section">
+        <h2>Change Email</h2>
+
+        {% if pending_email %}
+        <div class="pending-change">
+            Pending email change to: <strong>{{ pending_email }}</strong>
+            <br>Check your new email for the confirmation code.
+        </div>
+        <form action="/account/confirm-email" method="POST" class="section-form">
+            <div class="form-row">
+                <label>Enter confirmation code sent to {{ pending_email }}</label>
+                <div class="code-input">
+                    <input type="text" name="code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required>
+                    <button type="submit" class="btn btn-primary">Confirm</button>
+                </div>
+            </div>
+        </form>
+        <form action="/account/cancel-email-change" method="POST" style="margin-top: var(--space-sm);">
+            <button type="submit" class="btn btn-secondary">Cancel Change</button>
+        </form>
+        {% else %}
+        <form action="/account/change-email" method="POST" class="section-form">
+            <div class="form-row">
+                <label>New Email Address</label>
+                <input type="email" name="new_email" placeholder="new@email.com" required>
+            </div>
+            <div class="form-row">
+                <label>Current Password (to confirm)</label>
+                <input type="password" name="password" required>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Send Confirmation Code</button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Change Password -->
+    <div class="account-section">
+        <h2>Change Password</h2>
+        <form action="/account/change-password" method="POST" class="section-form">
+            <div class="form-row">
+                <label>Current Password</label>
+                <input type="password" name="current_password" required>
+            </div>
+            <div class="form-row">
+                <label>New Password</label>
+                <input type="password" name="new_password" minlength="6" required>
+            </div>
+            <div class="form-row">
+                <label>Confirm New Password</label>
+                <input type="password" name="confirm_password" minlength="6" required>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Update Password</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Convert dates to local timezone
+    document.querySelectorAll('[data-utc]').forEach(el => {
+        const utcDate = new Date(el.dataset.utc);
+        el.textContent = utcDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    });
+</script>
+{% endblock %}
