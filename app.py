@@ -2905,6 +2905,7 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             'platform': template_vars.get('platform'),
             'transcript': template_vars.get('transcript'),
             'metadata': template_vars.get('metadata'),
+            'all_hooks_identified': template_vars.get('all_hooks_identified'),
             # Exclude: frame_gallery (base64 images ~200KB)
             # Exclude: frame_analyses (detailed per-frame data)
         }
@@ -2981,6 +2982,7 @@ def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template
             'platform': template_vars.get('platform'),
             'transcript': template_vars.get('transcript'),
             'metadata': template_vars.get('metadata'),
+            'all_hooks_identified': template_vars.get('all_hooks_identified'),
             # Exclude: frame_gallery (base64 images ~200KB)
             # Exclude: frame_analyses (detailed per-frame data)
         }
