@@ -1991,28 +1991,44 @@ def process():
 
         # HANDLE ANALYSIS TRACKING (only for authenticated users)
         if current_user and current_user.is_authenticated:
-            # Clean up any stale "processing" records (older than 10 minutes)
+            # Clean up any stale "processing" records (older than 5 minutes)
             try:
-                stale_cutoff = datetime.utcnow() - timedelta(minutes=10)
+                stale_cutoff = datetime.utcnow() - timedelta(minutes=5)
                 stale_records = Analysis.query.filter_by(
                     user_id=current_user.id,
                     status='processing'
                 ).filter(Analysis.created_at < stale_cutoff).all()
 
                 for stale in stale_records:
-                    print(f"[CLEANUP] Marking stale analysis {stale.id} as failed")
+                    print(f"[CLEANUP] Marking stale analysis {stale.id} as failed (created: {stale.created_at})")
                     stale.status = 'failed'
 
                 if stale_records:
                     db.session.commit()
+                    print(f"[CLEANUP] Cleaned up {len(stale_records)} stale records")
             except Exception as e:
                 print(f"[CLEANUP ERROR] {e}")
                 db.session.rollback()
+
+            # Check for recent in-progress analysis (less than 5 minutes old)
+            processing_analysis = Analysis.query.filter_by(
+                user_id=current_user.id,
+                status='processing'
+            ).filter(Analysis.created_at >= stale_cutoff).first()
+
+            if processing_analysis:
+                # User has a recent analysis in progress - redirect to processing page
+                print(f"[INFO] User {current_user.id} has analysis {processing_analysis.id} in progress")
+                return render_template("processing.html",
+                    analysis_id=processing_analysis.id,
+                    video_url=processing_analysis.video_url
+                )
 
             # Create a new processing analysis record
             processing_record = create_processing_analysis(current_user.id, form_data['tiktok_url'])
             if processing_record:
                 current_analysis_id = processing_record.id
+                print(f"[DB] Created processing record {current_analysis_id}")
 
         # 1. CHECK CACHE FIRST (unless force_refresh is requested)
         force_refresh = request.form.get('force_refresh', 'false').lower() == 'true'
@@ -2475,17 +2491,21 @@ Key patterns for video analysis:
                 if template_vars.get('frame_gallery'):
                     thumbnail_url = template_vars['frame_gallery'][0]
 
+                print(f"[DB] Saving analysis - current_analysis_id={current_analysis_id}")
                 if current_analysis_id:
                     # Update the existing processing analysis to completed
-                    complete_analysis(
+                    print(f"[DB] Calling complete_analysis for {current_analysis_id}")
+                    success = complete_analysis(
                         analysis_id=current_analysis_id,
                         video_title=video_title,
                         thumbnail_url=thumbnail_url,
                         template_vars=template_vars,
                         pdf_cache_key=cache_key
                     )
+                    print(f"[DB] complete_analysis returned: {success}")
                 else:
                     # Legacy: Create new analysis record
+                    print(f"[DB] Using legacy save_analysis_to_db")
                     save_analysis_to_db(
                         user_id=current_user.id,
                         video_url=form_data['tiktok_url'],
@@ -2495,7 +2515,9 @@ Key patterns for video analysis:
                         pdf_cache_key=cache_key
                     )
             except Exception as e:
+                import traceback
                 print(f"[WARNING] Failed to save to user history: {e}")
+                traceback.print_exc()
                 # Continue anyway - this shouldn't block the response
 
         print("[INFO] Rendering results template")
@@ -2839,11 +2861,14 @@ def create_processing_analysis(user_id, video_url):
 
 def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pdf_cache_key):
     """Update a processing analysis to completed with results."""
+    print(f"[DB] complete_analysis called for analysis_id={analysis_id}")
     try:
         analysis = Analysis.query.get(analysis_id)
         if not analysis:
-            print(f"[DB ERROR] Analysis {analysis_id} not found")
+            print(f"[DB ERROR] Analysis {analysis_id} not found for completion")
             return False
+
+        print(f"[DB] Found analysis {analysis_id}, current status: {analysis.status}")
 
         # Create lightweight analysis data (exclude large base64 images)
         lightweight_data = {
@@ -2888,11 +2913,15 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
 
         db.session.commit()
 
-        print(f"[DB] Completed analysis {analysis_id}: {video_title}")
+        # Verify the update worked
+        db.session.refresh(analysis)
+        print(f"[DB] Completed analysis {analysis_id}: {video_title} - status now: {analysis.status}")
         return True
     except Exception as e:
         db.session.rollback()
+        import traceback
         print(f"[DB ERROR] Failed to complete analysis: {e}")
+        traceback.print_exc()
         return False
 
 
