@@ -6,7 +6,7 @@ import re
 import asyncio
 import hashlib
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, request, render_template, make_response, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from openai import OpenAI
@@ -1989,11 +1989,35 @@ def process():
             'analysis_depth': request.form.get("analysis_depth", "standard").strip(),  # Get analysis depth selection
         }
 
-        # CHECK FOR IN-PROGRESS ANALYSIS (only for authenticated users)
+        # HANDLE ANALYSIS TRACKING (only for authenticated users)
         if current_user and current_user.is_authenticated:
-            processing_analysis = get_user_processing_analysis(current_user.id)
+            # Clean up any stale "processing" records (older than 5 minutes)
+            try:
+                stale_cutoff = datetime.utcnow() - timedelta(minutes=5)
+                stale_records = Analysis.query.filter_by(
+                    user_id=current_user.id,
+                    status='processing'
+                ).filter(Analysis.created_at < stale_cutoff).all()
+
+                for stale in stale_records:
+                    print(f"[CLEANUP] Marking stale analysis {stale.id} as failed (created: {stale.created_at})")
+                    stale.status = 'failed'
+
+                if stale_records:
+                    db.session.commit()
+                    print(f"[CLEANUP] Cleaned up {len(stale_records)} stale records")
+            except Exception as e:
+                print(f"[CLEANUP ERROR] {e}")
+                db.session.rollback()
+
+            # Check for recent in-progress analysis (less than 5 minutes old)
+            processing_analysis = Analysis.query.filter_by(
+                user_id=current_user.id,
+                status='processing'
+            ).filter(Analysis.created_at >= stale_cutoff).first()
+
             if processing_analysis:
-                # User already has an analysis in progress - redirect to processing page
+                # User has a recent analysis in progress - redirect to processing page
                 print(f"[INFO] User {current_user.id} has analysis {processing_analysis.id} in progress")
                 return render_template("processing.html",
                     analysis_id=processing_analysis.id,
@@ -2004,6 +2028,7 @@ def process():
             processing_record = create_processing_analysis(current_user.id, form_data['tiktok_url'])
             if processing_record:
                 current_analysis_id = processing_record.id
+                print(f"[DB] Created processing record {current_analysis_id}")
 
         # 1. CHECK CACHE FIRST (unless force_refresh is requested)
         force_refresh = request.form.get('force_refresh', 'false').lower() == 'true'
@@ -2029,6 +2054,20 @@ def process():
 
                     cached_result['pdf_cache_key'] = cache_key
                     print(f"[PDF CACHE] Cached result stored for PDF with key: {cache_key}")
+
+                    # Update processing analysis to completed if we have one
+                    if current_analysis_id:
+                        metadata = cached_result.get('metadata', {})
+                        thumbnail_url = None
+                        if cached_result.get('frame_gallery'):
+                            thumbnail_url = cached_result['frame_gallery'][0]
+                        complete_analysis(
+                            analysis_id=current_analysis_id,
+                            video_title=video_title,
+                            thumbnail_url=thumbnail_url,
+                            template_vars=cached_result,
+                            pdf_cache_key=cache_key
+                        )
                 except Exception as e:
                     print(f"[WARNING] Failed to cache PDF data for cached result: {e}")
 
@@ -2452,17 +2491,21 @@ Key patterns for video analysis:
                 if template_vars.get('frame_gallery'):
                     thumbnail_url = template_vars['frame_gallery'][0]
 
+                print(f"[DB] Saving analysis - current_analysis_id={current_analysis_id}")
                 if current_analysis_id:
                     # Update the existing processing analysis to completed
-                    complete_analysis(
+                    print(f"[DB] Calling complete_analysis for {current_analysis_id}")
+                    success = complete_analysis(
                         analysis_id=current_analysis_id,
                         video_title=video_title,
                         thumbnail_url=thumbnail_url,
                         template_vars=template_vars,
                         pdf_cache_key=cache_key
                     )
+                    print(f"[DB] complete_analysis returned: {success}")
                 else:
                     # Legacy: Create new analysis record
+                    print(f"[DB] Using legacy save_analysis_to_db")
                     save_analysis_to_db(
                         user_id=current_user.id,
                         video_url=form_data['tiktok_url'],
@@ -2472,7 +2515,9 @@ Key patterns for video analysis:
                         pdf_cache_key=cache_key
                     )
             except Exception as e:
+                import traceback
                 print(f"[WARNING] Failed to save to user history: {e}")
+                traceback.print_exc()
                 # Continue anyway - this shouldn't block the response
 
         print("[INFO] Rendering results template")
@@ -2628,6 +2673,24 @@ def history():
     page = request.args.get('page', 1, type=int)
     per_page = 12
 
+    # Clean up stale processing records (older than 30 minutes)
+    try:
+        stale_cutoff = datetime.utcnow() - timedelta(minutes=30)
+        stale_analyses = Analysis.query.filter_by(
+            user_id=current_user.id,
+            status='processing'
+        ).filter(Analysis.created_at < stale_cutoff).all()
+
+        for stale in stale_analyses:
+            print(f"[CLEANUP] Marking stale analysis {stale.id} as failed")
+            stale.status = 'failed'
+
+        if stale_analyses:
+            db.session.commit()
+    except Exception as e:
+        print(f"[CLEANUP ERROR] {e}")
+        db.session.rollback()
+
     # Check for any in-progress analysis
     processing = Analysis.query.filter_by(
         user_id=current_user.id,
@@ -2658,18 +2721,23 @@ def view_analysis(analysis_id):
         flash('Analysis not found.', 'error')
         return redirect(url_for('history'))
 
-    # Use the lightweight summary template for viewing past analyses
-    # The full results.html requires many variables we don't store
+    # Load stored analysis data
     template_vars = analysis.analysis_data or {}
 
-    # Add additional context for the summary template
+    # Add context from database record
     template_vars['video_url'] = analysis.video_url
     template_vars['video_title'] = analysis.video_title
     template_vars['thumbnail_url'] = analysis.thumbnail_url
     template_vars['created_at'] = analysis.created_at
     template_vars['analysis_id'] = analysis.id
+    template_vars['is_saved_analysis'] = True  # Flag for template to know this is saved
 
-    return render_template("analysis_summary.html", **template_vars)
+    # Try to use full results template, fall back to summary if it fails
+    try:
+        return render_template("results.html", **template_vars)
+    except Exception as e:
+        print(f"[WARNING] Could not render results.html for saved analysis: {e}")
+        return render_template("analysis_summary.html", **template_vars)
 
 
 @app.route("/analysis/<int:analysis_id>", methods=["DELETE"])
@@ -2798,11 +2866,14 @@ def create_processing_analysis(user_id, video_url):
 
 def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pdf_cache_key):
     """Update a processing analysis to completed with results."""
+    print(f"[DB] complete_analysis called for analysis_id={analysis_id}")
     try:
         analysis = Analysis.query.get(analysis_id)
         if not analysis:
-            print(f"[DB ERROR] Analysis {analysis_id} not found")
+            print(f"[DB ERROR] Analysis {analysis_id} not found for completion")
             return False
+
+        print(f"[DB] Found analysis {analysis_id}, current status: {analysis.status}")
 
         # Create lightweight analysis data (exclude large base64 images)
         lightweight_data = {
@@ -2820,6 +2891,22 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             'areas_for_improvement': template_vars.get('areas_for_improvement'),
             'audio_type': template_vars.get('audio_type'),
             'music_info': template_vars.get('music_info'),
+            # Additional analysis fields
+            'what_this_video_is': template_vars.get('what_this_video_is'),
+            'why_it_performed': template_vars.get('why_it_performed'),
+            'replication_formula': template_vars.get('replication_formula'),
+            'hook': template_vars.get('hook'),
+            'loop': template_vars.get('loop'),
+            'improvements': template_vars.get('improvements'),
+            'performance_prediction': template_vars.get('performance_prediction'),
+            'viral_mechanics': template_vars.get('viral_mechanics'),
+            'scores': template_vars.get('scores'),
+            'goal': template_vars.get('goal'),
+            'platform': template_vars.get('platform'),
+            'transcript': template_vars.get('transcript'),
+            'metadata': template_vars.get('metadata'),
+            # Exclude: frame_gallery (base64 images ~200KB)
+            # Exclude: frame_analyses (detailed per-frame data)
         }
 
         analysis.video_title = video_title
@@ -2831,11 +2918,15 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
 
         db.session.commit()
 
-        print(f"[DB] Completed analysis {analysis_id}: {video_title}")
+        # Verify the update worked
+        db.session.refresh(analysis)
+        print(f"[DB] Completed analysis {analysis_id}: {video_title} - status now: {analysis.status}")
         return True
     except Exception as e:
         db.session.rollback()
+        import traceback
         print(f"[DB ERROR] Failed to complete analysis: {e}")
+        traceback.print_exc()
         return False
 
 
@@ -2876,6 +2967,20 @@ def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template
             'areas_for_improvement': template_vars.get('areas_for_improvement'),
             'audio_type': template_vars.get('audio_type'),
             'music_info': template_vars.get('music_info'),
+            # Additional analysis fields
+            'what_this_video_is': template_vars.get('what_this_video_is'),
+            'why_it_performed': template_vars.get('why_it_performed'),
+            'replication_formula': template_vars.get('replication_formula'),
+            'hook': template_vars.get('hook'),
+            'loop': template_vars.get('loop'),
+            'improvements': template_vars.get('improvements'),
+            'performance_prediction': template_vars.get('performance_prediction'),
+            'viral_mechanics': template_vars.get('viral_mechanics'),
+            'scores': template_vars.get('scores'),
+            'goal': template_vars.get('goal'),
+            'platform': template_vars.get('platform'),
+            'transcript': template_vars.get('transcript'),
+            'metadata': template_vars.get('metadata'),
             # Exclude: frame_gallery (base64 images ~200KB)
             # Exclude: frame_analyses (detailed per-frame data)
         }

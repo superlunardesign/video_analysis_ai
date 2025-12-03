@@ -813,6 +813,13 @@
     </div>
 
     <script>
+        // Auto-fill URL from query parameter (for re-run analysis links)
+        const urlParams = new URLSearchParams(window.location.search);
+        const prefillUrl = urlParams.get('url');
+        if (prefillUrl) {
+            document.getElementById('tiktok_url').value = prefillUrl;
+        }
+
         // Toggle for Niche Ideas Section
         const nicheToggle = document.getElementById('nicheIdeasToggle');
         const nicheSection = document.getElementById('nicheIdeasSection');
