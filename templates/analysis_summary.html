@@ -5,7 +5,7 @@
 {% block extra_styles %}
 <style>
     .summary-container {
-        max-width: 800px;
+        max-width: 900px;
         margin: 0 auto;
     }
 
@@ -38,7 +38,7 @@
 
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
         gap: var(--space-md);
         margin-bottom: var(--space-xl);
     }
@@ -51,16 +51,49 @@
     }
 
     .stat-value {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         font-weight: 700;
         color: var(--solar-lime);
     }
 
     .stat-label {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         color: var(--celestial-lavender);
         text-transform: uppercase;
         letter-spacing: 1px;
+    }
+
+    .scores-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: var(--space-md);
+        margin-bottom: var(--space-xl);
+    }
+
+    .score-card {
+        background: linear-gradient(135deg, rgba(106, 116, 207, 0.3), rgba(183, 180, 237, 0.2));
+        border-radius: var(--radius-md);
+        padding: var(--space-md);
+        text-align: center;
+    }
+
+    .score-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--solar-lime);
+    }
+
+    .score-label {
+        font-size: 0.8rem;
+        color: var(--stellar-cream);
+        text-transform: uppercase;
+        margin-bottom: var(--space-xs);
+    }
+
+    .score-explanation {
+        font-size: 0.75rem;
+        color: var(--celestial-lavender);
+        margin-top: var(--space-xs);
     }
 
     .section {
@@ -81,7 +114,19 @@
 
     .section-content {
         color: var(--celestial-lavender);
-        line-height: 1.6;
+        line-height: 1.7;
+    }
+
+    .section-content p {
+        margin-bottom: var(--space-sm);
+    }
+
+    .highlight-box {
+        background: rgba(245, 255, 160, 0.1);
+        border-left: 3px solid var(--solar-lime);
+        padding: var(--space-md);
+        margin: var(--space-md) 0;
+        border-radius: 0 var(--radius-md) var(--radius-md) 0;
     }
 
     .list-items {
@@ -100,12 +145,18 @@
         border-bottom: none;
     }
 
+    .list-items li::before {
+        content: "→ ";
+        color: var(--solar-lime);
+    }
+
     .action-buttons {
         display: flex;
         gap: var(--space-md);
         justify-content: center;
         flex-wrap: wrap;
         margin-top: var(--space-xl);
+        padding-bottom: var(--space-xl);
     }
 
     .action-btn {
@@ -140,20 +191,6 @@
         color: var(--solar-lime);
     }
 
-    .notice-box {
-        background: rgba(106, 116, 207, 0.2);
-        border: 1px solid rgba(106, 116, 207, 0.3);
-        border-radius: var(--radius-md);
-        padding: var(--space-md);
-        margin-bottom: var(--space-lg);
-        text-align: center;
-    }
-
-    .notice-box p {
-        color: var(--celestial-lavender);
-        margin: 0;
-    }
-
     .hashtags {
         display: flex;
         flex-wrap: wrap;
@@ -167,6 +204,27 @@
         font-size: 0.85rem;
         color: var(--stellar-cream);
     }
+
+    .transcript-box {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: var(--radius-md);
+        padding: var(--space-md);
+        max-height: 300px;
+        overflow-y: auto;
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    .note-box {
+        background: rgba(106, 116, 207, 0.15);
+        border: 1px solid rgba(106, 116, 207, 0.3);
+        border-radius: var(--radius-md);
+        padding: var(--space-sm) var(--space-md);
+        margin-bottom: var(--space-lg);
+        text-align: center;
+        font-size: 0.85rem;
+        color: var(--celestial-lavender);
+    }
 </style>
 {% endblock %}
 
@@ -176,7 +234,9 @@
         <h1>{{ video_title or 'Video Analysis' }}</h1>
         <p class="summary-meta">
             {% if creator %}by @{{ creator }} | {% endif %}
-            Analyzed {{ created_at.strftime('%B %d, %Y at %I:%M %p') if created_at else 'Recently' }}
+            {% if platform %}{{ platform.title() }} | {% endif %}
+            {% if goal %}Goal: {{ goal.replace('_', ' ').title() }} | {% endif %}
+            Analyzed {{ created_at.strftime('%B %d, %Y') if created_at else 'Recently' }}
         </p>
     </div>
 
@@ -186,10 +246,11 @@
     </div>
     {% endif %}
 
-    <div class="notice-box">
-        <p>This is a summary view. For full analysis with frame-by-frame breakdown and PDF export, please re-run the analysis.</p>
+    <div class="note-box">
+        Saved analysis (frame-by-frame breakdown not included). <a href="/?url={{ video_url|urlencode }}" style="color: var(--solar-lime);">Re-run for full analysis with frames</a>
     </div>
 
+    <!-- Stats Grid -->
     {% if view_count or like_count or comment_count or share_count %}
     <div class="stats-grid">
         {% if view_count %}
@@ -219,16 +280,89 @@
     </div>
     {% endif %}
 
+    <!-- Scores -->
+    {% if scores %}
+    <div class="scores-grid">
+        {% for score in scores %}
+        <div class="score-card">
+            <div class="score-label">{{ score.name }}</div>
+            <div class="score-value">{{ score.value }}/10</div>
+            {% if score.explanation %}
+            <div class="score-explanation">{{ score.explanation[:50] }}{% if score.explanation|length > 50 %}...{% endif %}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- What This Video Is -->
+    {% if what_this_video_is %}
+    <div class="section">
+        <h2>🎬 What This Video Is</h2>
+        <div class="section-content">{{ what_this_video_is }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Why It Performed -->
+    {% if why_it_performed %}
+    <div class="section">
+        <h2>📈 Why It Performed</h2>
+        <div class="section-content">{{ why_it_performed }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Hook Analysis -->
+    {% if hook %}
+    <div class="section">
+        <h2>🎣 Hook Analysis</h2>
+        <div class="section-content">{{ hook }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Loop Analysis -->
+    {% if loop %}
+    <div class="section">
+        <h2>🔄 Loop Analysis</h2>
+        <div class="section-content">{{ loop }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Performance Prediction -->
+    {% if performance_prediction %}
+    <div class="section">
+        <h2>🎯 Performance Prediction</h2>
+        <div class="section-content">{{ performance_prediction }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Viral Mechanics -->
+    {% if viral_mechanics %}
+    <div class="section">
+        <h2>🔥 Viral Mechanics</h2>
+        <div class="section-content">{{ viral_mechanics }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Replication Formula -->
+    {% if replication_formula %}
+    <div class="section">
+        <h2>📋 Replication Formula</h2>
+        <div class="section-content highlight-box">{{ replication_formula }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Overall Assessment -->
     {% if overall_assessment %}
     <div class="section">
-        <h2>Overall Assessment</h2>
+        <h2>📊 Overall Assessment</h2>
         <div class="section-content">{{ overall_assessment }}</div>
     </div>
     {% endif %}
 
+    <!-- Primary Strengths -->
     {% if primary_strengths %}
     <div class="section">
-        <h2>Primary Strengths</h2>
+        <h2>💪 Primary Strengths</h2>
         <ul class="list-items">
             {% for strength in primary_strengths %}
             <li>{{ strength }}</li>
@@ -237,41 +371,58 @@
     </div>
     {% endif %}
 
-    {% if areas_for_improvement %}
+    <!-- Areas for Improvement -->
+    {% if areas_for_improvement or improvements %}
     <div class="section">
-        <h2>Areas for Improvement</h2>
+        <h2>🔧 Areas for Improvement</h2>
+        {% if improvements %}
+        <div class="section-content">{{ improvements }}</div>
+        {% endif %}
+        {% if areas_for_improvement %}
         <ul class="list-items">
             {% for area in areas_for_improvement %}
             <li>{{ area }}</li>
             {% endfor %}
         </ul>
+        {% endif %}
     </div>
     {% endif %}
 
-    {% if video_description %}
+    <!-- Audio Info -->
+    {% if audio_type or music_info %}
     <div class="section">
-        <h2>Video Description</h2>
-        <div class="section-content">{{ video_description }}</div>
-    </div>
-    {% endif %}
-
-    {% if hashtags %}
-    <div class="section">
-        <h2>Hashtags</h2>
-        <div class="hashtags">
-            {% for tag in hashtags %}
-            <span class="hashtag">{{ tag }}</span>
-            {% endfor %}
+        <h2>🎵 Audio</h2>
+        <div class="section-content">
+            {% if audio_type %}<p><strong>Type:</strong> {{ audio_type }}</p>{% endif %}
+            {% if music_info %}<p>{{ music_info }}</p>{% endif %}
         </div>
     </div>
     {% endif %}
 
-    {% if audio_type or music_info %}
+    <!-- Transcript -->
+    {% if transcript %}
     <div class="section">
-        <h2>Audio</h2>
-        <div class="section-content">
-            {% if audio_type %}<p><strong>Type:</strong> {{ audio_type }}</p>{% endif %}
-            {% if music_info %}<p>{{ music_info }}</p>{% endif %}
+        <h2>📝 Transcript</h2>
+        <div class="transcript-box">{{ transcript }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Video Description -->
+    {% if video_description %}
+    <div class="section">
+        <h2>📄 Video Description</h2>
+        <div class="section-content">{{ video_description }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Hashtags -->
+    {% if hashtags %}
+    <div class="section">
+        <h2>#️⃣ Hashtags</h2>
+        <div class="hashtags">
+            {% for tag in hashtags %}
+            <span class="hashtag">{{ tag }}</span>
+            {% endfor %}
         </div>
     </div>
     {% endif %}

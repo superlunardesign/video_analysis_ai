@@ -1989,16 +1989,25 @@ def process():
             'analysis_depth': request.form.get("analysis_depth", "standard").strip(),  # Get analysis depth selection
         }
 
-        # CHECK FOR IN-PROGRESS ANALYSIS (only for authenticated users)
+        # HANDLE ANALYSIS TRACKING (only for authenticated users)
         if current_user and current_user.is_authenticated:
-            processing_analysis = get_user_processing_analysis(current_user.id)
-            if processing_analysis:
-                # User already has an analysis in progress - redirect to processing page
-                print(f"[INFO] User {current_user.id} has analysis {processing_analysis.id} in progress")
-                return render_template("processing.html",
-                    analysis_id=processing_analysis.id,
-                    video_url=processing_analysis.video_url
-                )
+            # Clean up any stale "processing" records (older than 10 minutes)
+            try:
+                stale_cutoff = datetime.utcnow() - timedelta(minutes=10)
+                stale_records = Analysis.query.filter_by(
+                    user_id=current_user.id,
+                    status='processing'
+                ).filter(Analysis.created_at < stale_cutoff).all()
+
+                for stale in stale_records:
+                    print(f"[CLEANUP] Marking stale analysis {stale.id} as failed")
+                    stale.status = 'failed'
+
+                if stale_records:
+                    db.session.commit()
+            except Exception as e:
+                print(f"[CLEANUP ERROR] {e}")
+                db.session.rollback()
 
             # Create a new processing analysis record
             processing_record = create_processing_analysis(current_user.id, form_data['tiktok_url'])
@@ -2852,6 +2861,22 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             'areas_for_improvement': template_vars.get('areas_for_improvement'),
             'audio_type': template_vars.get('audio_type'),
             'music_info': template_vars.get('music_info'),
+            # Additional analysis fields
+            'what_this_video_is': template_vars.get('what_this_video_is'),
+            'why_it_performed': template_vars.get('why_it_performed'),
+            'replication_formula': template_vars.get('replication_formula'),
+            'hook': template_vars.get('hook'),
+            'loop': template_vars.get('loop'),
+            'improvements': template_vars.get('improvements'),
+            'performance_prediction': template_vars.get('performance_prediction'),
+            'viral_mechanics': template_vars.get('viral_mechanics'),
+            'scores': template_vars.get('scores'),
+            'goal': template_vars.get('goal'),
+            'platform': template_vars.get('platform'),
+            'transcript': template_vars.get('transcript'),
+            'metadata': template_vars.get('metadata'),
+            # Exclude: frame_gallery (base64 images ~200KB)
+            # Exclude: frame_analyses (detailed per-frame data)
         }
 
         analysis.video_title = video_title
@@ -2908,6 +2933,20 @@ def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template
             'areas_for_improvement': template_vars.get('areas_for_improvement'),
             'audio_type': template_vars.get('audio_type'),
             'music_info': template_vars.get('music_info'),
+            # Additional analysis fields
+            'what_this_video_is': template_vars.get('what_this_video_is'),
+            'why_it_performed': template_vars.get('why_it_performed'),
+            'replication_formula': template_vars.get('replication_formula'),
+            'hook': template_vars.get('hook'),
+            'loop': template_vars.get('loop'),
+            'improvements': template_vars.get('improvements'),
+            'performance_prediction': template_vars.get('performance_prediction'),
+            'viral_mechanics': template_vars.get('viral_mechanics'),
+            'scores': template_vars.get('scores'),
+            'goal': template_vars.get('goal'),
+            'platform': template_vars.get('platform'),
+            'transcript': template_vars.get('transcript'),
+            'metadata': template_vars.get('metadata'),
             # Exclude: frame_gallery (base64 images ~200KB)
             # Exclude: frame_analyses (detailed per-frame data)
         }
