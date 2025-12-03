@@ -11,15 +11,13 @@
       color: #1a1a1a;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
+      display: block;
     }
-    
+
     .container {
       max-width: 1200px;
       margin: 0 auto;
       padding: 20px;
-      flex: 1;
     }
     
     .header {
@@ -290,14 +288,13 @@
       background: rgba(0, 0, 0, 0.3);
       backdrop-filter: blur(10px);
       padding: 12px 20px;
+      margin-bottom: 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: sticky;
       top: 0;
       z-index: 100;
-      width: 100%;
-      flex-shrink: 0;
     }
 
     .nav-brand {
