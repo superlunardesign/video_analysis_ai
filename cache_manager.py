@@ -74,3 +74,85 @@ class AnalysisCache:
             print("[CACHE] All cache cleared")
         except Exception as e:
             print(f"[CACHE] Error clearing cache: {e}")
+
+
+class PdfCache:
+    """
+    Persistent PDF cache that survives server restarts.
+    Uses both in-memory cache for speed and file-based storage for persistence.
+    """
+    def __init__(self, cache_dir: str = "./cache/pdf", expiry_seconds: int = 86400):
+        self.cache_dir = Path(cache_dir)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.memory_cache = {}  # Fast in-memory lookup
+        self.expiry_seconds = expiry_seconds  # 24 hours default
+
+    def get(self, cache_key: str) -> Optional[dict]:
+        """Get PDF data by cache key. Tries memory first, then disk."""
+        # Try memory cache first (fastest)
+        if cache_key in self.memory_cache:
+            return self.memory_cache[cache_key]
+
+        # Try file-based cache
+        cache_file = self.cache_dir / f"{cache_key}.pkl"
+        if cache_file.exists():
+            try:
+                # Check expiry
+                age = time.time() - cache_file.stat().st_mtime
+                if age < self.expiry_seconds:
+                    with open(cache_file, 'rb') as f:
+                        data = pickle.load(f)
+                        # Restore to memory cache
+                        self.memory_cache[cache_key] = data
+                        print(f"[PDF CACHE] Loaded from disk: {cache_key}")
+                        return data
+                else:
+                    # Expired, remove file
+                    cache_file.unlink()
+                    print(f"[PDF CACHE] Expired, removed: {cache_key}")
+            except Exception as e:
+                print(f"[PDF CACHE] Error loading {cache_key}: {e}")
+
+        return None
+
+    def set(self, cache_key: str, data: dict):
+        """Store PDF data both in memory and on disk."""
+        # Store in memory
+        self.memory_cache[cache_key] = data
+
+        # Persist to disk
+        cache_file = self.cache_dir / f"{cache_key}.pkl"
+        try:
+            with open(cache_file, 'wb') as f:
+                pickle.dump(data, f)
+            print(f"[PDF CACHE] Saved to disk: {cache_key}")
+        except Exception as e:
+            print(f"[PDF CACHE] Error saving {cache_key}: {e}")
+
+    def __contains__(self, cache_key: str) -> bool:
+        """Check if cache_key exists (memory or disk)."""
+        if cache_key in self.memory_cache:
+            return True
+        cache_file = self.cache_dir / f"{cache_key}.pkl"
+        return cache_file.exists()
+
+    def __getitem__(self, cache_key: str) -> dict:
+        """Dict-like access for backwards compatibility."""
+        result = self.get(cache_key)
+        if result is None:
+            raise KeyError(cache_key)
+        return result
+
+    def __setitem__(self, cache_key: str, data: dict):
+        """Dict-like assignment for backwards compatibility."""
+        self.set(cache_key, data)
+
+    def clear(self):
+        """Clear all PDF cache (memory and disk)."""
+        self.memory_cache.clear()
+        try:
+            for cache_file in self.cache_dir.glob("*.pkl"):
+                cache_file.unlink()
+            print("[PDF CACHE] All cache cleared")
+        except Exception as e:
+            print(f"[PDF CACHE] Error clearing cache: {e}")

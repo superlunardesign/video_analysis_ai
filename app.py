@@ -30,7 +30,7 @@ from processing import (
     analyze_save_metrics
 )
 from rag_helper import retrieve_smart_context, retrieve_all_context
-from cache_manager import AnalysisCache
+from cache_manager import AnalysisCache, PdfCache
 from analysis_optimization import intelligent_frame_extraction, parallel_video_processing, optimize_frame_selection
 from audio_analysis import enhanced_audio_analysis, ViralSoundDetector
 from performance_tracker import AnalysisPerformanceTracker
@@ -44,7 +44,7 @@ claude_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 # Initialize optimization components
 cache = AnalysisCache()
 tracker = AnalysisPerformanceTracker()
-pdf_cache = {}  # Simple in-memory cache for PDF generation data
+pdf_cache = PdfCache()  # Persistent PDF cache that survives server restarts
 print("[INFO] Optimization components initialized: cache, tracker, pdf_cache")
 
 
@@ -2486,17 +2486,17 @@ Key patterns for video analysis:
 def download_pdf(cache_key):
     """
     Generate and download PDF from cached analysis results.
-    Uses server-side rendering with Puppeteer for reliable PDF generation.
+    Uses server-side rendering with Playwright for reliable PDF generation.
     """
     print(f"[PDF] Download request for cache_key: {cache_key}")
 
-    # Retrieve cached data
-    if cache_key not in pdf_cache:
+    # Retrieve cached data (checks both memory and disk cache)
+    cached_data = pdf_cache.get(cache_key)
+    if cached_data is None:
         print(f"[PDF ERROR] Cache key not found: {cache_key}")
         return "PDF data not found. The analysis may have expired. Please re-run the analysis.", 404
 
     try:
-        cached_data = pdf_cache[cache_key]
         template_vars = cached_data['template_vars']
         video_title = cached_data.get('video_title', 'analysis')
 
@@ -2517,7 +2517,7 @@ def download_pdf(cache_key):
 
         print(f"[PDF] Generating PDF: {filename}")
 
-        # Generate PDF using pyppeteer
+        # Generate PDF using playwright
         pdf_bytes = generate_pdf_sync(html_content)
 
         # Create response
