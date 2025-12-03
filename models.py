@@ -117,3 +117,41 @@ def init_db(app):
     with app.app_context():
         db.create_all()
         print("[DB] Database tables created/verified")
+
+        # Run migrations for new columns
+        _run_migrations(app, database_url)
+
+
+def _run_migrations(app, database_url):
+    """Run database migrations to add new columns to existing tables."""
+    from sqlalchemy import text, inspect
+
+    try:
+        # Check if we're using PostgreSQL
+        if not database_url.startswith('postgresql'):
+            return
+
+        inspector = inspect(db.engine)
+        columns = [col['name'] for col in inspector.get_columns('analyses')]
+
+        # Migration: Add 'status' column if it doesn't exist
+        if 'status' not in columns:
+            print("[DB MIGRATION] Adding 'status' column to analyses table...")
+            db.session.execute(text(
+                "ALTER TABLE analyses ADD COLUMN status VARCHAR(20) DEFAULT 'completed'"
+            ))
+            db.session.commit()
+            print("[DB MIGRATION] Added 'status' column")
+
+        # Migration: Add 'completed_at' column if it doesn't exist
+        if 'completed_at' not in columns:
+            print("[DB MIGRATION] Adding 'completed_at' column to analyses table...")
+            db.session.execute(text(
+                "ALTER TABLE analyses ADD COLUMN completed_at TIMESTAMP"
+            ))
+            db.session.commit()
+            print("[DB MIGRATION] Added 'completed_at' column")
+
+    except Exception as e:
+        print(f"[DB MIGRATION ERROR] {e}")
+        db.session.rollback()
