@@ -2721,8 +2721,18 @@ def view_analysis(analysis_id):
         flash('Analysis not found.', 'error')
         return redirect(url_for('history'))
 
-    # Load stored analysis data
-    template_vars = analysis.analysis_data or {}
+    template_vars = None
+
+    # First, try to get full data from PDF cache (has complete template_vars)
+    if analysis.pdf_cache_key and analysis.pdf_cache_key in pdf_cache:
+        cached_data = pdf_cache[analysis.pdf_cache_key]
+        template_vars = cached_data.get('template_vars', {}).copy()
+        print(f"[VIEW] Using full cached data for analysis {analysis_id}")
+
+    # Fall back to lightweight database data
+    if not template_vars:
+        template_vars = analysis.analysis_data or {}
+        print(f"[VIEW] Using lightweight DB data for analysis {analysis_id}")
 
     # Add context from database record
     template_vars['video_url'] = analysis.video_url
@@ -2737,6 +2747,8 @@ def view_analysis(analysis_id):
         return render_template("results.html", **template_vars)
     except Exception as e:
         print(f"[WARNING] Could not render results.html for saved analysis: {e}")
+        import traceback
+        traceback.print_exc()
         return render_template("analysis_summary.html", **template_vars)
 
 
