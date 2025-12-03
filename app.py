@@ -2928,9 +2928,23 @@ def get_user_processing_analysis(user_id):
 
 
 def create_processing_analysis(user_id, video_url):
-    """Create a new analysis record with status='processing'."""
+    """Create a new analysis record with status='processing'.
+    If user already has a completed analysis for this URL, delete the old one first.
+    """
     try:
         normalized_url = normalize_video_url(video_url)
+
+        # Check for existing completed analysis of same URL for this user
+        existing = Analysis.query.filter_by(
+            user_id=user_id,
+            video_url=normalized_url,
+            status='completed'
+        ).first()
+
+        if existing:
+            print(f"[DB] Found existing analysis {existing.id} for same URL - replacing it")
+            db.session.delete(existing)
+            db.session.commit()
 
         analysis = Analysis(
             user_id=user_id,

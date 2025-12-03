@@ -5,50 +5,71 @@
 {% block extra_styles %}
 <style>
     .waiting-container {
-        max-width: 600px;
+        max-width: 1000px;
         margin: 0 auto;
-        text-align: center;
-        padding: var(--space-xl);
+        padding: var(--space-lg);
+    }
+
+    /* Desktop: side-by-side 25/75 layout */
+    @media (min-width: 768px) {
+        .waiting-container {
+            display: flex;
+            gap: var(--space-xl);
+            align-items: flex-start;
+        }
+        .video-preview {
+            flex: 0 0 25%;
+            max-width: 25%;
+        }
+        .status-section-wrapper {
+            flex: 1;
+        }
     }
 
     .video-preview {
         background: rgba(255, 255, 255, 0.05);
         border-radius: var(--radius-lg);
         padding: var(--space-lg);
-        margin-bottom: var(--space-xl);
+        text-align: center;
+        margin-bottom: var(--space-lg);
     }
 
     .video-thumbnail {
         width: 100%;
-        max-width: 400px;
         border-radius: var(--radius-md);
         margin-bottom: var(--space-md);
     }
 
     .video-thumbnail.placeholder {
-        height: 225px;
+        aspect-ratio: 9/16;
+        max-height: 300px;
         background: linear-gradient(135deg, var(--eclipse-plum), var(--lunar-blush));
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 4rem;
+        font-size: 3rem;
     }
 
     .video-title {
-        font-size: 1.1rem;
+        font-size: 1rem;
         color: var(--stellar-cream);
         margin-bottom: var(--space-xs);
+        word-break: break-word;
     }
 
     .video-url {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         color: var(--celestial-lavender);
         opacity: 0.7;
         word-break: break-all;
     }
 
+    .status-section-wrapper {
+        text-align: center;
+    }
+
     .status-section {
-        margin-bottom: var(--space-xl);
+        margin-bottom: var(--space-lg);
     }
 
     .status-title {
@@ -120,9 +141,49 @@
         background: rgba(255, 255, 255, 0.05);
         padding: var(--space-md);
         border-radius: var(--radius-md);
-        margin-top: var(--space-xl);
+        margin-top: var(--space-lg);
         font-style: italic;
         color: var(--celestial-lavender);
+    }
+
+    .notification-prompt {
+        background: rgba(245, 255, 160, 0.1);
+        border: 1px solid rgba(245, 255, 160, 0.3);
+        border-radius: var(--radius-md);
+        padding: var(--space-sm) var(--space-md);
+        margin-top: var(--space-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-sm);
+        flex-wrap: wrap;
+    }
+
+    .notification-prompt span {
+        color: var(--stellar-cream);
+        font-size: 0.9rem;
+    }
+
+    .notify-btn {
+        background: var(--solar-lime);
+        color: var(--cosmic-indigo);
+        border: none;
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-full);
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .notify-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(245, 255, 160, 0.3);
+    }
+
+    .notify-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 </style>
 {% endblock %}
@@ -142,29 +203,88 @@
         <div class="video-url">{{ video_url[:50] }}{% if video_url|length > 50 %}...{% endif %}</div>
     </div>
 
-    <div class="status-section">
-        <h1 class="status-title">Analysis in Progress</h1>
-        <div class="spinner"></div>
-        <p class="status-stage" id="currentStage">{{ current_stage or 'Starting analysis...' }}</p>
+    <div class="status-section-wrapper">
+        <div class="status-section">
+            <h1 class="status-title">Analysis in Progress</h1>
+            <div class="spinner"></div>
+            <p class="status-stage" id="currentStage">{{ current_stage or 'Starting analysis...' }}</p>
 
-        <div class="progress-bar-container">
-            <div class="progress-bar" id="progressBar"></div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+
+            <p class="time-info" id="startedTime" data-utc="{{ created_at.isoformat() if created_at else '' }}Z">Started {{ created_at.strftime('%I:%M %p') if created_at else 'just now' }}</p>
+            <p class="time-info">This may take several minutes depending on video length</p>
         </div>
 
-        <p class="time-info">Started {{ created_at.strftime('%I:%M %p') if created_at else 'just now' }}</p>
-        <p class="time-info">This may take several minutes depending on video length</p>
-    </div>
+        <div class="notification-prompt" id="notificationPrompt">
+            <span>🔔 Get notified when complete?</span>
+            <button class="notify-btn" id="enableNotifications" onclick="requestNotificationPermission()">Enable Notifications</button>
+        </div>
 
-    <button class="cancel-btn" onclick="cancelAnalysis()">Cancel Analysis</button>
+        <button class="cancel-btn" onclick="cancelAnalysis()">Cancel Analysis</button>
 
-    <div class="fun-fact" id="funFact">
-        💡 Did you know? Videos with strong hooks in the first 3 seconds get 5x more watch time!
+        <div class="fun-fact" id="funFact">
+            💡 Did you know? Videos with strong hooks in the first 3 seconds get 5x more watch time!
+        </div>
     </div>
 </div>
 
 <script>
     const analysisId = {{ analysis_id }};
     let pollInterval;
+    let notificationsEnabled = false;
+
+    // Convert UTC start time to local
+    const startTimeEl = document.getElementById('startedTime');
+    if (startTimeEl && startTimeEl.dataset.utc && startTimeEl.dataset.utc !== 'Z') {
+        const utcDate = new Date(startTimeEl.dataset.utc);
+        const timeStr = utcDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        startTimeEl.textContent = 'Started ' + timeStr;
+    }
+
+    // Check if notifications are supported and already granted
+    if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+            notificationsEnabled = true;
+            document.getElementById('notificationPrompt').innerHTML = '<span style="color: var(--solar-lime);">🔔 Notifications enabled! You can navigate away.</span>';
+        } else if (Notification.permission === 'denied') {
+            document.getElementById('notificationPrompt').innerHTML = '<span style="opacity: 0.6;">🔕 Notifications blocked in browser settings</span>';
+        }
+    } else {
+        document.getElementById('notificationPrompt').style.display = 'none';
+    }
+
+    function requestNotificationPermission() {
+        if (!('Notification' in window)) {
+            alert('This browser does not support notifications');
+            return;
+        }
+
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                notificationsEnabled = true;
+                document.getElementById('notificationPrompt').innerHTML = '<span style="color: var(--solar-lime);">🔔 Notifications enabled! You can navigate away.</span>';
+                // Send test notification
+                new Notification('TikTok Analyzer', {
+                    body: "You'll be notified when your analysis is complete!",
+                    icon: 'https://static.wixstatic.com/media/b8193e_7a6acb78bc174e469ca5b4a7664e7d2f~mv2.webp'
+                });
+            } else {
+                document.getElementById('notificationPrompt').innerHTML = '<span style="opacity: 0.6;">🔕 Notifications denied</span>';
+            }
+        });
+    }
+
+    function sendCompletionNotification(title) {
+        if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('Analysis Complete!', {
+                body: title ? `"${title}" is ready to view` : 'Your video analysis is complete!',
+                icon: 'https://static.wixstatic.com/media/b8193e_7a6acb78bc174e469ca5b4a7664e7d2f~mv2.webp',
+                tag: 'analysis-complete-' + analysisId
+            });
+        }
+    }
 
     // Stage display names
     const stageNames = {
@@ -200,6 +320,7 @@
             .then(data => {
                 if (data.status === 'completed') {
                     clearInterval(pollInterval);
+                    sendCompletionNotification(data.video_title);
                     window.location.href = `/analysis/${analysisId}`;
                 } else if (data.status === 'failed') {
                     clearInterval(pollInterval);
