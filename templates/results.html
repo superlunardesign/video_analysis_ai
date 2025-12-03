@@ -5,14 +5,15 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
-    body { 
+    body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
       line-height: 1.6;
       color: #1a1a1a;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
+      display: block;
     }
-    
+
     .container {
       max-width: 1200px;
       margin: 0 auto;
@@ -287,6 +288,7 @@
       background: rgba(0, 0, 0, 0.3);
       backdrop-filter: blur(10px);
       padding: 12px 20px;
+      margin-bottom: 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -573,20 +575,20 @@
     {% else %}
 
     <!-- What This Video Is -->
-    <div class="section">
+    <div class="section analysis-section" data-section="what-this-is">
       <h2>🎬 What This Video Is</h2>
       <div style="white-space: pre-line; line-height: 1.8;">{{ what_this_video_is or analysis }}</div>
     </div>
 
     <!-- Why It Performed -->
-    <div class="section">
+    <div class="section analysis-section" data-section="why-performed">
       <h2>📈 Why It Performed This Way</h2>
       <div style="white-space: pre-line; line-height: 1.8;">{{ why_it_performed or performance_deep_dive }}</div>
     </div>
 
     <!-- All Hooks Identified -->
     {% if all_hooks_identified and all_hooks_identified is mapping %}
-    <div class="section">
+    <div class="section analysis-section" data-section="hooks">
       <h2>🎣 All Hooks Identified</h2>
 
       {% if all_hooks_identified.text_hooks %}
@@ -628,7 +630,7 @@
     {% endif %}
 
     <!-- Replication Formula -->
-    <div class="section">
+    <div class="section analysis-section" data-section="replication">
       <h2>📋 How to Replicate This Formula</h2>
 
       {% if replication_formula and replication_formula is mapping %}
@@ -673,7 +675,7 @@
 
     <!-- Performance Scores -->
     {% if scores and scores is mapping %}
-    <div class="scores-section">
+    <div class="scores-section analysis-section" data-section="scores">
       <h2>📊 Performance Breakdown</h2>
       {% if creator_note %}
       <div class="info-box">
@@ -721,20 +723,20 @@
     {% endif %}
 
     <!-- Improvements -->
-    <div class="section">
+    <div class="section analysis-section" data-section="improvements">
       <h2>💡 Improvements</h2>
       <div style="white-space: pre-line; line-height: 1.8;">{{ improvements or improvement_opportunities }}</div>
     </div>
 
     <!-- Viral Mechanics -->
-    <div class="section">
+    <div class="section analysis-section" data-section="viral-mechanics">
       <h2>🚀 Viral Mechanics</h2>
       <div style="white-space: pre-line; line-height: 1.8;">{{ viral_mechanics }}</div>
     </div>
 
     <!-- Timing Breakdown -->
     {% if timing_mastery %}
-    <div class="section">
+    <div class="section analysis-section" data-section="timing">
       <h2>⏰ Timing Mastery</h2>
       {% for time, content in timing_mastery.items() %}
       <div class="timing-moment">
@@ -746,14 +748,14 @@
     {% endif %}
 
     <!-- Performance Prediction -->
-    <div class="section">
+    <div class="section analysis-section" data-section="prediction">
       <h2>📊 Performance Prediction</h2>
       <div style="white-space: pre-line; line-height: 1.8;">{{ performance_prediction }}</div>
     </div>
 
     <!-- Knowledge Patterns -->
     {% if knowledge_patterns_applied %}
-    <div class="section">
+    <div class="section analysis-section" data-section="patterns">
       <h2>📚 Proven Patterns Applied</h2>
       <ul>
         {% for pattern in knowledge_patterns_applied %}
@@ -798,5 +800,15 @@
 
     </div>
   </div>
+
+  <script>
+    // Hide analysis sections in extraction_only mode
+    const isExtractionOnly = {{ 'true' if extraction_only else 'false' }};
+    if (isExtractionOnly) {
+      document.querySelectorAll('.analysis-section').forEach(el => {
+        el.style.display = 'none';
+      });
+    }
+  </script>
 </body>
 </html>
