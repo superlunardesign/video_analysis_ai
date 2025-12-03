@@ -220,89 +220,89 @@
         <h1>🎬 Analyzing Your Video</h1>
         <div class="time-estimate">Estimated time: <span id="timeEstimate">Loading...</span></div>
         
-        <div class="stage-container">
-            <div class="stage" id="stage1">
+        <div class="stage-container" id="stageContainer">
+            <div class="stage" data-stage="download">
                 <div class="stage-icon">📥</div>
                 <div class="stage-info">
                     <div class="stage-title">Downloading Video</div>
                     <div class="stage-description">Fetching your TikTok video...</div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar" id="progress1"></div>
+                        <div class="progress-bar"></div>
                     </div>
                 </div>
-                <div class="stage-time" id="time1">~15s</div>
+                <div class="stage-time">~15s</div>
             </div>
 
-            <div class="stage" id="stage2">
+            <div class="stage" data-stage="extract">
                 <div class="stage-icon">🎞️</div>
                 <div class="stage-info">
                     <div class="stage-title">Extracting Frames</div>
-                    <div class="stage-description">Capturing key moments for analysis...</div>
+                    <div class="stage-description">Capturing key moments...</div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar" id="progress2"></div>
+                        <div class="progress-bar"></div>
                     </div>
                 </div>
-                <div class="stage-time" id="time2">~30s</div>
+                <div class="stage-time">~20s</div>
             </div>
 
-            <div class="stage" id="stage3">
+            <div class="stage" data-stage="visual" data-skip-extraction="true">
                 <div class="stage-icon">🔍</div>
                 <div class="stage-info">
                     <div class="stage-title">Analyzing Visual Content</div>
                     <div class="stage-description" id="frameDescription">Understanding each frame with AI vision...</div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar" id="progress3"></div>
+                        <div class="progress-bar"></div>
                     </div>
                 </div>
-                <div class="stage-time" id="time3">~5-6 min</div>
+                <div class="stage-time" id="time-visual">~5-6 min</div>
             </div>
 
-            <div class="stage" id="stage4">
+            <div class="stage" data-stage="audio">
                 <div class="stage-icon">🎵</div>
                 <div class="stage-info">
                     <div class="stage-title">Processing Audio</div>
                     <div class="stage-description">Transcribing and analyzing audio elements...</div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar" id="progress4"></div>
+                        <div class="progress-bar"></div>
                     </div>
                 </div>
-                <div class="stage-time" id="time4">~20s</div>
+                <div class="stage-time">~20s</div>
             </div>
 
-            <div class="stage" id="stage5">
+            <div class="stage" data-stage="knowledge" data-skip-extraction="true">
                 <div class="stage-icon">📚</div>
                 <div class="stage-info">
                     <div class="stage-title">Searching Knowledge Base</div>
                     <div class="stage-description">Finding relevant patterns and strategies...</div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar" id="progress5"></div>
+                        <div class="progress-bar"></div>
                     </div>
                 </div>
-                <div class="stage-time" id="time5">~15s</div>
+                <div class="stage-time">~15s</div>
             </div>
 
-            <div class="stage" id="stage6">
+            <div class="stage" data-stage="analysis" data-skip-extraction="true">
                 <div class="stage-icon">🧠</div>
                 <div class="stage-info">
                     <div class="stage-title">Deep Psychological Analysis</div>
                     <div class="stage-description">Generating comprehensive insights...</div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar" id="progress6"></div>
+                        <div class="progress-bar"></div>
                     </div>
                 </div>
-                <div class="stage-time" id="time6">~45s</div>
+                <div class="stage-time">~45s</div>
             </div>
 
-            <div class="stage" id="stage7">
+            <div class="stage" data-stage="finalize">
                 <div class="stage-icon">✨</div>
                 <div class="stage-info">
                     <div class="stage-title">Finalizing Report</div>
-                    <div class="stage-description">Preparing your personalized analysis...</div>
+                    <div class="stage-description">Preparing your results...</div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar" id="progress7"></div>
+                        <div class="progress-bar"></div>
                     </div>
                 </div>
-                <div class="stage-time" id="time7">~10s</div>
+                <div class="stage-time">~10s</div>
             </div>
         </div>
         
@@ -335,52 +335,87 @@
         for (let key in passedData) {
             formData.append(key, passedData[key]);
         }
-        
-        // Get results speed tier from form data
-        const resultsSpeed = passedData.results_speed || 'standard';
 
-        // Configure timing based on results speed tier
+        // Get analysis depth and results speed tier from form data
+        const analysisDepth = passedData.analysis_depth || 'standard';
+        const resultsSpeed = passedData.results_speed || 'standard';
+        const isExtractionOnly = analysisDepth === 'extraction_only';
+
+        // Hide stages that don't apply to extraction_only mode
+        if (isExtractionOnly) {
+            document.querySelectorAll('[data-skip-extraction="true"]').forEach(el => {
+                el.style.display = 'none';
+            });
+        }
+
+        // Get visible stages for progress tracking
+        const visibleStageElements = Array.from(document.querySelectorAll('.stage')).filter(el => {
+            return el.style.display !== 'none';
+        });
+
+        // Configure timing based on mode and speed
         let frameAnalysisDuration, totalEstimate, frameCount;
 
-        switch(resultsSpeed) {
-            case 'ultra_fast':
-                frameAnalysisDuration = 10;  // 1 frame, very quick
-                totalEstimate = '30-60 seconds';
-                frameCount = '1 frame';
-                break;
-            case 'fast':
-                frameAnalysisDuration = 90;  // ~20 frames: 1.5 min
-                totalEstimate = '1-2 minutes';
-                frameCount = '~20 frames';
-                break;
-            case 'thorough':
-                frameAnalysisDuration = 480; // ~70 frames: 8 min
-                totalEstimate = '8-12 minutes';
-                frameCount = '~70 frames';
-                break;
-            default: // standard
-                frameAnalysisDuration = 360; // ~40 frames: 6 min
-                totalEstimate = '6-9 minutes';
-                frameCount = '~40 frames';
+        if (isExtractionOnly) {
+            frameAnalysisDuration = 0;
+            totalEstimate = '30-60 seconds';
+            frameCount = '';
+        } else {
+            switch(resultsSpeed) {
+                case 'ultra_fast':
+                    frameAnalysisDuration = 10;
+                    totalEstimate = '30-60 seconds';
+                    frameCount = '1 frame';
+                    break;
+                case 'fast':
+                    frameAnalysisDuration = 90;
+                    totalEstimate = '1-2 minutes';
+                    frameCount = '~20 frames';
+                    break;
+                case 'thorough':
+                    frameAnalysisDuration = 480;
+                    totalEstimate = '8-12 minutes';
+                    frameCount = '~70 frames';
+                    break;
+                default:
+                    frameAnalysisDuration = 360;
+                    totalEstimate = '6-9 minutes';
+                    frameCount = '~40 frames';
+            }
         }
 
         // Update time estimate display
         document.getElementById('timeEstimate').textContent = totalEstimate;
-        document.getElementById('frameDescription').textContent = `Understanding ${frameCount} with AI vision...`;
-        document.getElementById('time3').textContent = `~${Math.floor(frameAnalysisDuration/60)} min`;
+        if (!isExtractionOnly) {
+            document.getElementById('frameDescription').textContent = `Understanding ${frameCount} with AI vision...`;
+            document.getElementById('time-visual').textContent = `~${Math.floor(frameAnalysisDuration/60)} min`;
+        }
 
-        // Stage timing configuration (in seconds)
-        const stages = [
-            { id: 'stage1', duration: 15, start: 0 },                                    // Download
-            { id: 'stage2', duration: 20, start: 15 },                                   // Extract frames
-            { id: 'stage3', duration: frameAnalysisDuration, start: 35 },               // Analyze frames (DYNAMIC)
-            { id: 'stage4', duration: 20, start: 35 + frameAnalysisDuration },           // Process audio
-            { id: 'stage5', duration: 15, start: 55 + frameAnalysisDuration },           // Search knowledge
-            { id: 'stage6', duration: 45, start: 70 + frameAnalysisDuration },           // Deep analysis
-            { id: 'stage7', duration: 10, start: 115 + frameAnalysisDuration }           // Finalize
-        ];
+        // Build stages array dynamically based on visible stages
+        const stageDurations = {
+            'download': 15,
+            'extract': 20,
+            'visual': frameAnalysisDuration,
+            'audio': 20,
+            'knowledge': 15,
+            'analysis': 45,
+            'finalize': 10
+        };
 
-        const totalDuration = 125 + frameAnalysisDuration;
+        let currentStart = 0;
+        const stages = [];
+        visibleStageElements.forEach((el, index) => {
+            const stageName = el.dataset.stage;
+            const duration = stageDurations[stageName] || 10;
+            stages.push({
+                element: el,
+                duration: duration,
+                start: currentStart
+            });
+            currentStart += duration;
+        });
+
+        const totalDuration = currentStart;
         let startTime = Date.now();
         let currentStage = 0;
         
@@ -416,17 +451,17 @@
         function updateStageProgress() {
             const elapsed = (Date.now() - startTime) / 1000; // in seconds
             const overallPercent = Math.min((elapsed / totalDuration) * 100, 100);
-            
+
             // Update overall progress
             const overallBar = document.getElementById('overallProgress');
             overallBar.style.width = overallPercent + '%';
             overallBar.textContent = Math.floor(overallPercent) + '%';
-            
+
             // Update stages
             stages.forEach((stage, index) => {
-                const stageEl = document.getElementById(stage.id);
-                const progressBar = document.getElementById('progress' + (index + 1));
-                
+                const stageEl = stage.element;
+                const progressBar = stageEl.querySelector('.progress-bar');
+
                 if (elapsed >= stage.start) {
                     if (elapsed < stage.start + stage.duration) {
                         // Currently active
@@ -478,22 +513,22 @@
         .then(res => res.text())
         .then(html => {
             clearInterval(progressInterval);
-            
+
             // Complete all stages
-            stages.forEach((stage, index) => {
-                const stageEl = document.getElementById(stage.id);
-                const progressBar = document.getElementById('progress' + (index + 1));
+            stages.forEach((stage) => {
+                const stageEl = stage.element;
+                const progressBar = stageEl.querySelector('.progress-bar');
                 stageEl.classList.remove('active');
                 stageEl.classList.add('completed');
                 progressBar.style.width = '100%';
                 stageEl.querySelector('.stage-icon').textContent = '✓';
             });
-            
+
             // Set overall to 100%
             const overallBar = document.getElementById('overallProgress');
             overallBar.style.width = '100%';
             overallBar.textContent = '100%';
-            
+
             // Show results
             setTimeout(() => {
                 document.body.innerHTML = html;
