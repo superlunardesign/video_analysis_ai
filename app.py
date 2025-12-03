@@ -2707,13 +2707,34 @@ def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template
         # Normalize URL
         normalized_url = normalize_video_url(video_url)
 
+        # Create lightweight analysis data (exclude large base64 images)
+        # The full data is preserved in pdf_cache for PDF downloads
+        lightweight_data = {
+            'video_title': template_vars.get('video_title'),
+            'creator': template_vars.get('creator'),
+            'goal_analysis': template_vars.get('goal_analysis'),
+            'view_count': template_vars.get('view_count'),
+            'like_count': template_vars.get('like_count'),
+            'comment_count': template_vars.get('comment_count'),
+            'share_count': template_vars.get('share_count'),
+            'video_description': template_vars.get('video_description'),
+            'hashtags': template_vars.get('hashtags'),
+            'overall_assessment': template_vars.get('overall_assessment'),
+            'primary_strengths': template_vars.get('primary_strengths'),
+            'areas_for_improvement': template_vars.get('areas_for_improvement'),
+            'audio_type': template_vars.get('audio_type'),
+            'music_info': template_vars.get('music_info'),
+            # Exclude: frame_gallery (base64 images ~200KB)
+            # Exclude: frame_analyses (detailed per-frame data)
+        }
+
         # Create analysis record
         analysis = Analysis(
             user_id=user_id,
             video_url=normalized_url,
             video_title=video_title,
             thumbnail_url=thumbnail_url,
-            analysis_data=template_vars,
+            analysis_data=lightweight_data,
             pdf_cache_key=pdf_cache_key
         )
 
