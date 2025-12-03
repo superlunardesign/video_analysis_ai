@@ -281,7 +281,58 @@
     .center {
       text-align: center;
     }
-    
+
+    /* Navigation Bar */
+    .results-nav {
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #c4f94a;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .nav-link {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 20px;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+    }
+
+    .nav-link:hover {
+      color: #c4f94a;
+    }
+
+    .nav-link.btn {
+      background: linear-gradient(135deg, #c4f94a, #b7b4ed);
+      color: #1a1a2e;
+      font-weight: 600;
+    }
+
+    .nav-link.btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(196, 249, 74, 0.3);
+    }
+
     /* Meta Tags */
     .meta-tags {
       display: flex;
@@ -302,6 +353,20 @@
   </style>
 </head>
 <body>
+  <!-- Navigation Bar -->
+  <nav class="results-nav">
+    <a href="/" class="nav-brand">✨ TikTok Analyzer</a>
+    <div class="nav-links">
+      {% if current_user and current_user.is_authenticated %}
+        <a href="/history" class="nav-link">My History</a>
+        <a href="/logout" class="nav-link">Logout</a>
+      {% else %}
+        <a href="/login" class="nav-link">Login</a>
+        <a href="/signup" class="nav-link btn">Sign Up</a>
+      {% endif %}
+    </div>
+  </nav>
+
   <div class="container" id="content-to-pdf">
     <!-- Header -->
     <div class="header">
