@@ -296,7 +296,7 @@
             <div class="card-actions">
                 <a href="/analysis/{{ analysis.id }}" class="card-btn primary">View Analysis</a>
                 {% if analysis.pdf_cache_key %}
-                <a href="/download_pdf/{{ analysis.pdf_cache_key }}" class="card-btn secondary">PDF</a>
+                <a href="/download_pdf/{{ analysis.pdf_cache_key }}/{{ analysis.id }}" class="card-btn secondary">PDF</a>
                 {% endif %}
                 <button class="card-btn danger" onclick="confirmDelete({{ analysis.id }})">Delete</button>
             </div>
