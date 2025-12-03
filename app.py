@@ -2611,22 +2611,18 @@ def view_analysis(analysis_id):
         flash('Analysis not found.', 'error')
         return redirect(url_for('history'))
 
-    # Restore the analysis data to render the results template
+    # Use the lightweight summary template for viewing past analyses
+    # The full results.html requires many variables we don't store
     template_vars = analysis.analysis_data or {}
 
-    # Ensure pdf_cache_key is available for PDF download
-    if analysis.pdf_cache_key:
-        template_vars['pdf_cache_key'] = analysis.pdf_cache_key
+    # Add additional context for the summary template
+    template_vars['video_url'] = analysis.video_url
+    template_vars['video_title'] = analysis.video_title
+    template_vars['thumbnail_url'] = analysis.thumbnail_url
+    template_vars['created_at'] = analysis.created_at
+    template_vars['analysis_id'] = analysis.id
 
-        # Also ensure PDF cache has the data
-        if analysis.pdf_cache_key not in pdf_cache:
-            pdf_cache[analysis.pdf_cache_key] = {
-                'template_vars': template_vars,
-                'video_title': analysis.video_title or 'analysis',
-                'timestamp': _time.time()
-            }
-
-    return render_template("results.html", **template_vars)
+    return render_template("analysis_summary.html", **template_vars)
 
 
 @app.route("/analysis/<int:analysis_id>", methods=["DELETE"])
