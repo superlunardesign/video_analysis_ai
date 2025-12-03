@@ -6,7 +6,7 @@ import re
 import asyncio
 import hashlib
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, request, render_template, make_response, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from openai import OpenAI
@@ -2029,6 +2029,20 @@ def process():
 
                     cached_result['pdf_cache_key'] = cache_key
                     print(f"[PDF CACHE] Cached result stored for PDF with key: {cache_key}")
+
+                    # Update processing analysis to completed if we have one
+                    if current_analysis_id:
+                        metadata = cached_result.get('metadata', {})
+                        thumbnail_url = None
+                        if cached_result.get('frame_gallery'):
+                            thumbnail_url = cached_result['frame_gallery'][0]
+                        complete_analysis(
+                            analysis_id=current_analysis_id,
+                            video_title=video_title,
+                            thumbnail_url=thumbnail_url,
+                            template_vars=cached_result,
+                            pdf_cache_key=cache_key
+                        )
                 except Exception as e:
                     print(f"[WARNING] Failed to cache PDF data for cached result: {e}")
 
@@ -2627,6 +2641,24 @@ def history():
     """Display user's analysis history."""
     page = request.args.get('page', 1, type=int)
     per_page = 12
+
+    # Clean up stale processing records (older than 30 minutes)
+    try:
+        stale_cutoff = datetime.utcnow() - timedelta(minutes=30)
+        stale_analyses = Analysis.query.filter_by(
+            user_id=current_user.id,
+            status='processing'
+        ).filter(Analysis.created_at < stale_cutoff).all()
+
+        for stale in stale_analyses:
+            print(f"[CLEANUP] Marking stale analysis {stale.id} as failed")
+            stale.status = 'failed'
+
+        if stale_analyses:
+            db.session.commit()
+    except Exception as e:
+        print(f"[CLEANUP ERROR] {e}")
+        db.session.rollback()
 
     # Check for any in-progress analysis
     processing = Analysis.query.filter_by(
