@@ -585,31 +585,38 @@
     </div>
 
     <!-- All Hooks Identified -->
+    {% if all_hooks_identified and all_hooks_identified is mapping %}
     <div class="section">
       <h2>🎣 All Hooks Identified</h2>
-      
-      {% if all_hooks_identified %}
+
+      {% if all_hooks_identified.text_hooks %}
       <div class="hook-element">
         <div class="hook-label">📝 TEXT HOOKS</div>
         {% for hook in all_hooks_identified.text_hooks %}
         <p>• {{ hook }}</p>
         {% endfor %}
       </div>
-      
+      {% endif %}
+
+      {% if all_hooks_identified.visual_hooks %}
       <div class="hook-element">
         <div class="hook-label">👁️ VISUAL HOOKS</div>
         {% for hook in all_hooks_identified.visual_hooks %}
         <p>• {{ hook }}</p>
         {% endfor %}
       </div>
-      
+      {% endif %}
+
+      {% if all_hooks_identified.verbal_hooks %}
       <div class="hook-element">
         <div class="hook-label">🔊 VERBAL HOOKS</div>
         {% for hook in all_hooks_identified.verbal_hooks %}
         <p>• {{ hook }}</p>
         {% endfor %}
       </div>
-      
+      {% endif %}
+
+      {% if all_hooks_identified.psychological_hooks %}
       <div class="hook-element">
         <div class="hook-label">🧠 PSYCHOLOGICAL HOOKS</div>
         {% for hook in all_hooks_identified.psychological_hooks %}
@@ -618,16 +625,18 @@
       </div>
       {% endif %}
     </div>
+    {% endif %}
 
     <!-- Replication Formula -->
     <div class="section">
       <h2>📋 How to Replicate This Formula</h2>
-      
-      {% if replication_formula %}
+
+      {% if replication_formula and replication_formula is mapping %}
       <div class="formula-box">
-        <h3>{{ replication_formula.formula_name }}</h3>
-        <p><strong>Structure:</strong> {{ replication_formula.structure }}</p>
-        
+        <h3>{{ replication_formula.formula_name or 'Replication Formula' }}</h3>
+        {% if replication_formula.structure %}<p><strong>Structure:</strong> {{ replication_formula.structure }}</p>{% endif %}
+
+        {% if replication_formula.scenarios_for_same_niche %}
         <h4>Scenarios for Your Niche:</h4>
         <div style="white-space: pre-wrap; line-height: 1.8; margin: 1rem 0; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
           {% for scenario in replication_formula.scenarios_for_same_niche %}
@@ -635,16 +644,27 @@
 
           {% endfor %}
         </div>
+        {% endif %}
 
+        {% if replication_formula.why_it_works %}
         <p style="margin-top: 1.5rem;"><strong>Why It Works:</strong></p>
         <p style="margin-left: 1rem; line-height: 1.6;">{{ replication_formula.why_it_works }}</p>
+        {% endif %}
 
+        {% if replication_formula.text_template %}
         <p style="margin-top: 1.5rem;"><strong>Text Template:</strong></p>
         <div style="white-space: pre-wrap; line-height: 1.8; margin: 1rem 0; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; font-family: 'Courier New', monospace;">{{ replication_formula.text_template | markdown_bold('#ff6b9d') | safe }}</div>
+        {% endif %}
 
+        {% if replication_formula.visual_requirements %}
         <p style="margin-top: 1.5rem;"><strong>Visual Requirements:</strong></p>
         <p style="margin-left: 1rem; line-height: 1.6;">{{ replication_formula.visual_requirements }}</p>
+        {% endif %}
       </div>
+      {% elif replication_formula %}
+      <div style="white-space: pre-line; line-height: 1.8;">{{ replication_formula }}</div>
+      {% else %}
+      <p style="color: rgba(255,255,255,0.6);">Replication formula not available for this saved analysis.</p>
       {% endif %}
     </div>
 
@@ -652,6 +672,7 @@
     <!-- End of raw text fallback conditional -->
 
     <!-- Performance Scores -->
+    {% if scores and scores is mapping %}
     <div class="scores-section">
       <h2>📊 Performance Breakdown</h2>
       {% if creator_note %}
@@ -659,34 +680,45 @@
         <strong>Your Context:</strong> {{ creator_note }}
       </div>
       {% endif %}
-      
+
       <div class="scores-grid">
+        {% if scores.hook_strength is defined %}
         <div class="score-card">
           <div class="score-value">{{ scores.hook_strength }}/10</div>
           <div class="score-label">Hook Power</div>
         </div>
-        
+        {% endif %}
+
+        {% if scores.promise_clarity is defined %}
         <div class="score-card">
           <div class="score-value">{{ scores.promise_clarity }}/10</div>
           <div class="score-label">Clear Promise</div>
         </div>
-        
+        {% endif %}
+
+        {% if scores.retention_design is defined %}
         <div class="score-card">
           <div class="score-value">{{ scores.retention_design }}/10</div>
           <div class="score-label">Retention</div>
         </div>
-        
+        {% endif %}
+
+        {% if scores.engagement_potential is defined %}
         <div class="score-card">
           <div class="score-value">{{ scores.engagement_potential }}/10</div>
           <div class="score-label">Engagement</div>
         </div>
-        
+        {% endif %}
+
+        {% if scores.goal_alignment is defined %}
         <div class="score-card">
           <div class="score-value">{{ scores.goal_alignment }}/10</div>
           <div class="score-label">Goal Match</div>
         </div>
+        {% endif %}
       </div>
     </div>
+    {% endif %}
 
     <!-- Improvements -->
     <div class="section">
