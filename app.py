@@ -2721,18 +2721,23 @@ def view_analysis(analysis_id):
         flash('Analysis not found.', 'error')
         return redirect(url_for('history'))
 
-    # Use the lightweight summary template for viewing past analyses
-    # The full results.html requires many variables we don't store
+    # Load stored analysis data
     template_vars = analysis.analysis_data or {}
 
-    # Add additional context for the summary template
+    # Add context from database record
     template_vars['video_url'] = analysis.video_url
     template_vars['video_title'] = analysis.video_title
     template_vars['thumbnail_url'] = analysis.thumbnail_url
     template_vars['created_at'] = analysis.created_at
     template_vars['analysis_id'] = analysis.id
+    template_vars['is_saved_analysis'] = True  # Flag for template to know this is saved
 
-    return render_template("analysis_summary.html", **template_vars)
+    # Try to use full results template, fall back to summary if it fails
+    try:
+        return render_template("results.html", **template_vars)
+    except Exception as e:
+        print(f"[WARNING] Could not render results.html for saved analysis: {e}")
+        return render_template("analysis_summary.html", **template_vars)
 
 
 @app.route("/analysis/<int:analysis_id>", methods=["DELETE"])
