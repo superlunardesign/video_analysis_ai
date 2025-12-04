@@ -2322,6 +2322,30 @@ def process():
         gallery_data_urls = analysis_results['gallery_urls']
         audio_analysis = analysis_results['audio_analysis']
 
+        # Enhance audio_analysis with TikTok metadata (track/artist from TikTok API)
+        # This is more reliable than ACRCloud since it's directly from TikTok
+        if metadata and metadata.get('track'):
+            track_name = metadata.get('track', '')
+            artist_name = metadata.get('artist', 'Unknown Artist')
+            print(f"[MUSIC] TikTok metadata: '{track_name}' by {artist_name}")
+
+            # Add/enhance viral_sound info with TikTok metadata
+            if not audio_analysis.get('viral_sound', {}).get('is_viral'):
+                audio_analysis['viral_sound'] = {
+                    'is_viral': True,
+                    'sound_name': track_name,
+                    'artist': artist_name,
+                    'source': 'tiktok_metadata'
+                }
+            # Also add music_info for easy template access
+            audio_analysis['music_info'] = {
+                'track': track_name,
+                'artist': artist_name,
+                'has_music': True
+            }
+        else:
+            audio_analysis['music_info'] = {'has_music': False}
+
         # Enhanced audio transcription WITH visual context
         try:
             transcript_data = enhanced_transcribe_audio_with_context(audio_path, frames_summaries_text)
