@@ -2656,10 +2656,12 @@ def download_pdf(cache_key, analysis_id=None):
     cached_data = pdf_cache.get(cache_key)
     template_vars = None
     video_title = 'analysis'
+    data_source = None
 
     if cached_data:
         template_vars = cached_data['template_vars']
         video_title = cached_data.get('video_title', 'analysis')
+        data_source = 'cache'
         print(f"[PDF] Using cached data for: {video_title}")
     elif analysis_id:
         # Fall back to database
@@ -2667,34 +2669,52 @@ def download_pdf(cache_key, analysis_id=None):
         try:
             analysis = Analysis.query.get(analysis_id)
             if analysis:
-                print(f"[PDF] Found analysis in DB, analysis_data exists: {analysis.analysis_data is not None}")
+                print(f"[PDF] Found analysis in DB:")
+                print(f"[PDF]   - video_title: {analysis.video_title}")
+                print(f"[PDF]   - video_url: {analysis.video_url}")
+                print(f"[PDF]   - analysis_data type: {type(analysis.analysis_data)}")
+                print(f"[PDF]   - analysis_data exists: {analysis.analysis_data is not None}")
                 if analysis.analysis_data:
+                    print(f"[PDF]   - analysis_data keys: {list(analysis.analysis_data.keys()) if isinstance(analysis.analysis_data, dict) else 'NOT A DICT'}")
                     template_vars = dict(analysis.analysis_data)  # Make a copy
                     template_vars['video_url'] = analysis.video_url
                     template_vars['video_title'] = analysis.video_title
                     template_vars['thumbnail_url'] = analysis.thumbnail_url
+                    template_vars['is_saved_analysis'] = True  # Flag for template
                     video_title = analysis.video_title or 'analysis'
+                    data_source = 'database'
                     print(f"[PDF] Loaded from database: {video_title}")
                 else:
                     print(f"[PDF ERROR] analysis.analysis_data is None for analysis {analysis_id}")
+                    return f"PDF data not found: Analysis {analysis_id} exists but has no stored data. Please re-run the analysis.", 404
             else:
                 print(f"[PDF ERROR] Analysis {analysis_id} not found in database")
+                return f"PDF data not found: Analysis ID {analysis_id} does not exist.", 404
         except Exception as e:
             import traceback
             print(f"[PDF ERROR] Database fallback failed: {e}")
             traceback.print_exc()
+            return f"PDF database lookup failed: {str(e)}", 500
     else:
         print(f"[PDF] No analysis_id provided, cannot fall back to database")
 
     if not template_vars:
         print(f"[PDF ERROR] No data found for cache_key: {cache_key}")
-        return "PDF data not found. The analysis may have expired. Please re-run the analysis.", 404
+        return "PDF data not found. The cache has expired and no analysis ID was provided. Please access the PDF from your history page.", 404
 
     try:
-        print(f"[PDF] Rendering HTML template for: {video_title}")
+        print(f"[PDF] Rendering HTML template for: {video_title} (source: {data_source})")
+        print(f"[PDF] Template vars keys: {list(template_vars.keys())}")
 
         # Render the HTML template with all the data
-        html_content = render_template("results.html", **template_vars)
+        try:
+            html_content = render_template("results.html", **template_vars)
+            print(f"[PDF] Template rendered successfully, HTML length: {len(html_content)}")
+        except Exception as template_error:
+            print(f"[PDF ERROR] Template rendering failed: {template_error}")
+            import traceback
+            traceback.print_exc()
+            return f"Failed to render PDF template: {str(template_error)}", 500
 
         # Generate filename with timestamp
         now = datetime.now()
@@ -2709,7 +2729,14 @@ def download_pdf(cache_key, analysis_id=None):
         print(f"[PDF] Generating PDF: {filename}")
 
         # Generate PDF using playwright
-        pdf_bytes = generate_pdf_sync(html_content)
+        try:
+            pdf_bytes = generate_pdf_sync(html_content)
+            print(f"[PDF] Playwright generated {len(pdf_bytes)} bytes")
+        except Exception as playwright_error:
+            print(f"[PDF ERROR] Playwright PDF generation failed: {playwright_error}")
+            import traceback
+            traceback.print_exc()
+            return f"Failed to generate PDF with Playwright: {str(playwright_error)}", 500
 
         # Create response
         response = make_response(pdf_bytes)
@@ -2720,7 +2747,7 @@ def download_pdf(cache_key, analysis_id=None):
         return response
 
     except Exception as e:
-        print(f"[PDF ERROR] Failed to generate PDF: {e}")
+        print(f"[PDF ERROR] Unexpected error: {e}")
         import traceback
         traceback.print_exc()
         return f"Failed to generate PDF: {str(e)}", 500
