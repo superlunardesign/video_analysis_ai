@@ -795,7 +795,10 @@
     <div class="center">
       <a href="/" class="back-link">← Analyze Another Video</a>
 {% if pdf_cache_key %}
-      <a href="/download_pdf/{{ pdf_cache_key }}{% if analysis_id %}/{{ analysis_id }}{% endif %}" class="back-link" style="background-color:darkturquoise; color:white;">Download PDF Report ↓</a>
+      <button class="back-link pdf-btn" data-url="/download_pdf/{{ pdf_cache_key }}{% if analysis_id %}/{{ analysis_id }}{% endif %}" style="background-color:darkturquoise; color:white; border:none; cursor:pointer;">
+        <span class="pdf-text">Download PDF Report ↓</span>
+        <span class="pdf-spinner" style="display:none;">Generating PDF...</span>
+      </button>
       {% endif %}
 
     </div>
@@ -809,6 +812,37 @@
         el.style.display = 'none';
       });
     }
+
+    // PDF download with loading spinner
+    document.querySelectorAll('.pdf-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const url = this.dataset.url;
+            const textEl = this.querySelector('.pdf-text');
+            const spinnerEl = this.querySelector('.pdf-spinner');
+
+            // Show spinner
+            textEl.style.display = 'none';
+            spinnerEl.style.display = 'inline';
+            this.disabled = true;
+            this.style.opacity = '0.7';
+
+            // Create hidden iframe to trigger download
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = url;
+            document.body.appendChild(iframe);
+
+            // Reset button after a delay (PDF generation takes a few seconds)
+            setTimeout(() => {
+                textEl.style.display = 'inline';
+                spinnerEl.style.display = 'none';
+                this.disabled = false;
+                this.style.opacity = '1';
+                // Clean up iframe after download starts
+                setTimeout(() => iframe.remove(), 5000);
+            }, 4000);
+        });
+    });
   </script>
 </body>
 </html>
