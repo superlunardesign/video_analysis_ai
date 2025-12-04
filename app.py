@@ -2082,6 +2082,9 @@ def process():
                 except Exception as e:
                     print(f"[WARNING] Failed to cache PDF data for cached result: {e}")
 
+                # Add analysis_id and pdf_cache_key so PDF download link works
+                cached_result['analysis_id'] = current_analysis_id
+                cached_result['pdf_cache_key'] = cache_key
                 return render_template("results.html", **cached_result)
 
         # 2. EXTRACT METADATA AUTOMATICALLY (includes saves!)
@@ -2496,6 +2499,7 @@ Key patterns for video analysis:
         print(f"[SUCCESS] Analysis completed in {elapsed:.1f}s")
 
         # 7. STORE DATA FOR PDF GENERATION
+        cache_key = None
         try:
             # Generate unique cache key for PDF
             cache_key = hashlib.md5(
@@ -2505,6 +2509,9 @@ Key patterns for video analysis:
             # Get video title for PDF filename
             video_title = metadata.get('title', 'analysis') if metadata else 'analysis'
 
+            # Add cache_key to template_vars FIRST so button shows even if cache fails
+            template_vars['pdf_cache_key'] = cache_key
+
             # Store in pdf_cache
             pdf_cache[cache_key] = {
                 'template_vars': template_vars,
@@ -2512,14 +2519,10 @@ Key patterns for video analysis:
                 'timestamp': _time.time()
             }
 
-            # Add cache_key to template_vars so it can be used in template
-            template_vars['pdf_cache_key'] = cache_key
-
             print(f"[PDF CACHE] Stored data with key: {cache_key}")
         except Exception as e:
             print(f"[WARNING] Failed to cache PDF data: {e}")
-            cache_key = None
-            # Continue anyway - PDF generation is optional
+            # Continue anyway - PDF generation is optional (button still shows, will use DB fallback)
 
         # 8. SAVE TO USER'S HISTORY (if logged in)
         if current_user.is_authenticated:
@@ -2560,6 +2563,9 @@ Key patterns for video analysis:
 
         # Update stage: finalizing (before we mark complete)
         update_analysis_stage(current_analysis_id, 'finalizing')
+
+        # Add analysis_id so PDF download link includes it for database fallback
+        template_vars['analysis_id'] = current_analysis_id
 
         print("[INFO] Rendering results template")
         return render_template("results.html", **template_vars)
@@ -2637,27 +2643,78 @@ Key patterns for video analysis:
 
 
 @app.route("/download_pdf/<cache_key>", methods=["GET"])
-def download_pdf(cache_key):
+@app.route("/download_pdf/<cache_key>/<int:analysis_id>", methods=["GET"])
+def download_pdf(cache_key, analysis_id=None):
     """
     Generate and download PDF from cached analysis results.
     Uses server-side rendering with Playwright for reliable PDF generation.
+    Falls back to database if cache is empty.
     """
-    print(f"[PDF] Download request for cache_key: {cache_key}")
+    print(f"[PDF] Download request for cache_key: {cache_key}, analysis_id: {analysis_id}")
 
     # Retrieve cached data (checks both memory and disk cache)
     cached_data = pdf_cache.get(cache_key)
-    if cached_data is None:
-        print(f"[PDF ERROR] Cache key not found: {cache_key}")
-        return "PDF data not found. The analysis may have expired. Please re-run the analysis.", 404
+    template_vars = None
+    video_title = 'analysis'
+    data_source = None
 
-    try:
+    if cached_data:
         template_vars = cached_data['template_vars']
         video_title = cached_data.get('video_title', 'analysis')
+        data_source = 'cache'
+        print(f"[PDF] Using cached data for: {video_title}")
+    elif analysis_id:
+        # Fall back to database
+        print(f"[PDF] Cache miss, trying database for analysis {analysis_id}")
+        try:
+            analysis = Analysis.query.get(analysis_id)
+            if analysis:
+                print(f"[PDF] Found analysis in DB:")
+                print(f"[PDF]   - video_title: {analysis.video_title}")
+                print(f"[PDF]   - video_url: {analysis.video_url}")
+                print(f"[PDF]   - analysis_data type: {type(analysis.analysis_data)}")
+                print(f"[PDF]   - analysis_data exists: {analysis.analysis_data is not None}")
+                if analysis.analysis_data:
+                    print(f"[PDF]   - analysis_data keys: {list(analysis.analysis_data.keys()) if isinstance(analysis.analysis_data, dict) else 'NOT A DICT'}")
+                    template_vars = dict(analysis.analysis_data)  # Make a copy
+                    template_vars['video_url'] = analysis.video_url
+                    template_vars['video_title'] = analysis.video_title
+                    template_vars['thumbnail_url'] = analysis.thumbnail_url
+                    template_vars['is_saved_analysis'] = True  # Flag for template
+                    video_title = analysis.video_title or 'analysis'
+                    data_source = 'database'
+                    print(f"[PDF] Loaded from database: {video_title}")
+                else:
+                    print(f"[PDF ERROR] analysis.analysis_data is None for analysis {analysis_id}")
+                    return f"PDF data not found: Analysis {analysis_id} exists but has no stored data. Please re-run the analysis.", 404
+            else:
+                print(f"[PDF ERROR] Analysis {analysis_id} not found in database")
+                return f"PDF data not found: Analysis ID {analysis_id} does not exist.", 404
+        except Exception as e:
+            import traceback
+            print(f"[PDF ERROR] Database fallback failed: {e}")
+            traceback.print_exc()
+            return f"PDF database lookup failed: {str(e)}", 500
+    else:
+        print(f"[PDF] No analysis_id provided, cannot fall back to database")
 
-        print(f"[PDF] Rendering HTML template for: {video_title}")
+    if not template_vars:
+        print(f"[PDF ERROR] No data found for cache_key: {cache_key}")
+        return "PDF data not found. The cache has expired and no analysis ID was provided. Please access the PDF from your history page.", 404
+
+    try:
+        print(f"[PDF] Rendering HTML template for: {video_title} (source: {data_source})")
+        print(f"[PDF] Template vars keys: {list(template_vars.keys())}")
 
         # Render the HTML template with all the data
-        html_content = render_template("results.html", **template_vars)
+        try:
+            html_content = render_template("results.html", **template_vars)
+            print(f"[PDF] Template rendered successfully, HTML length: {len(html_content)}")
+        except Exception as template_error:
+            print(f"[PDF ERROR] Template rendering failed: {template_error}")
+            import traceback
+            traceback.print_exc()
+            return f"Failed to render PDF template: {str(template_error)}", 500
 
         # Generate filename with timestamp
         now = datetime.now()
@@ -2672,7 +2729,14 @@ def download_pdf(cache_key):
         print(f"[PDF] Generating PDF: {filename}")
 
         # Generate PDF using playwright
-        pdf_bytes = generate_pdf_sync(html_content)
+        try:
+            pdf_bytes = generate_pdf_sync(html_content)
+            print(f"[PDF] Playwright generated {len(pdf_bytes)} bytes")
+        except Exception as playwright_error:
+            print(f"[PDF ERROR] Playwright PDF generation failed: {playwright_error}")
+            import traceback
+            traceback.print_exc()
+            return f"Failed to generate PDF with Playwright: {str(playwright_error)}", 500
 
         # Create response
         response = make_response(pdf_bytes)
@@ -2683,7 +2747,7 @@ def download_pdf(cache_key):
         return response
 
     except Exception as e:
-        print(f"[PDF ERROR] Failed to generate PDF: {e}")
+        print(f"[PDF ERROR] Unexpected error: {e}")
         import traceback
         traceback.print_exc()
         return f"Failed to generate PDF: {str(e)}", 500
@@ -2781,6 +2845,7 @@ def view_analysis(analysis_id):
     template_vars['thumbnail_url'] = analysis.thumbnail_url
     template_vars['created_at'] = analysis.created_at
     template_vars['analysis_id'] = analysis.id
+    template_vars['pdf_cache_key'] = analysis.pdf_cache_key
     template_vars['is_saved_analysis'] = True  # Flag for template to know this is saved
 
     # Try to use full results template, fall back to summary if it fails

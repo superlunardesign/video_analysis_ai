@@ -795,7 +795,7 @@
     <div class="center">
       <a href="/" class="back-link">← Analyze Another Video</a>
 {% if pdf_cache_key %}
-      <a href="/download_pdf/{{ pdf_cache_key }}" class="back-link" style="background-color:darkturquoise; color:white;">Download PDF Report ↓</a>
+      <a href="/download_pdf/{{ pdf_cache_key }}{% if analysis_id %}/{{ analysis_id }}{% endif %}" class="back-link" style="background-color:darkturquoise; color:white;">Download PDF Report ↓</a>
       {% endif %}
 
     </div>

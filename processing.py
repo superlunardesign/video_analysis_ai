@@ -351,29 +351,46 @@ def extract_audio_and_frames(
     audio_path = extract_audio(video_path)
     dur = probe_duration(video_path)
 
+    # Scale cap based on video duration for efficiency
+    # Short videos don't need as many frames
+    if dur <= 15:
+        # Very short videos (0-15s): 1 frame per second, min 5
+        effective_cap = max(5, min(cap, int(dur)))
+    elif dur <= 30:
+        # Short videos (15-30s): ~1.5 frames per second
+        effective_cap = max(10, min(cap, int(dur * 1.5)))
+    elif dur <= 60:
+        # Medium videos (30-60s): ~1 frame per second
+        effective_cap = max(15, min(cap, int(dur)))
+    else:
+        # Longer videos: use the provided cap
+        effective_cap = cap
+
+    print(f"[frames] Video duration: {dur:.1f}s, original cap: {cap}, effective cap: {effective_cap}")
+
     frames_dir = os.path.join("frames", f"set_{int(time.time())}")
     os.makedirs(frames_dir, exist_ok=True)
 
     if strategy == "uniform":
-        paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute, cap)
+        paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute, effective_cap)
     else:
         # SMART: scene + motion + anchors + settle, then quality filters
         sc_times = scene_change_times(video_path, threshold=scene_threshold)
         mo_times = motion_event_times(video_path, window_sec=0.30, mag_thresh=12.0)
 
         merged = sorted(set(sc_times + mo_times))
-        ts_list = build_sampling_times(dur, merged, max_frames=cap)
+        ts_list = build_sampling_times(dur, merged, max_frames=effective_cap)
         print(f"[smart] timestamps after merge+anchors: {len(ts_list)}")
 
         paths = extract_frames_at_times(video_path, frames_dir, ts_list)
         paths = [p for p in paths if not is_blurry(p)]
         paths = dedupe_frames_by_phash(paths, dist=4)
         paths = keep_text_heavy_frames(paths, min_chars=0)
-        paths = sorted(paths)[:cap]
+        paths = sorted(paths)[:effective_cap]
 
         if not paths:
             print("[smart] empty after filters → fallback to uniform")
-            paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute=18, cap=min(cap, 20))
+            paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute=18, cap=min(effective_cap, 20))
 
     return audio_path, frames_dir, paths
 
