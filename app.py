@@ -2082,6 +2082,9 @@ def process():
                 except Exception as e:
                     print(f"[WARNING] Failed to cache PDF data for cached result: {e}")
 
+                # Add analysis_id and pdf_cache_key so PDF download link works
+                cached_result['analysis_id'] = current_analysis_id
+                cached_result['pdf_cache_key'] = cache_key
                 return render_template("results.html", **cached_result)
 
         # 2. EXTRACT METADATA AUTOMATICALLY (includes saves!)
@@ -2560,6 +2563,9 @@ Key patterns for video analysis:
 
         # Update stage: finalizing (before we mark complete)
         update_analysis_stage(current_analysis_id, 'finalizing')
+
+        # Add analysis_id so PDF download link includes it for database fallback
+        template_vars['analysis_id'] = current_analysis_id
 
         print("[INFO] Rendering results template")
         return render_template("results.html", **template_vars)
