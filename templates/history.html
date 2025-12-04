@@ -296,7 +296,10 @@
             <div class="card-actions">
                 <a href="/analysis/{{ analysis.id }}" class="card-btn primary">View Analysis</a>
                 {% if analysis.pdf_cache_key %}
-                <a href="/download_pdf/{{ analysis.pdf_cache_key }}/{{ analysis.id }}" class="card-btn secondary">PDF</a>
+                <button class="card-btn secondary pdf-btn" data-url="/download_pdf/{{ analysis.pdf_cache_key }}/{{ analysis.id }}">
+                    <span class="pdf-text">PDF</span>
+                    <span class="pdf-spinner" style="display:none;">⏳</span>
+                </button>
                 {% endif %}
                 <button class="card-btn danger" onclick="confirmDelete({{ analysis.id }})">Delete</button>
             </div>
@@ -425,6 +428,35 @@
             hour12: true
         };
         el.textContent = utcDate.toLocaleDateString('en-US', options);
+    });
+
+    // PDF download with loading spinner
+    document.querySelectorAll('.pdf-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const url = this.dataset.url;
+            const textEl = this.querySelector('.pdf-text');
+            const spinnerEl = this.querySelector('.pdf-spinner');
+
+            // Show spinner
+            textEl.style.display = 'none';
+            spinnerEl.style.display = 'inline';
+            this.disabled = true;
+
+            // Create hidden iframe to trigger download
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = url;
+            document.body.appendChild(iframe);
+
+            // Reset button after a delay (PDF generation takes a few seconds)
+            setTimeout(() => {
+                textEl.style.display = 'inline';
+                spinnerEl.style.display = 'none';
+                this.disabled = false;
+                // Clean up iframe after download starts
+                setTimeout(() => iframe.remove(), 5000);
+            }, 3000);
+        });
     });
 </script>
 {% endblock %}
