@@ -2660,15 +2660,25 @@ def download_pdf(cache_key, analysis_id=None):
         print(f"[PDF] Cache miss, trying database for analysis {analysis_id}")
         try:
             analysis = Analysis.query.get(analysis_id)
-            if analysis and analysis.analysis_data:
-                template_vars = analysis.analysis_data.copy()
-                template_vars['video_url'] = analysis.video_url
-                template_vars['video_title'] = analysis.video_title
-                template_vars['thumbnail_url'] = analysis.thumbnail_url
-                video_title = analysis.video_title or 'analysis'
-                print(f"[PDF] Loaded from database: {video_title}")
+            if analysis:
+                print(f"[PDF] Found analysis in DB, analysis_data exists: {analysis.analysis_data is not None}")
+                if analysis.analysis_data:
+                    template_vars = dict(analysis.analysis_data)  # Make a copy
+                    template_vars['video_url'] = analysis.video_url
+                    template_vars['video_title'] = analysis.video_title
+                    template_vars['thumbnail_url'] = analysis.thumbnail_url
+                    video_title = analysis.video_title or 'analysis'
+                    print(f"[PDF] Loaded from database: {video_title}")
+                else:
+                    print(f"[PDF ERROR] analysis.analysis_data is None for analysis {analysis_id}")
+            else:
+                print(f"[PDF ERROR] Analysis {analysis_id} not found in database")
         except Exception as e:
+            import traceback
             print(f"[PDF ERROR] Database fallback failed: {e}")
+            traceback.print_exc()
+    else:
+        print(f"[PDF] No analysis_id provided, cannot fall back to database")
 
     if not template_vars:
         print(f"[PDF ERROR] No data found for cache_key: {cache_key}")
