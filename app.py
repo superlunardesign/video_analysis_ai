@@ -2326,56 +2326,75 @@ def process():
         # This is more reliable than ACRCloud since it's directly from TikTok
         if metadata and metadata.get('track'):
             track_name = metadata.get('track', '')
-            artist_name = metadata.get('artist', 'Unknown Artist')
+            artist_name = metadata.get('artist', '')
             uploader = metadata.get('uploader', '')
 
-            # Detect if this is a TikTok original sound vs commercial music
-            # TikTok original sounds typically have patterns like:
-            # - "original sound - @username"
-            # - "original sound - username"
-            # - Artist matches uploader name
-            is_original_sound = False
-            is_trending_sound = False
-            sound_type = 'commercial_music'
-
+            # Classify sound type (we can't detect "trending" without external API)
             track_lower = track_name.lower()
-            if 'original sound' in track_lower:
-                is_original_sound = True
-                sound_type = 'tiktok_original'
-                # If it's being used, it might be trending
-                is_trending_sound = True
-            elif artist_name.lower() == uploader.lower() or f"@{uploader.lower()}" in artist_name.lower():
-                is_original_sound = True
-                sound_type = 'creator_audio'
-            elif any(keyword in track_lower for keyword in ['remix', 'sped up', 'slowed', 'tiktok']):
-                sound_type = 'tiktok_remix'
-                is_trending_sound = True
+            uploader_lower = uploader.lower() if uploader else ''
+            artist_lower = artist_name.lower() if artist_name else ''
+
+            # Check if it's the creator's own audio (their voice/speech)
+            is_creator_audio = (
+                'original sound' in track_lower and
+                (not artist_name or uploader_lower in artist_lower or artist_lower in uploader_lower)
+            )
+
+            # Check if someone is using another creator's TikTok sound
+            is_reused_sound = (
+                'original sound' in track_lower and
+                artist_name and
+                uploader_lower not in artist_lower and
+                artist_lower not in uploader_lower
+            )
+
+            if is_creator_audio:
+                sound_type = 'creator_audio'  # Their own voice/sounds - not a trend
+            elif is_reused_sound:
+                sound_type = 'tiktok_sound'  # Using another creator's sound
+            elif any(keyword in track_lower for keyword in ['remix', 'sped up', 'slowed']):
+                sound_type = 'remix'
+            else:
+                sound_type = 'music'  # Licensed/commercial music
+
+            # Use direct music URL from yt-dlp if available, otherwise create search URL
+            import urllib.parse
+            music_url = metadata.get('music_url', '')
+            if music_url:
+                sound_url = music_url
+                print(f"[MUSIC] Direct sound URL from TikTok: {music_url}")
+            else:
+                sound_url = f"https://www.tiktok.com/search?q={urllib.parse.quote(track_name)}"
 
             print(f"[MUSIC] TikTok metadata: '{track_name}' by {artist_name}")
-            print(f"[MUSIC] Sound type: {sound_type}, Original: {is_original_sound}, Likely trending: {is_trending_sound}")
+            print(f"[MUSIC] Sound type: {sound_type}")
 
-            # Add/enhance viral_sound info with TikTok metadata
-            if not audio_analysis.get('viral_sound', {}).get('is_viral'):
+            # Add sound info (only if it's not just creator's own speech)
+            has_notable_sound = sound_type != 'creator_audio'
+
+            if has_notable_sound:
                 audio_analysis['viral_sound'] = {
-                    'is_viral': True,
+                    'is_viral': True,  # Has a trackable sound
                     'sound_name': track_name,
                     'artist': artist_name,
                     'source': 'tiktok_metadata',
                     'sound_type': sound_type,
-                    'is_original_sound': is_original_sound,
-                    'is_trending_sound': is_trending_sound
+                    'sound_url': sound_url,
+                    'is_direct_link': bool(music_url)
                 }
-            # Also add music_info for easy template access
+            else:
+                audio_analysis['viral_sound'] = {'is_viral': False}
+
             audio_analysis['music_info'] = {
                 'track': track_name,
                 'artist': artist_name,
-                'has_music': True,
+                'has_music': has_notable_sound,
                 'sound_type': sound_type,
-                'is_original_sound': is_original_sound,
-                'is_trending_sound': is_trending_sound
+                'sound_url': sound_url if has_notable_sound else None
             }
         else:
             audio_analysis['music_info'] = {'has_music': False}
+            audio_analysis['viral_sound'] = {'is_viral': False}
 
         # Enhanced audio transcription WITH visual context
         try:

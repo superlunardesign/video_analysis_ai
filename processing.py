@@ -795,6 +795,7 @@ def extract_video_metadata(tiktok_url):
                 # Audio/Music info
                 'track': info.get('track', ''),  # Song/audio track name
                 'artist': info.get('artist', ''),  # Artist name
+                'music_url': info.get('music_url', ''),  # Direct link to TikTok sound page (if available)
 
                 # Content
                 'hashtags': extract_hashtags(info.get('description', '')),
@@ -846,6 +847,8 @@ def extract_video_metadata(tiktok_url):
             print(f"[SUCCESS] Metadata extracted:")
             print(f"  Uploader: {metadata['uploader']}")
             print(f"  Track: {metadata['track'] or 'None'}")
+            if metadata.get('music_url'):
+                print(f"  Music URL: {metadata['music_url']}")
             print(f"  Views: {metadata['view_count']:,}")
             print(f"  Likes: {metadata['like_count']:,}")
             print(f"  Reposts: {metadata['repost_count']:,} ({metadata['engagement_metrics'].get('repost_rate', 0)}%)")
