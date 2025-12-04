@@ -2327,7 +2327,32 @@ def process():
         if metadata and metadata.get('track'):
             track_name = metadata.get('track', '')
             artist_name = metadata.get('artist', 'Unknown Artist')
+            uploader = metadata.get('uploader', '')
+
+            # Detect if this is a TikTok original sound vs commercial music
+            # TikTok original sounds typically have patterns like:
+            # - "original sound - @username"
+            # - "original sound - username"
+            # - Artist matches uploader name
+            is_original_sound = False
+            is_trending_sound = False
+            sound_type = 'commercial_music'
+
+            track_lower = track_name.lower()
+            if 'original sound' in track_lower:
+                is_original_sound = True
+                sound_type = 'tiktok_original'
+                # If it's being used, it might be trending
+                is_trending_sound = True
+            elif artist_name.lower() == uploader.lower() or f"@{uploader.lower()}" in artist_name.lower():
+                is_original_sound = True
+                sound_type = 'creator_audio'
+            elif any(keyword in track_lower for keyword in ['remix', 'sped up', 'slowed', 'tiktok']):
+                sound_type = 'tiktok_remix'
+                is_trending_sound = True
+
             print(f"[MUSIC] TikTok metadata: '{track_name}' by {artist_name}")
+            print(f"[MUSIC] Sound type: {sound_type}, Original: {is_original_sound}, Likely trending: {is_trending_sound}")
 
             # Add/enhance viral_sound info with TikTok metadata
             if not audio_analysis.get('viral_sound', {}).get('is_viral'):
@@ -2335,13 +2360,19 @@ def process():
                     'is_viral': True,
                     'sound_name': track_name,
                     'artist': artist_name,
-                    'source': 'tiktok_metadata'
+                    'source': 'tiktok_metadata',
+                    'sound_type': sound_type,
+                    'is_original_sound': is_original_sound,
+                    'is_trending_sound': is_trending_sound
                 }
             # Also add music_info for easy template access
             audio_analysis['music_info'] = {
                 'track': track_name,
                 'artist': artist_name,
-                'has_music': True
+                'has_music': True,
+                'sound_type': sound_type,
+                'is_original_sound': is_original_sound,
+                'is_trending_sound': is_trending_sound
             }
         else:
             audio_analysis['music_info'] = {'has_music': False}
