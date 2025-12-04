@@ -2499,6 +2499,7 @@ Key patterns for video analysis:
         print(f"[SUCCESS] Analysis completed in {elapsed:.1f}s")
 
         # 7. STORE DATA FOR PDF GENERATION
+        cache_key = None
         try:
             # Generate unique cache key for PDF
             cache_key = hashlib.md5(
@@ -2508,6 +2509,9 @@ Key patterns for video analysis:
             # Get video title for PDF filename
             video_title = metadata.get('title', 'analysis') if metadata else 'analysis'
 
+            # Add cache_key to template_vars FIRST so button shows even if cache fails
+            template_vars['pdf_cache_key'] = cache_key
+
             # Store in pdf_cache
             pdf_cache[cache_key] = {
                 'template_vars': template_vars,
@@ -2515,14 +2519,10 @@ Key patterns for video analysis:
                 'timestamp': _time.time()
             }
 
-            # Add cache_key to template_vars so it can be used in template
-            template_vars['pdf_cache_key'] = cache_key
-
             print(f"[PDF CACHE] Stored data with key: {cache_key}")
         except Exception as e:
             print(f"[WARNING] Failed to cache PDF data: {e}")
-            cache_key = None
-            # Continue anyway - PDF generation is optional
+            # Continue anyway - PDF generation is optional (button still shows, will use DB fallback)
 
         # 8. SAVE TO USER'S HISTORY (if logged in)
         if current_user.is_authenticated:
