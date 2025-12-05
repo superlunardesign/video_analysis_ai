@@ -630,15 +630,15 @@
 <body>
     <div class="container">
         <nav class="nav">
-            <a href="/" class="nav-brand">
-                <span class="nav-brand-title">TikTok Analyzer</span>
+            <div class="nav-brand">
+                <a href="/" class="nav-brand-title">TikTok Analyzer</a>
                 <span class="nav-brand-subtitle">by <a href="https://superlunardesign.com" target="_blank" style="display: inline-flex;"><img src="https://static.wixstatic.com/media/b8193e_7a6acb78bc174e469ca5b4a7664e7d2f~mv2.webp/v1/fill/w_229,h_50,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/Light-Primary-Logo.webp" alt="Superlunar Design Co."></a></span>
-            </a>
+            </div>
             <div class="nav-links">
                 {% if current_user.is_authenticated %}
                     <a href="/" class="nav-link">Analyze</a>
                     <a href="/history" class="nav-link">History</a>
-                    <span class="user-email">{{ current_user.email }}</span>
+                    <a href="/account" class="nav-link user-email">{{ current_user.email }}</a>
                     <a href="/logout" class="nav-link btn-outline">Logout</a>
                 {% else %}
                     <a href="/login" class="nav-link btn-outline">Login</a>

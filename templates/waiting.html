@@ -277,12 +277,29 @@
     }
 
     function sendCompletionNotification(title) {
-        if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
-            new Notification('Analysis Complete!', {
-                body: title ? `"${title}" is ready to view` : 'Your video analysis is complete!',
-                icon: 'https://static.wixstatic.com/media/b8193e_7a6acb78bc174e469ca5b4a7664e7d2f~mv2.webp',
-                tag: 'analysis-complete-' + analysisId
-            });
+        console.log('[Notification] Attempting to send notification...');
+        console.log('[Notification] notificationsEnabled:', notificationsEnabled);
+        console.log('[Notification] Notification in window:', 'Notification' in window);
+        console.log('[Notification] Permission:', 'Notification' in window ? Notification.permission : 'N/A');
+
+        if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+                const notification = new Notification('Analysis Complete!', {
+                    body: title ? `"${title}" is ready to view` : 'Your video analysis is complete!',
+                    icon: 'https://static.wixstatic.com/media/b8193e_7a6acb78bc174e469ca5b4a7664e7d2f~mv2.webp',
+                    tag: 'analysis-complete-' + analysisId,
+                    requireInteraction: true
+                });
+                console.log('[Notification] Notification sent successfully!');
+                notification.onclick = function() {
+                    window.focus();
+                    notification.close();
+                };
+            } catch (e) {
+                console.error('[Notification] Failed to create notification:', e);
+            }
+        } else {
+            console.log('[Notification] Notifications not available or not permitted');
         }
     }
 
@@ -321,7 +338,10 @@
                 if (data.status === 'completed') {
                     clearInterval(pollInterval);
                     sendCompletionNotification(data.video_title);
-                    window.location.href = `/analysis/${analysisId}`;
+                    // Small delay to let notification appear before redirect
+                    setTimeout(() => {
+                        window.location.href = `/analysis/${analysisId}`;
+                    }, 1500);
                 } else if (data.status === 'failed') {
                     clearInterval(pollInterval);
                     alert('Analysis failed. Please try again.');
