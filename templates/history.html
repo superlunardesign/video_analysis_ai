@@ -105,9 +105,9 @@
     }
 
     .card-actions {
-        display: flex;
-        gap: var(--space-sm);
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
     }
 
     .card-btn {
@@ -448,14 +448,14 @@
             iframe.src = url;
             document.body.appendChild(iframe);
 
-            // Reset button after a delay (PDF generation takes a few seconds)
+            // Reset button after a delay (PDF generation can take up to 10 seconds)
             setTimeout(() => {
                 textEl.style.display = 'inline';
                 spinnerEl.style.display = 'none';
                 this.disabled = false;
                 // Clean up iframe after download starts
                 setTimeout(() => iframe.remove(), 5000);
-            }, 3000);
+            }, 10000);
         });
     });
 </script>
