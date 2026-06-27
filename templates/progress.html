@@ -321,6 +321,22 @@
     }
 
     @keyframes fadeIn { to { opacity: 1; } }
+
+    .cancel-btn {
+        background: transparent;
+        border: 2px solid rgba(244, 67, 54, 0.5);
+        color: #f44336;
+        padding: var(--space-sm) var(--space-lg);
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+    .cancel-btn:hover {
+        border-color: #f44336;
+        background: rgba(244, 67, 54, 0.1);
+    }
 </style>
 {% endblock %}
 
@@ -397,6 +413,12 @@
         </div>
 
         <div class="status-detail" id="statusDetail"></div>
+
+        {% if not form_data %}
+        <div style="text-align: center; margin-top: var(--space-md);">
+            <button onclick="cancelAnalysis()" class="cancel-btn" id="cancelBtn">Cancel Analysis</button>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Right: Live preview cards -->
@@ -461,13 +483,19 @@
 {% block scripts %}
 <script>
     const analysisId = {{ analysis_id|tojson }};
-    const formData = new FormData();
     const passedData = {{ form_data|tojson }};
-    for (let key in passedData) {
-        formData.append(key, passedData[key]);
+    const isNewAnalysis = passedData !== null;
+
+    // Build form data for new analyses
+    let formData = null;
+    if (isNewAnalysis) {
+        formData = new FormData();
+        for (let key in passedData) {
+            formData.append(key, passedData[key]);
+        }
     }
 
-    const resultsSpeed = passedData.results_speed || 'standard';
+    const resultsSpeed = (passedData && passedData.results_speed) || 'standard';
     const estimates = { ultra_fast: '30-60 seconds', fast: '1-2 minutes', thorough: '8-12 minutes', standard: '6-9 minutes' };
     document.getElementById('timeEstimate').textContent = estimates[resultsSpeed] || estimates.standard;
 
@@ -622,10 +650,17 @@
 
                 if (data.status === 'completed') {
                     clearInterval(pollInterval);
+                    clearInterval(smoothInterval);
                     updateUIFromProgress('complete', 100, 'Analysis complete!');
+                    if (!isNewAnalysis) {
+                        document.getElementById('statusDetail').textContent = 'Analysis complete! Redirecting...';
+                        setTimeout(() => { window.location.href = `/analysis/${analysisId}`; }, 1500);
+                    }
                 } else if (data.status === 'failed') {
                     clearInterval(pollInterval);
+                    clearInterval(smoothInterval);
                     document.getElementById('statusDetail').textContent = 'Analysis failed. Please try again.';
+                    setTimeout(() => { window.location.href = '/'; }, 3000);
                 }
             } catch (e) {
                 // Polling error is fine, fetch is still running
@@ -671,45 +706,57 @@
         }, 100);
     }, 8000);
 
-    // Start actual processing via fetch
-    fetch("/process", {
-        method: "POST",
-        body: formData
-    })
-    .then(res => res.text())
-    .then(html => {
-        fetchCompleted = true;
-        clearInterval(pollInterval);
-        clearInterval(smoothInterval);
+    // Cancel function
+    async function cancelAnalysis() {
+        const btn = document.getElementById('cancelBtn');
+        if (btn) { btn.textContent = 'Cancelling...'; btn.disabled = true; }
+        try {
+            await fetch(`/analysis/${analysisId}/cancel`, { method: 'POST' });
+        } catch (e) {}
+        window.location.href = '/';
+    }
 
-        uiStageOrder.forEach(uiStage => {
-            const el = document.getElementById('stage-' + uiStage);
-            const bar = document.getElementById('bar-' + uiStage);
-            if (!el || !bar) return;
-            el.classList.remove('active');
-            el.classList.add('completed');
-            bar.style.width = '100%';
-            el.querySelector('.stage-icon').textContent = '✓';
+    // Start actual processing via fetch (only for new analyses)
+    if (isNewAnalysis && formData) {
+        fetch("/process", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.text())
+        .then(html => {
+            fetchCompleted = true;
+            clearInterval(pollInterval);
+            clearInterval(smoothInterval);
+
+            uiStageOrder.forEach(uiStage => {
+                const el = document.getElementById('stage-' + uiStage);
+                const bar = document.getElementById('bar-' + uiStage);
+                if (!el || !bar) return;
+                el.classList.remove('active');
+                el.classList.add('completed');
+                bar.style.width = '100%';
+                el.querySelector('.stage-icon').textContent = '✓';
+            });
+
+            const overallBar = document.getElementById('overallProgress');
+            overallBar.style.width = '100%';
+            overallBar.textContent = '100%';
+            document.getElementById('statusDetail').textContent = 'Analysis complete! Loading results...';
+
+            setTimeout(() => {
+                document.open();
+                document.write(html);
+                document.close();
+            }, 1200);
+        })
+        .catch(error => {
+            fetchCompleted = true;
+            clearInterval(pollInterval);
+            clearInterval(smoothInterval);
+            console.error('Error:', error);
+            document.getElementById('statusDetail').textContent = 'An error occurred. Please try again.';
+            document.getElementById('currentFact').textContent = '';
         });
-
-        const overallBar = document.getElementById('overallProgress');
-        overallBar.style.width = '100%';
-        overallBar.textContent = '100%';
-        document.getElementById('statusDetail').textContent = 'Analysis complete! Loading results...';
-
-        setTimeout(() => {
-            document.open();
-            document.write(html);
-            document.close();
-        }, 1200);
-    })
-    .catch(error => {
-        fetchCompleted = true;
-        clearInterval(pollInterval);
-        clearInterval(smoothInterval);
-        console.error('Error:', error);
-        document.getElementById('statusDetail').textContent = 'An error occurred. Please try again.';
-        document.getElementById('currentFact').textContent = '';
-    });
+    }
 </script>
 {% endblock %}

@@ -4,8 +4,11 @@
 timeout = 300
 
 # Worker configuration
-workers = 2
-threads = 4
+# Single worker so /process and /status polls share the same
+# in-memory analysis_progress dict. Multiple threads let the
+# status polls run while /process blocks on one thread.
+workers = 1
+threads = 8
 worker_class = 'gthread'
 worker_connections = 1000
 

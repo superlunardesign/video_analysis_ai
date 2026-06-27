@@ -2168,7 +2168,8 @@ def index():
         if processing_analysis:
             age_minutes = (_time.time() - processing_analysis.created_at.timestamp()) / 60 if processing_analysis.created_at else 999
             if age_minutes < 15:
-                return render_template("processing.html",
+                return render_template("progress.html",
+                    form_data=None,
                     analysis_id=processing_analysis.id,
                     video_url=processing_analysis.video_url
                 )
@@ -2188,7 +2189,8 @@ def analyze_async():
     if processing_analysis:
         age_minutes = (_time.time() - processing_analysis.created_at.timestamp()) / 60 if processing_analysis.created_at else 999
         if age_minutes < 15:
-            return render_template("processing.html",
+            return render_template("progress.html",
+                form_data=None,
                 analysis_id=processing_analysis.id,
                 video_url=processing_analysis.video_url
             )
