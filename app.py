@@ -53,6 +53,20 @@ app.register_blueprint(auth_bp)
 cache = AnalysisCache()
 tracker = AnalysisPerformanceTracker()
 pdf_cache = PdfCache()  # Persistent PDF cache that survives server restarts
+
+# In-memory progress tracker: {analysis_id: {stage, detail, percent, updated_at}}
+analysis_progress = {}
+
+def update_progress(analysis_id, stage, detail="", percent=0):
+    """Update the in-memory progress tracker for a running analysis."""
+    if analysis_id:
+        analysis_progress[analysis_id] = {
+            'stage': stage,
+            'detail': detail,
+            'percent': percent,
+            'updated_at': _time.time()
+        }
+
 print("[INFO] Optimization components initialized: cache, tracker, pdf_cache")
 print("[INFO] Database and authentication initialized")
 
@@ -2144,12 +2158,44 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
 
 @app.route("/", methods=["GET"])
 def index():
+    if current_user and current_user.is_authenticated:
+        processing_analysis = get_user_processing_analysis(current_user.id)
+        if processing_analysis:
+            age_minutes = (_time.time() - processing_analysis.created_at.timestamp()) / 60 if processing_analysis.created_at else 999
+            if age_minutes < 15:
+                return render_template("processing.html",
+                    analysis_id=processing_analysis.id,
+                    video_url=processing_analysis.video_url
+                )
+            else:
+                fail_analysis(processing_analysis.id, "Expired: processing took too long")
+                analysis_progress.pop(processing_analysis.id, None)
     return render_template("index.html")
 
 
 @app.route("/analyze_async", methods=["POST"])
+@login_required
 def analyze_async():
-    return render_template("progress.html", form_data=request.form.to_dict())
+    form_data = request.form.to_dict()
+
+    # Check for existing in-progress analysis
+    processing_analysis = get_user_processing_analysis(current_user.id)
+    if processing_analysis:
+        age_minutes = (_time.time() - processing_analysis.created_at.timestamp()) / 60 if processing_analysis.created_at else 999
+        if age_minutes < 15:
+            return render_template("processing.html",
+                analysis_id=processing_analysis.id,
+                video_url=processing_analysis.video_url
+            )
+        else:
+            fail_analysis(processing_analysis.id, "Expired: processing took too long")
+            analysis_progress.pop(processing_analysis.id, None)
+
+    # Create a processing record now so progress.html can poll it
+    processing_record = create_processing_analysis(current_user.id, form_data.get('tiktok_url', ''))
+    analysis_id = processing_record.id if processing_record else None
+
+    return render_template("progress.html", form_data=form_data, analysis_id=analysis_id)
 
 
 @app.route("/process", methods=["POST"])
@@ -2178,21 +2224,25 @@ def process():
             'analysis_depth': request.form.get("analysis_depth", "standard").strip(),  # Get analysis depth selection
         }
 
-        # CHECK FOR IN-PROGRESS ANALYSIS (only for authenticated users)
+        # FIND OR CREATE PROCESSING RECORD
         if current_user and current_user.is_authenticated:
             processing_analysis = get_user_processing_analysis(current_user.id)
             if processing_analysis:
-                # User already has an analysis in progress - redirect to processing page
-                print(f"[INFO] User {current_user.id} has analysis {processing_analysis.id} in progress")
-                return render_template("processing.html",
-                    analysis_id=processing_analysis.id,
-                    video_url=processing_analysis.video_url
-                )
+                age_minutes = (_time.time() - processing_analysis.created_at.timestamp()) / 60 if processing_analysis.created_at else 999
+                if age_minutes < 15:
+                    current_analysis_id = processing_analysis.id
+                    print(f"[INFO] Using existing processing record {current_analysis_id}")
+                else:
+                    print(f"[INFO] Expiring stale processing analysis {processing_analysis.id} ({age_minutes:.0f}m old)")
+                    fail_analysis(processing_analysis.id, "Expired: processing took too long")
+                    analysis_progress.pop(processing_analysis.id, None)
 
-            # Create a new processing analysis record
-            processing_record = create_processing_analysis(current_user.id, form_data['tiktok_url'])
-            if processing_record:
-                current_analysis_id = processing_record.id
+            if not current_analysis_id:
+                processing_record = create_processing_analysis(current_user.id, form_data['tiktok_url'])
+                if processing_record:
+                    current_analysis_id = processing_record.id
+
+            update_progress(current_analysis_id, 'starting', 'Initializing analysis...', 0)
 
         # 1. CHECK CACHE FIRST (unless force_refresh is requested)
         force_refresh = request.form.get('force_refresh', 'false').lower() == 'true'
@@ -2225,6 +2275,7 @@ def process():
 
         # 2. EXTRACT METADATA AUTOMATICALLY (includes saves!)
         print("[INFO] Auto-extracting video metadata with save counts...")
+        update_progress(current_analysis_id, 'downloading', 'Fetching video metadata...', 5)
         metadata = extract_video_metadata(form_data['tiktok_url'])
 
         # Initialize view_count and performance_level from metadata
@@ -2355,6 +2406,7 @@ def process():
 
         # 3. VIDEO EXTRACTION (sequential is more reliable than parallel for video processing)
         print("[INFO] Extracting audio and frames...")
+        update_progress(current_analysis_id, 'extracting', 'Downloading video and extracting frames...', 10)
         audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
             tiktok_url,
             strategy=form_data['strategy'],
@@ -2363,6 +2415,7 @@ def process():
             scene_threshold=scene_threshold,
         )
         print(f"[SUCCESS] Extracted {len(frame_paths)} frames")
+        update_progress(current_analysis_id, 'extracting', f'Extracted {len(frame_paths)} frames', 20)
 
         # 4. PARALLEL ANALYSIS of independent components (REAL speedup!)
         print("[INFO] Starting parallel analysis of audio and frames...")
@@ -2379,6 +2432,7 @@ def process():
             futures = {}
 
             # Submit independent tasks that use different APIs/services
+            update_progress(current_analysis_id, 'transcribing', 'Transcribing audio...', 25)
             futures['transcription'] = executor.submit(transcribe_audio, audio_path)
             futures['audio_analysis'] = executor.submit(enhanced_audio_analysis, audio_path)
             # Frame analysis needs to wait for transcription for context, so we'll do it after
@@ -2393,6 +2447,7 @@ def process():
                 basic_transcript = ""
 
             # Now start frame analysis with transcript context
+            update_progress(current_analysis_id, 'analyzing_frames', f'Analyzing {len(frame_paths)} frames with AI vision...', 30)
             futures['frames'] = executor.submit(analyze_frames_batch, frame_paths, basic_transcript)
 
             # Collect remaining results
@@ -2435,6 +2490,8 @@ def process():
         gallery_data_urls = analysis_results['gallery_urls']
         audio_analysis = analysis_results['audio_analysis']
 
+        update_progress(current_analysis_id, 'audio_context', 'Enhancing audio with visual context...', 60)
+
         # Enhanced audio transcription WITH visual context
         try:
             transcript_data = enhanced_transcribe_audio_with_context(audio_path, frames_summaries_text)
@@ -2454,6 +2511,7 @@ def process():
             }
 
         # Get knowledge context using smart RAG retrieval
+        update_progress(current_analysis_id, 'knowledge', 'Searching knowledge base for patterns...', 65)
         try:
             print("[INFO] Loading knowledge using smart RAG retrieval...")
             
@@ -2493,6 +2551,7 @@ Key patterns for video analysis:
             knowledge_citations = ["Basic patterns fallback"]
 
         # Fetch and analyze comments (optional, don't fail if unavailable)
+        update_progress(current_analysis_id, 'comments', 'Fetching and analyzing comments...', 70)
         comment_insights = None
         try:
             print("[COMMENTS] Attempting to fetch comments...")
@@ -2549,6 +2608,7 @@ Key patterns for video analysis:
             }
         else:
             # Run comprehensive analysis with metadata and audio insights
+            update_progress(current_analysis_id, 'deep_analysis', 'Running deep psychological analysis...', 75)
             try:
                 gpt_result = run_main_analysis(
                     transcript_data.get('transcript', ''),
@@ -2623,6 +2683,8 @@ Key patterns for video analysis:
                 gpt_result['is_fallback'] = True
                 gpt_result['fallback_reason'] = str(e)[:200]
                 print("[RECOVERY] Fallback analysis generated successfully")
+
+        update_progress(current_analysis_id, 'finalizing', 'Preparing your personalized report...', 90)
 
         # Prepare template variables
         try:
@@ -2718,6 +2780,9 @@ Key patterns for video analysis:
                 print(f"[WARNING] Failed to save to user history: {e}")
                 # Continue anyway - this shouldn't block the response
 
+        update_progress(current_analysis_id, 'complete', 'Analysis complete!', 100)
+        analysis_progress.pop(current_analysis_id, None)
+
         print("[INFO] Rendering results template")
         return render_template("results.html", **template_vars)
 
@@ -2725,6 +2790,7 @@ Key patterns for video analysis:
         # Mark analysis as failed if we had one in progress
         if current_analysis_id:
             fail_analysis(current_analysis_id, str(e))
+            analysis_progress.pop(current_analysis_id, None)
 
         # User-friendly errors (video access issues, etc.)
         print(f"[USER ERROR] {str(e)}")
@@ -2786,6 +2852,7 @@ Key patterns for video analysis:
         # Mark analysis as failed if we had one in progress
         if current_analysis_id:
             fail_analysis(current_analysis_id, str(e))
+            analysis_progress.pop(current_analysis_id, None)
 
         print(f"[ERROR] Unexpected error: {str(e)}")
         import traceback
@@ -3262,11 +3329,19 @@ def analysis_status(analysis_id):
     if not analysis:
         return jsonify({'error': 'Analysis not found'}), 404
 
-    return jsonify({
-        'status': analysis.status or 'completed',  # Default to completed for older records
+    result = {
+        'status': analysis.status or 'completed',
         'video_title': analysis.video_title,
         'created_at': analysis.created_at.strftime('%B %d, %Y at %I:%M %p') if analysis.created_at else None
-    })
+    }
+
+    if analysis.status == 'processing' and analysis_id in analysis_progress:
+        progress = analysis_progress[analysis_id]
+        result['stage'] = progress['stage']
+        result['detail'] = progress['detail']
+        result['percent'] = progress['percent']
+
+    return jsonify(result)
 
 
 @app.route("/check_existing", methods=["POST"])

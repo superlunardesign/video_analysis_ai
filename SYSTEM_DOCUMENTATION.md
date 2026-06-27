@@ -559,11 +559,12 @@ results.html or analysis_summary.html (displays sections)
 ## Key Routes
 
 ### User-Facing
-- `GET /` → index.html (analysis form)
-- `POST /analyze_async` → progress.html (shows processing status)
-- `POST /process` → Complete analysis flow
-- `GET /history` → List saved analyses
+- `GET /` → index.html (analysis form). If user has a processing analysis (<15 min old), redirects to processing.html instead
+- `POST /analyze_async` → Creates processing DB record, renders progress.html with analysis_id
+- `POST /process` → Complete analysis flow (called via fetch from progress.html)
+- `GET /history` → List saved analyses (shows processing indicator if analysis in progress)
 - `GET /analysis/<id>` → View saved analysis
+- `GET /analysis/<id>/status` → JSON status endpoint (returns stage, percent, detail for in-progress analyses)
 
 ### Admin-Only
 - `POST /preview_pattern` → Preview pattern before storing
@@ -573,7 +574,81 @@ results.html or analysis_summary.html (displays sections)
 - `GET /download_pdf/<cache_key>` → Download PDF report
 - `DELETE /analysis/<id>` → Delete saved analysis
 - `GET /check_analysis/<id>` → Check if analysis exists
-- `GET /api/analysis_status/<id>` → Get analysis status (for polling)
+
+---
+
+## Progress Tracking System
+
+### Architecture
+The progress system uses two coordinated mechanisms:
+
+1. **In-memory progress tracker** (`analysis_progress` dict in app.py) — stores current stage, detail text, and percentage for each running analysis
+2. **Database status field** (`Analysis.status`) — persists 'processing', 'completed', or 'failed'
+
+### Flow: New Analysis
+```
+User submits form
+    ↓
+/analyze_async (POST)
+    - Checks for existing processing analysis (<15 min old)
+    - If found: shows processing.html (blocks duplicate submissions)
+    - If not: creates Analysis record with status='processing'
+    - Renders progress.html with analysis_id + form_data
+    ↓
+progress.html (client-side)
+    - Fires fetch("/process") with form data (runs analysis)
+    - Polls /analysis/<id>/status every 3 seconds for real progress
+    - Updates loading bars from server-reported stage/percent
+    - Smooth interpolation between polls for fluid animation
+    - When fetch completes: replaces page with results HTML
+    ↓
+/process (POST)
+    - Finds existing processing record (created by /analyze_async)
+    - Writes progress at each stage via update_progress()
+    - On completion: marks analysis as 'completed', clears progress
+    - On failure: marks as 'failed', clears progress
+    - Returns results.html
+```
+
+### Flow: User Returns Mid-Processing
+```
+User navigates to / or /analyze_async
+    ↓
+Checks for processing analysis (<15 min old)
+    ↓
+If found: renders processing.html
+    - Shows circular progress ring
+    - Polls /analysis/<id>/status every 5 seconds
+    - Shows real stage name and percentage
+    - Auto-redirects to /analysis/<id> when completed
+```
+
+### Progress Stages (in order)
+| Stage | Detail | Percent |
+|-------|--------|---------|
+| starting | Initializing analysis... | 0% |
+| downloading | Fetching video metadata... | 5% |
+| extracting | Downloading video and extracting frames... | 10-20% |
+| transcribing | Transcribing audio... | 25% |
+| analyzing_frames | Analyzing N frames with AI vision... | 30% |
+| audio_context | Enhancing audio with visual context... | 60% |
+| knowledge | Searching knowledge base for patterns... | 65% |
+| comments | Fetching and analyzing comments... | 70% |
+| deep_analysis | Running deep psychological analysis... | 75% |
+| finalizing | Preparing your personalized report... | 90% |
+| complete | Analysis complete! | 100% |
+
+### Stale Record Expiry
+Processing records older than 15 minutes are automatically expired (marked as 'failed' with reason "Expired: processing took too long"). This prevents users from being permanently blocked if a previous analysis crashed.
+
+### Blocking Duplicate Submissions
+- **Index route** (`/`): If user has active processing, redirects to processing.html
+- **analyze_async route**: If user has active processing, shows processing.html
+- **process route**: Finds and uses existing processing record instead of creating duplicate
+
+### Templates
+- **progress.html**: Full loading bars UI (extends base.html, Superlunar theme). Shows 7 stages with progress bars, overall progress bar, fun facts rotation. Driven by real server progress via polling.
+- **processing.html**: "I came back" UI (extends base.html). Shows circular progress ring with percentage, stage label, and auto-redirect on completion.
 
 ---
 
@@ -838,12 +913,14 @@ video_analysis_ai/
 │   ├── x8u4vlfmj1n62gdem7rbpyq52jcg.pdf
 │   └── ...
 ├── templates/                      # Jinja2 templates
-│   ├── base.html                   # Base layout
-│   ├── index.html                  # Analysis form
-│   ├── results.html                # Real-time analysis display
-│   ├── analysis_summary.html       # Saved analysis display
+│   ├── base.html                   # Base layout (Superlunar theme, nav, CSS vars)
+│   ├── index.html                  # Analysis form (URL + collapsed advanced options)
+│   ├── results.html                # Real-time analysis display (5-tab layout)
+│   ├── analysis_summary.html       # Saved analysis display (from history)
 │   ├── history.html                # Analysis history list
-│   ├── processing.html             # Progress indicator
+│   ├── progress.html               # Loading bars UI (polls real backend progress)
+│   ├── processing.html             # "Check status" UI (circular ring, for returning users)
+│   ├── debug_db.html               # Database debug page (admin)
 │   └── login.html                  # User authentication
 ├── static/                         # Static assets (if any)
 └── SYSTEM_DOCUMENTATION.md         # This file
@@ -875,7 +952,25 @@ video_analysis_ai/
 
 ## Version History
 
-### v2.7.0 (Current)
+### v2.8.0 (Current)
+- ✅ **NEW**: Real-time progress tracking — loading bars driven by actual backend stage, not timers
+- ✅ **NEW**: In-memory progress tracker with stage/percent/detail at each processing step
+- ✅ **NEW**: `/analysis/<id>/status` returns real progress data (stage, percent, detail)
+- ✅ **NEW**: progress.html polls real progress every 3s with smooth interpolation between polls
+- ✅ **NEW**: processing.html shows circular progress ring with real stage info (for returning users)
+- ✅ **NEW**: Stale processing records auto-expire after 15 minutes
+- ✅ **NEW**: Index route blocks new submissions while analysis is processing (redirects to processing.html)
+- ✅ **NEW**: Results page redesigned with Superlunar theme and 5-tab navigation
+- ✅ **NEW**: Tabs: Overview | Hook Breakdown | Replication Formula | Comments | Transcript & Frames
+- ✅ **NEW**: Sticky action bar on results page
+- ✅ **NEW**: Intelligent frame extraction strategy integrated into processing pipeline
+- ✅ **NEW**: Simplified form — URL + Analyze button by default, advanced options collapsed
+- ✅ **FIXED**: Metadata (transcript, creator, likes, etc.) now saved to DB for history display
+- ✅ **FIXED**: Security — @login_required on /process, /download_pdf, /clear_cache
+- ✅ **FIXED**: XSS vulnerability in /debug/db-check (moved to Jinja template)
+- ✅ **REMOVED**: Dead code files (analyze_tiktok.py, analyze_video.py, success_patterns.py)
+
+### v2.7.0
 - ✅ **FIXED**: Text hooks now filtered to remove captions (cross-checks with transcript)
 - ✅ **FIXED**: Transcript now displays in saved analyses (field properly preserved)
 - ✅ **FIXED**: Video description displays in history

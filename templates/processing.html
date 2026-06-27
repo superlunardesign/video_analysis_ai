@@ -5,7 +5,7 @@
 {% block extra_styles %}
 <style>
     .processing-container {
-        max-width: 600px;
+        max-width: 650px;
         margin: 0 auto;
         text-align: center;
         padding: var(--space-xl);
@@ -22,7 +22,7 @@
     }
 
     .processing-icon {
-        font-size: 4rem;
+        font-size: 3.5rem;
         animation: pulse 2s ease-in-out infinite;
         margin-bottom: var(--space-lg);
     }
@@ -32,30 +32,68 @@
         50% { transform: scale(1.1); opacity: 0.8; }
     }
 
-    .spinner {
-        width: 60px;
-        height: 60px;
-        border: 4px solid rgba(255, 255, 255, 0.1);
-        border-top-color: var(--solar-lime);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
+    .progress-ring-container {
+        position: relative;
+        width: 160px;
+        height: 160px;
         margin: var(--space-xl) auto;
     }
 
-    @keyframes spin {
-        to { transform: rotate(360deg); }
+    .progress-ring {
+        transform: rotate(-90deg);
+    }
+
+    .progress-ring-bg {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.1);
+        stroke-width: 8;
+    }
+
+    .progress-ring-fill {
+        fill: none;
+        stroke: var(--solar-lime);
+        stroke-width: 8;
+        stroke-linecap: round;
+        stroke-dasharray: 440;
+        stroke-dashoffset: 440;
+        transition: stroke-dashoffset 1s ease;
+    }
+
+    .progress-percent {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--solar-lime);
+    }
+
+    .stage-label {
+        margin-top: var(--space-lg);
+        font-size: 1.1rem;
+        color: var(--celestial-lavender);
+        min-height: 1.6em;
+    }
+
+    .stage-detail {
+        margin-top: var(--space-sm);
+        font-size: 0.9rem;
+        color: var(--stellar-cream);
+        opacity: 0.8;
+        min-height: 1.4em;
     }
 
     .processing-info {
         background: rgba(255, 255, 255, 0.05);
         border-radius: var(--radius-lg);
         padding: var(--space-lg);
-        margin-bottom: var(--space-xl);
+        margin: var(--space-xl) 0;
     }
 
     .processing-info p {
         color: var(--celestial-lavender);
-        margin-bottom: var(--space-sm);
+        margin-bottom: var(--space-xs);
     }
 
     .processing-info .url {
@@ -69,6 +107,7 @@
         gap: var(--space-md);
         justify-content: center;
         flex-wrap: wrap;
+        margin-top: var(--space-lg);
     }
 
     .action-btn {
@@ -80,16 +119,6 @@
         cursor: pointer;
         border: none;
         font-size: 1rem;
-    }
-
-    .action-btn.primary {
-        background: var(--accent-gradient);
-        color: var(--cosmic-indigo);
-    }
-
-    .action-btn.primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(106, 116, 207, 0.4);
     }
 
     .action-btn.secondary {
@@ -106,25 +135,29 @@
     .refresh-note {
         margin-top: var(--space-xl);
         color: var(--celestial-lavender);
-        font-size: 0.9rem;
-        opacity: 0.8;
+        font-size: 0.85rem;
+        opacity: 0.7;
     }
 
-    .status-check {
-        margin-top: var(--space-lg);
-        padding: var(--space-md);
-        background: rgba(106, 116, 207, 0.1);
-        border-radius: var(--radius-md);
+    .completed-message {
         display: none;
+        margin-top: var(--space-lg);
     }
 
-    .status-check.show {
-        display: block;
+    .completed-message a {
+        display: inline-block;
+        background: var(--accent-gradient);
+        color: var(--cosmic-indigo);
+        text-decoration: none;
+        padding: var(--space-sm) var(--space-xl);
+        border-radius: var(--radius-full);
+        font-weight: 700;
+        transition: all 0.3s ease;
     }
 
-    .status-check p {
-        color: var(--stellar-cream);
-        margin: 0;
+    .completed-message a:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(106, 116, 207, 0.4);
     }
 </style>
 {% endblock %}
@@ -132,29 +165,37 @@
 {% block content %}
 <div class="processing-container">
     <div class="processing-header">
-        <div class="processing-icon">🎬</div>
-        <h1>Analysis in Progress</h1>
-        <p style="color: var(--celestial-lavender);">Your video is being analyzed. This usually takes 1-2 minutes.</p>
+        <div class="processing-icon" id="headerIcon">🎬</div>
+        <h1 id="headerTitle">Analysis in Progress</h1>
+        <p style="color: var(--celestial-lavender);">Your video is being analyzed. You can stay here or come back later.</p>
     </div>
 
-    <div class="spinner"></div>
+    <div class="progress-ring-container">
+        <svg class="progress-ring" width="160" height="160">
+            <circle class="progress-ring-bg" cx="80" cy="80" r="70"></circle>
+            <circle class="progress-ring-fill" id="progressRing" cx="80" cy="80" r="70"></circle>
+        </svg>
+        <div class="progress-percent" id="progressPercent">0%</div>
+    </div>
+
+    <div class="stage-label" id="stageLabel">Checking status...</div>
+    <div class="stage-detail" id="stageDetail"></div>
 
     <div class="processing-info">
         <p>Analyzing video:</p>
         <p class="url">{{ video_url }}</p>
     </div>
 
-    <div class="action-buttons">
-        <a href="/history" class="action-btn secondary">View History</a>
-        <button onclick="checkStatus()" class="action-btn primary">Check Status</button>
+    <div class="completed-message" id="completedMessage">
+        <a href="/analysis/{{ analysis_id }}" id="viewResultsLink">View Results</a>
     </div>
 
-    <div class="status-check" id="statusMessage">
-        <p id="statusText"></p>
+    <div class="action-buttons" id="actionButtons">
+        <a href="/history" class="action-btn secondary">View History</a>
     </div>
 
     <p class="refresh-note">
-        This page will automatically check for completion. You can also navigate away and check your history later.
+        This page checks for updates automatically. You can navigate away and check your history later.
     </p>
 </div>
 {% endblock %}
@@ -162,61 +203,84 @@
 {% block scripts %}
 <script>
     const analysisId = {{ analysis_id }};
+    const circumference = 2 * Math.PI * 70; // r=70
+
+    const stageLabels = {
+        'starting': 'Initializing analysis...',
+        'downloading': 'Downloading video...',
+        'extracting': 'Extracting frames...',
+        'transcribing': 'Transcribing audio...',
+        'analyzing_frames': 'Analyzing visual content...',
+        'audio_context': 'Processing audio context...',
+        'knowledge': 'Searching knowledge base...',
+        'comments': 'Analyzing comments...',
+        'deep_analysis': 'Running deep analysis...',
+        'finalizing': 'Finalizing report...',
+        'complete': 'Analysis complete!'
+    };
+
+    function updateRing(percent) {
+        const ring = document.getElementById('progressRing');
+        const offset = circumference - (percent / 100) * circumference;
+        ring.style.strokeDasharray = circumference;
+        ring.style.strokeDashoffset = offset;
+        document.getElementById('progressPercent').textContent = Math.floor(percent) + '%';
+    }
+
+    function showCompleted() {
+        document.getElementById('headerIcon').textContent = '✅';
+        document.getElementById('headerTitle').textContent = 'Analysis Complete!';
+        document.getElementById('completedMessage').style.display = 'block';
+        document.getElementById('actionButtons').style.display = 'none';
+        updateRing(100);
+        document.getElementById('stageLabel').textContent = 'Your analysis is ready!';
+        document.getElementById('stageDetail').textContent = '';
+    }
+
     let checkCount = 0;
-    const maxChecks = 60; // Check for up to 5 minutes (every 5 seconds)
+    const maxChecks = 180; // 15 minutes at 5s intervals
 
     async function checkStatus() {
+        if (checkCount >= maxChecks) {
+            document.getElementById('stageLabel').textContent = 'Status check timed out. Check your history.';
+            return;
+        }
+        checkCount++;
+
         try {
             const response = await fetch(`/analysis/${analysisId}/status`);
             const data = await response.json();
 
-            const statusDiv = document.getElementById('statusMessage');
-            const statusText = document.getElementById('statusText');
-
             if (data.status === 'completed') {
-                statusText.textContent = '✅ Analysis complete! Redirecting...';
-                statusDiv.classList.add('show');
-                setTimeout(() => {
-                    window.location.href = `/analysis/${analysisId}`;
-                }, 1000);
+                showCompleted();
+                return;
             } else if (data.status === 'failed') {
-                statusText.textContent = '❌ Analysis failed. Please try again.';
-                statusDiv.classList.add('show');
-            } else {
-                statusText.textContent = '⏳ Still processing... Please wait.';
-                statusDiv.classList.add('show');
-                setTimeout(() => {
-                    statusDiv.classList.remove('show');
-                }, 3000);
+                document.getElementById('headerIcon').textContent = '⚠️';
+                document.getElementById('headerTitle').textContent = 'Analysis Failed';
+                document.getElementById('stageLabel').textContent = 'Something went wrong. Please try again.';
+                document.getElementById('stageDetail').textContent = '';
+                document.getElementById('actionButtons').innerHTML = '<a href="/" class="action-btn secondary">Try Again</a>';
+                return;
             }
+
+            // Update progress display
+            if (data.percent !== undefined) {
+                updateRing(data.percent);
+            }
+            if (data.stage) {
+                document.getElementById('stageLabel').textContent = stageLabels[data.stage] || data.stage;
+            }
+            if (data.detail) {
+                document.getElementById('stageDetail').textContent = data.detail;
+            }
+
+            setTimeout(checkStatus, 5000);
         } catch (error) {
-            console.error('Error checking status:', error);
+            setTimeout(checkStatus, 5000);
         }
     }
 
-    // Auto-check status every 5 seconds
-    function autoCheck() {
-        if (checkCount >= maxChecks) return;
-        checkCount++;
-
-        fetch(`/analysis/${analysisId}/status`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'completed') {
-                    window.location.href = `/analysis/${analysisId}`;
-                } else if (data.status === 'failed') {
-                    document.getElementById('statusText').textContent = '❌ Analysis failed. Please try again.';
-                    document.getElementById('statusMessage').classList.add('show');
-                } else {
-                    setTimeout(autoCheck, 5000);
-                }
-            })
-            .catch(() => {
-                setTimeout(autoCheck, 5000);
-            });
-    }
-
-    // Start auto-checking after 10 seconds
-    setTimeout(autoCheck, 10000);
+    // Start checking immediately
+    checkStatus();
 </script>
 {% endblock %}
