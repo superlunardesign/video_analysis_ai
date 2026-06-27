@@ -394,6 +394,14 @@
     <div class="header">
       <h1>🎯 Complete Video Analysis</h1>
       <p>Deep dive into what makes your content work</p>
+
+      <!-- Video Preview Thumbnail -->
+      {% if video_thumbnail %}
+      <div style="margin: 1.5rem auto; max-width: 400px;">
+        <img src="{{ video_thumbnail }}" alt="Video Preview" style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+      </div>
+      {% endif %}
+
       {% if metadata and metadata.url %}
       <p style="margin-top: 0.5rem;">
         <a href="{{ metadata.url }}" target="_blank" style="color: var(--solar-lime); text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.95rem;">

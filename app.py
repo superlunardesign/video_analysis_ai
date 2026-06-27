@@ -190,26 +190,58 @@ def parse_delimited_response(response_text):
                 key, value = line.split(':', 1)
                 timing[key.strip()] = value.strip()
 
-    # Parse REPLICATION_FORMULA into structured dict
+    # Parse REPLICATION_FORMULA into structured dict with multi-line support
     replication = {}
     if 'REPLICATION_FORMULA' in sections:
         content = sections['REPLICATION_FORMULA']
-        scenarios = []
+        lines = content.split('\n')
 
-        for line in content.split('\n'):
-            if ':' in line and not line.strip().startswith('-'):
+        current_key = None
+        current_value = []
+
+        for line in lines:
+            # Check if this is a key line (has colon and doesn't start with **)
+            if ':' in line and not line.strip().startswith('**'):
+                # Save previous key-value if exists
+                if current_key:
+                    value_text = '\n'.join(current_value).strip()
+                    if current_key == 'scenarios_for_same_niche':
+                        # Parse scenarios by splitting on **Scenario markers
+                        scenarios = []
+                        scenario_blocks = value_text.split('**Scenario')
+                        for block in scenario_blocks:
+                            if block.strip():
+                                scenarios.append('**Scenario' + block.strip())
+                        replication[current_key] = scenarios if scenarios else [value_text]
+                    elif current_key == 'text_template':
+                        # Keep text template as-is for proper formatting
+                        replication[current_key] = value_text
+                    else:
+                        replication[current_key] = value_text
+
+                # Start new key
                 key, value = line.split(':', 1)
-                key = key.strip()
-                value = value.strip()
-                if key == 'scenarios_for_same_niche':
-                    continue  # Handle below
-                replication[key] = value
-            elif line.strip().startswith('-'):
-                # This is a scenario
-                scenarios.append(line.strip('- ').strip())
+                current_key = key.strip()
+                current_value = [value.strip()] if value.strip() else []
+            else:
+                # Continuation of current value
+                if current_key and line.strip():
+                    current_value.append(line)
 
-        if scenarios:
-            replication['scenarios_for_same_niche'] = scenarios
+        # Don't forget the last key-value pair
+        if current_key:
+            value_text = '\n'.join(current_value).strip()
+            if current_key == 'scenarios_for_same_niche':
+                scenarios = []
+                scenario_blocks = value_text.split('**Scenario')
+                for block in scenario_blocks:
+                    if block.strip():
+                        scenarios.append('**Scenario' + block.strip())
+                replication[current_key] = scenarios if scenarios else [value_text]
+            elif current_key == 'text_template':
+                replication[current_key] = value_text
+            else:
+                replication[current_key] = value_text
 
     # Parse ALL_HOOKS sections into a combined dict
     all_hooks = {}
@@ -1840,6 +1872,7 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'frame_gallery': gallery_data_urls if gallery_data_urls else [],
         'frames_dir': frames_dir if frames_dir else "",
         'frame_paths': frame_paths if frame_paths else [],
+        'video_thumbnail': gallery_data_urls[0] if gallery_data_urls else None,  # First frame as thumbnail
         
         # Knowledge data
         'knowledge_citations': knowledge_citations if knowledge_citations else [],
