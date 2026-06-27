@@ -2778,7 +2778,6 @@ def preview_pattern():
         video_type = data.get('video_type', '')
 
         print(f"[PREVIEW] cache_key received: '{cache_key}'")
-        print(f"[PREVIEW] pdf_cache keys: {list(pdf_cache.keys())[:5]}")
 
         if not curator_notes:
             return {
