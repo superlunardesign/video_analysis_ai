@@ -268,6 +268,10 @@
       background: rgba(255,255,255,0.05); color: white; font-family: var(--font-primary); font-size: 0.95rem;
       margin-bottom: 12px;
     }
+    .admin-section input::placeholder, .admin-section textarea::placeholder {
+      color: rgba(240, 234, 224, 0.4);
+    }
+    .admin-section p { color: var(--stellar-cream); opacity: 0.85; }
     .admin-section input:focus, .admin-section textarea:focus, .admin-section select:focus {
       outline: none; border-color: var(--lunar-blush);
     }
@@ -718,11 +722,11 @@
     <div id="adminLearningSection" style="display:none;">
       <div class="admin-section">
         <h3>Beta: Context-Aware Pattern Learning</h3>
-        <p style="color: var(--celestial-lavender); font-size: 0.85rem; margin-bottom: 1rem;">Admin Only - Patterns stored with context and applicability rules</p>
+        <p style="font-size: 0.85rem; margin-bottom: 1rem;">Admin Only - Patterns stored with context and applicability rules</p>
 
         <label>What patterns should we learn from this video?</label>
         <textarea id="learningNotes" placeholder="e.g., 'This vs That' format with 3-second hook showing contrast..." rows="4"></textarea>
-        <p style="color: var(--celestial-lavender); font-size: 0.8rem; margin-top: -8px; margin-bottom: 12px;">Focus on FORMATS and STRUCTURES (not opinions about why it succeeded)</p>
+        <p style="font-size: 0.8rem; margin-top: -8px; margin-bottom: 12px;">Focus on FORMATS and STRUCTURES (not opinions about why it succeeded)</p>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div><label>Niche</label><input type="text" id="videoNiche" placeholder="e.g., fitness, cooking" value="{{ niche|default('general') }}"></div>
