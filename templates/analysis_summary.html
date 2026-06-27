@@ -355,7 +355,7 @@
     <!-- Replication Formula -->
     {% if replication_formula %}
     <div class="section">
-        <h2>📋 Replication Formula</h2>
+        <h2>📋 {% if replication_formula.script_type == 'improved' %}Improved Script{% else %}New Video Script{% endif %}</h2>
 
         {% if replication_formula.formula_name %}
         <h3 style="color: var(--solar-lime); margin-bottom: var(--space-md);">{{ replication_formula.formula_name }}</h3>
@@ -365,7 +365,10 @@
         <p style="margin-bottom: var(--space-md);"><strong>Structure:</strong> {{ replication_formula.structure }}</p>
         {% endif %}
 
-        {% if replication_formula.scenarios_for_same_niche %}
+        {% if replication_formula.script %}
+        <h4 style="color: var(--celestial-lavender); margin-top: var(--space-lg); margin-bottom: var(--space-sm);">{% if replication_formula.script_type == 'improved' %}Improved Script to Test:{% else %}Ready-to-Film Script:{% endif %}</h4>
+        <div style="background: rgba(255,255,255,0.03); padding: var(--space-md); border-radius: var(--radius-md); white-space: pre-wrap; line-height: 1.8; margin-bottom: var(--space-md);">{{ replication_formula.script | markdown_bold('#F0EAE0') | safe }}</div>
+        {% elif replication_formula.scenarios_for_same_niche %}
         <h4 style="color: var(--celestial-lavender); margin-top: var(--space-lg); margin-bottom: var(--space-sm);">Scenarios for Your Niche:</h4>
         <div style="background: rgba(255,255,255,0.03); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md);">
             {% for scenario in replication_formula.scenarios_for_same_niche %}
@@ -378,11 +381,6 @@
 
         {% if replication_formula.why_it_works %}
         <p style="margin-bottom: var(--space-md);"><strong>Why It Works:</strong> {{ replication_formula.why_it_works }}</p>
-        {% endif %}
-
-        {% if replication_formula.text_template %}
-        <h4 style="color: var(--celestial-lavender); margin-top: var(--space-lg); margin-bottom: var(--space-sm);">Text Template:</h4>
-        <div style="background: rgba(255,255,255,0.03); padding: var(--space-md); border-radius: var(--radius-md); font-family: 'Courier New', monospace; white-space: pre-wrap; margin-bottom: var(--space-md);">{{ replication_formula.text_template }}</div>
         {% endif %}
 
         {% if replication_formula.visual_requirements %}

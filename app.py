@@ -263,39 +263,48 @@ def parse_delimited_response(response_text, transcript=''):
         content = sections['REPLICATION_FORMULA']
         lines = content.split('\n')
 
+        # Top-level keys that signal a new field (everything else is continuation)
+        top_level_keys = {'formula_name', 'structure', 'new_video_script', 'improved_script',
+                          'why_it_works', 'visual_requirements',
+                          'scenarios_for_same_niche', 'text_template'}
+        # Keys whose values are multi-line blocks (colons inside should not start new keys)
+        block_keys = {'new_video_script', 'improved_script', 'scenarios_for_same_niche', 'text_template'}
+
         current_key = None
         current_value = []
 
         for line in lines:
-            # Check if this is a key line (has colon and doesn't start with **)
-            if ':' in line and not line.strip().startswith('**'):
-                # Save previous key-value if exists
+            # Check if this line starts a new top-level key
+            is_new_key = False
+            if ':' in line and not line.strip().startswith('**') and not line.strip().startswith('-'):
+                candidate_key = line.split(':', 1)[0].strip()
+                if candidate_key in top_level_keys:
+                    is_new_key = True
+                elif current_key not in block_keys:
+                    is_new_key = True
+
+            if is_new_key:
                 if current_key:
                     value_text = '\n'.join(current_value).strip()
                     if current_key == 'scenarios_for_same_niche':
-                        # Parse scenarios by splitting on **Scenario markers
                         scenarios = []
                         scenario_blocks = value_text.split('**Scenario')
                         for block in scenario_blocks:
                             if block.strip():
                                 scenarios.append('**Scenario' + block.strip())
                         replication[current_key] = scenarios if scenarios else [value_text]
-                    elif current_key == 'text_template':
-                        # Keep text template as-is for proper formatting
-                        replication[current_key] = value_text
                     else:
                         replication[current_key] = value_text
 
-                # Start new key
                 key, value = line.split(':', 1)
                 current_key = key.strip()
                 current_value = [value.strip()] if value.strip() else []
             else:
-                # Continuation of current value
-                if current_key and line.strip():
+                if current_key:
+                    current_value.append(line)
+                elif line.strip():
                     current_value.append(line)
 
-        # Don't forget the last key-value pair
         if current_key:
             value_text = '\n'.join(current_value).strip()
             if current_key == 'scenarios_for_same_niche':
@@ -305,10 +314,16 @@ def parse_delimited_response(response_text, transcript=''):
                     if block.strip():
                         scenarios.append('**Scenario' + block.strip())
                 replication[current_key] = scenarios if scenarios else [value_text]
-            elif current_key == 'text_template':
-                replication[current_key] = value_text
             else:
                 replication[current_key] = value_text
+
+        # Normalize: if either script key exists, set a unified 'script' key
+        if 'new_video_script' in replication:
+            replication['script'] = replication['new_video_script']
+            replication['script_type'] = 'new'
+        elif 'improved_script' in replication:
+            replication['script'] = replication['improved_script']
+            replication['script_type'] = 'improved'
 
     # Parse ALL_HOOKS sections into a combined dict
     all_hooks = {}
@@ -1443,31 +1458,36 @@ hook_reasoning: [Score reasoning]
 formula_name: The [Name] Formula
 structure: 0-Xs: [what to do], X-Ys: [next step], Y-Zs: [final step]
 
-scenarios_for_same_niche:
-IMPORTANT: Format each scenario with a clear title and spacing for readability.
+{"new_video_script:" if goal and goal != 'engagement' else "improved_script:"}
+{f"Write a COMPLETE new video script idea for a NEW video in the same niche, optimized for {goal.replace('_', ' ')}. This should NOT be the same video — it should be a fresh idea that applies the winning formula from the analyzed video to a new concept." if goal and goal != 'engagement' else "Write a COMPLETE improved script for THIS video — same concept, but rewritten to be stronger. Fix weaknesses, amplify what worked, add better hooks and retention tactics."}
 
-**Scenario 1: [Descriptive Title]**
-[Full script + scenes to capture and hold attention]
+IMPORTANT: Write the script as a ready-to-film document with:
 
-**Scenario 2: [Descriptive Title]**
-[Full script + scenes to capture and hold attention]
+**Video Concept:** [1-2 sentence pitch for the video idea]
+
+**Target Duration:** {target_duration}s
+
+**Script:**
+
+**[0:00-0:03] HOOK**
+- On screen text: "[exact text overlay]"
+- Visual: [what to show/do]
+- Audio: [voiceover or sound]
+- Why: [brief note on psychology]
+
+**[0:03-0:08] SETUP**
+- On screen text: "[text overlay]"
+- Visual: [what to show/do]
+- Audio: [voiceover or sound]
+
+[Continue with timestamped sections through the full video duration. Include pattern interrupts, re-hooks, and curiosity gaps. End with a strong CTA.]
+
+**[Final seconds] CTA**
+- On screen text: "[CTA text]"
+- Visual: [what to show]
+- Audio: [what to say]
 
 why_it_works: This formula works because [psychological explanation in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]
-
-text_template:
-IMPORTANT: Break down into individual timestamped sections for easy reading. Format like this:
-
-**Added Text:** "[TEXT OVERLAY 1]"
-
-**0-3s:** "[Hook text]"
-
-**3-8s:** "[Promise/setup text]"
-
-**8-12s:** "[Context/credibility text]"
-
-[Continue with all remaining timestamped sections based on video length]
-
-**[Final seconds]:** "[Payoff/CTA text]"
 
 visual_requirements: Show [specific visuals needed. Give 2-3 ideas that could help them capture attention and/or increase viewer retention and explain why they would work.]
 
@@ -1851,9 +1871,9 @@ To improve: Strengthen the opening hook, enhance audio-visual synchronization, a
         "replication_formula": {
             "formula_name": "The Success Formula",
             "structure": "0-3s: Hook, 3-7s: Value, 7-15s: Payoff",
-            "scenarios_for_same_niche": ["Scenario 1", "Scenario 2"],
+            "script": "**Video Concept:** A fresh take on the same formula.\n\n**Script:**\n\n**[0:00-0:03] HOOK**\n- On screen text: \"[Hook text]\"\n- Visual: [Opening shot]\n- Audio: [Sound/voiceover]\n\n**[0:03-0:10] SETUP**\n- Visual: [Main content]\n- Audio: [Voiceover]\n\n**[Final seconds] CTA**\n- On screen text: \"[CTA]\"\n- Audio: [Closing line]",
+            "script_type": "new",
             "why_it_works": "Creates curiosity and delivers satisfaction",
-            "text_template": "Template for text overlays",
             "visual_requirements": "Visual elements needed"
         },
         
