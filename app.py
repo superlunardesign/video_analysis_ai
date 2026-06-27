@@ -3390,6 +3390,18 @@ def analysis_status(analysis_id):
     return jsonify(result)
 
 
+@app.route("/analysis/<int:analysis_id>/cancel", methods=["POST"])
+@login_required
+def cancel_analysis(analysis_id):
+    """Cancel a stuck processing analysis so the user can start a new one."""
+    analysis = Analysis.query.filter_by(id=analysis_id, user_id=current_user.id, status='processing').first()
+    if analysis:
+        fail_analysis(analysis_id, "Cancelled by user")
+        analysis_progress.pop(analysis_id, None)
+        return jsonify({'success': True})
+    return jsonify({'error': 'Analysis not found or not processing'}), 404
+
+
 @app.route("/check_existing", methods=["POST"])
 @login_required
 def check_existing():

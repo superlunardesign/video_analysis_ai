@@ -136,7 +136,23 @@
         margin-top: var(--space-xl);
         color: var(--celestial-lavender);
         font-size: 0.85rem;
-        opacity: 0.7;
+    }
+
+    .cancel-btn {
+        background: transparent;
+        border: 2px solid rgba(244, 67, 54, 0.5);
+        color: #f44336;
+        padding: var(--space-sm) var(--space-lg);
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+
+    .cancel-btn:hover {
+        border-color: #f44336;
+        background: rgba(244, 67, 54, 0.1);
     }
 
     .completed-message {
@@ -192,6 +208,7 @@
 
     <div class="action-buttons" id="actionButtons">
         <a href="/history" class="action-btn secondary">View History</a>
+        <button onclick="cancelAnalysis()" class="cancel-btn" id="cancelBtn">Cancel Analysis</button>
     </div>
 
     <p class="refresh-note">
@@ -277,6 +294,19 @@
             setTimeout(checkStatus, 5000);
         } catch (error) {
             setTimeout(checkStatus, 5000);
+        }
+    }
+
+    async function cancelAnalysis() {
+        const btn = document.getElementById('cancelBtn');
+        btn.textContent = 'Cancelling...';
+        btn.disabled = true;
+        try {
+            await fetch(`/analysis/${analysisId}/cancel`, { method: 'POST' });
+            window.location.href = '/';
+        } catch (e) {
+            btn.textContent = 'Cancel Analysis';
+            btn.disabled = false;
         }
     }
 
