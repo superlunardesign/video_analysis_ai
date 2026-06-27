@@ -264,11 +264,11 @@ def parse_delimited_response(response_text, transcript=''):
         lines = content.split('\n')
 
         # Top-level keys that signal a new field (everything else is continuation)
-        top_level_keys = {'formula_name', 'structure', 'new_video_script', 'improved_script',
+        top_level_keys = {'formula_name', 'structure', 'new_video_script',
                           'why_it_works', 'visual_requirements',
                           'scenarios_for_same_niche', 'text_template'}
         # Keys whose values are multi-line blocks (colons inside should not start new keys)
-        block_keys = {'new_video_script', 'improved_script', 'scenarios_for_same_niche', 'text_template'}
+        block_keys = {'new_video_script', 'scenarios_for_same_niche', 'text_template'}
 
         current_key = None
         current_value = []
@@ -317,13 +317,13 @@ def parse_delimited_response(response_text, transcript=''):
             else:
                 replication[current_key] = value_text
 
-        # Normalize: if either script key exists, set a unified 'script' key
+        # Normalize: set unified 'script' key from new_video_script
         if 'new_video_script' in replication:
             replication['script'] = replication['new_video_script']
             replication['script_type'] = 'new'
-        elif 'improved_script' in replication:
-            replication['script'] = replication['improved_script']
-            replication['script_type'] = 'improved'
+        elif 'text_template' in replication:
+            replication['script'] = replication['text_template']
+            replication['script_type'] = 'new'
 
     # Parse ALL_HOOKS sections into a combined dict
     all_hooks = {}
@@ -1458,19 +1458,21 @@ hook_reasoning: [Score reasoning]
 formula_name: The [Name] Formula
 structure: 0-Xs: [what to do], X-Ys: [next step], Y-Zs: [final step]
 
-{"new_video_script:" if goal and goal != 'engagement' else "improved_script:"}
-{f"Write a COMPLETE new video script idea for a NEW video in the same niche, optimized for {goal.replace('_', ' ')}. This should NOT be the same video — it should be a fresh idea that applies the winning formula from the analyzed video to a new concept." if goal and goal != 'engagement' else "Write a COMPLETE improved script for THIS video — same concept, but rewritten to be stronger. Fix weaknesses, amplify what worked, add better hooks and retention tactics."}
+new_video_script:
+CRITICAL RULE: Do NOT describe or transcribe the video you just analyzed. You must write an ENTIRELY NEW, ORIGINAL video script for a DIFFERENT topic in the same niche. Use the analyzed video's FORMAT and FORMULA as inspiration, but the CONTENT and TOPIC must be completely different.
 
-IMPORTANT: Write the script as a ready-to-film document with:
+Think of it this way: if the analyzed video was "things designers do that I won't", your new script should be something totally different like "how I onboard new branding clients" or "why cheap logos cost you more" — a FRESH idea, NOT a rehash.
 
-**Video Concept:** [1-2 sentence pitch for the video idea]
+Write a complete ready-to-film script for this new video idea{f", optimized for {goal.replace('_', ' ')}" if goal else ""}:
+
+**Video Concept:** [1-2 sentence pitch — must be a DIFFERENT topic than the analyzed video]
 
 **Target Duration:** {target_duration}s
 
 **Script:**
 
 **[0:00-0:03] HOOK**
-- On screen text: "[exact text overlay]"
+- On screen text: "[exact NEW text overlay — not from the analyzed video]"
 - Visual: [what to show/do]
 - Audio: [voiceover or sound]
 - Why: [brief note on psychology]
@@ -1480,7 +1482,7 @@ IMPORTANT: Write the script as a ready-to-film document with:
 - Visual: [what to show/do]
 - Audio: [voiceover or sound]
 
-[Continue with timestamped sections through the full video duration. Include pattern interrupts, re-hooks, and curiosity gaps. End with a strong CTA.]
+[Continue with timestamped sections through the full {target_duration}s. Include pattern interrupts, re-hooks, and curiosity gaps. End with a strong CTA.]
 
 **[Final seconds] CTA**
 - On screen text: "[CTA text]"
@@ -1489,7 +1491,7 @@ IMPORTANT: Write the script as a ready-to-film document with:
 
 why_it_works: This formula works because [psychological explanation in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]
 
-visual_requirements: Show [specific visuals needed. Give 2-3 ideas that could help them capture attention and/or increase viewer retention and explain why they would work.]
+visual_requirements: [2-3 specific visual ideas that could help capture attention and increase retention, with explanations of why they work]
 
 ===IMPROVEMENTS===
 REMEMBER: NEVER suggest revealing payoff earlier than 75% through video. Focus on hook strength, visual variety, tension building, and engagement hooks instead.
