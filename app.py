@@ -3175,14 +3175,6 @@ def submit_for_learning():
                 "message": "Please add notes about what patterns to learn from this video"
             }, 400
 
-        # Get cached analysis
-        if cache_key not in pdf_cache:
-            return {"status": "error", "message": "Analysis not found"}, 404
-
-        cached_data = pdf_cache[cache_key]
-        template_vars = cached_data.get('template_vars', {})
-        analysis_text = template_vars.get('analysis', '')
-
         # Get metrics
         metrics = {
             'views': data.get('views', 0),
@@ -3193,8 +3185,15 @@ def submit_for_learning():
             'submission_date': datetime.now().isoformat()
         }
 
-        # If no pattern_data from preview, generate one now
+        # If no pattern_data from preview, generate one now (requires cache)
         if not pattern_data:
+            if cache_key not in pdf_cache:
+                return {"status": "error", "message": "Analysis expired. Please preview the pattern first, then submit."}, 404
+
+            cached_data = pdf_cache[cache_key]
+            template_vars = cached_data.get('template_vars', {})
+            analysis_text = template_vars.get('analysis', '')
+
             from success_patterns_improved import ContextAwarePatternStore
             pattern_store = ContextAwarePatternStore()
             preview = pattern_store.preview_pattern(
