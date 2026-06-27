@@ -1919,6 +1919,16 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         # Raw text fallback support
         'is_raw_text_fallback': gpt_result.get('is_raw_text_fallback', False),
         'raw_analysis_text': gpt_result.get('raw_analysis_text', ''),
+
+        # Summary fields for analysis_summary.html
+        'overall_assessment': gpt_result.get('overall_assessment', gpt_result.get('analysis', '')[:500] if gpt_result.get('analysis') else ''),
+        'primary_strengths': gpt_result.get('primary_strengths', gpt_result.get('strengths', '').split('\n') if gpt_result.get('strengths') else []),
+        'areas_for_improvement': gpt_result.get('areas_for_improvement', gpt_result.get('improvement_areas', '').split('\n') if gpt_result.get('improvement_areas') else []),
+        'video_description': gpt_result.get('video_description', ''),
+        'hashtags': gpt_result.get('hashtags', []),
+        'audio_type': gpt_result.get('audio_type', gpt_result.get('audio_type_detected', '')),
+        'music_info': gpt_result.get('music_info', ''),
+        'creator': gpt_result.get('creator', ''),
     }
     
     # Ensure hooks is always a list
