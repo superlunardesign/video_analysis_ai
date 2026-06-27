@@ -2677,6 +2677,9 @@ def preview_pattern():
         audience = data.get('audience', '')
         video_type = data.get('video_type', '')
 
+        print(f"[PREVIEW] cache_key received: '{cache_key}'")
+        print(f"[PREVIEW] pdf_cache keys: {list(pdf_cache.keys())[:5]}")
+
         if not curator_notes:
             return {
                 "status": "error",
@@ -2684,12 +2687,39 @@ def preview_pattern():
             }, 400
 
         # Get cached analysis
-        if cache_key not in pdf_cache:
-            return {"status": "error", "message": "Analysis not found"}, 404
+        if not cache_key:
+            return {
+                "status": "error",
+                "message": "No cache key provided. Please re-analyze the video first."
+            }, 400
 
-        cached_data = pdf_cache[cache_key]
-        template_vars = cached_data.get('template_vars', {})
-        analysis_text = template_vars.get('analysis', '')
+        # Try to get from cache, or fall back to reconstructing from saved analysis
+        if cache_key in pdf_cache:
+            cached_data = pdf_cache[cache_key]
+            template_vars = cached_data.get('template_vars', {})
+        else:
+            # Cache expired - try to get from database
+            print(f"[PREVIEW] Cache expired for key {cache_key}, attempting to load from DB")
+
+            # Find the analysis by video_url for current user
+            from models import Analysis
+            analysis = Analysis.query.filter_by(
+                video_url=video_url,
+                user_id=current_user.id
+            ).order_by(Analysis.created_at.desc()).first()
+
+            if not analysis or not analysis.analysis_data:
+                return {
+                    "status": "error",
+                    "message": "Analysis cache expired and no saved data found. Please re-analyze the video."
+                }, 404
+
+            template_vars = analysis.analysis_data
+            print(f"[PREVIEW] Loaded analysis from DB: {analysis.id}")
+
+        analysis_text = template_vars.get('analysis', '') or \
+                       template_vars.get('what_this_video_is', '') + '\n' + \
+                       template_vars.get('why_it_performed', '')
 
         # Get metrics
         metrics = {
