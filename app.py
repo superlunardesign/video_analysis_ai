@@ -2910,11 +2910,43 @@ def download_pdf(cache_key):
     """
     print(f"[PDF] Download request for cache_key: {cache_key}")
 
-    # Retrieve cached data (checks both memory and disk cache)
+    # Retrieve cached data from memory, or rebuild from DB
     cached_data = pdf_cache.get(cache_key)
     if cached_data is None:
-        print(f"[PDF ERROR] Cache key not found: {cache_key}")
-        return "PDF data not found. The analysis may have expired. Please re-run the analysis.", 404
+        print(f"[PDF] Cache miss for key: {cache_key}, rebuilding from DB...")
+        analysis = Analysis.query.filter_by(pdf_cache_key=cache_key, user_id=current_user.id).first()
+        if analysis and analysis.analysis_data:
+            cached_data = {
+                'template_vars': analysis.analysis_data.copy(),
+                'video_title': analysis.video_title or 'analysis'
+            }
+            # Fill in required fields for results.html rendering
+            tv = cached_data['template_vars']
+            tv['video_url'] = analysis.video_url
+            tv['video_title'] = analysis.video_title
+            tv['thumbnail_url'] = analysis.thumbnail_url
+            tv['pdf_cache_key'] = cache_key
+            tv.setdefault('tiktok_url', analysis.video_url)
+            tv.setdefault('platform', 'tiktok')
+            tv.setdefault('scores', {})
+            tv.setdefault('replication_formula', {})
+            tv.setdefault('exact_hook_breakdown', {})
+            tv.setdefault('all_hooks_identified', {})
+            tv.setdefault('frame_gallery', [])
+            if 'metadata' not in tv or not tv['metadata']:
+                tv['metadata'] = {}
+            tv['metadata']['url'] = analysis.video_url
+            if 'transcript_quality' not in tv:
+                tv['transcript_quality'] = {}
+            if tv.get('transcript'):
+                tv['transcript_quality']['transcript'] = tv['transcript']
+                tv['transcript_quality']['has_meaningful_speech'] = True
+            # Re-cache for future use
+            pdf_cache[cache_key] = cached_data
+            print(f"[PDF] Rebuilt from DB for analysis {analysis.id}")
+        else:
+            print(f"[PDF ERROR] No analysis found for cache key: {cache_key}")
+            return "PDF data not found. Please re-run the analysis.", 404
 
     try:
         template_vars = cached_data['template_vars']
