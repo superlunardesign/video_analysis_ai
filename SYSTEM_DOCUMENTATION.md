@@ -310,39 +310,118 @@ pdf_cache[cache_key] = {
 ### Access Control
 **User:** christina@superlunardesign.com only
 
-**Purpose:** Learn successful patterns from analyzed videos
+### Purpose: Train the AI to Notice Success Nuances
+
+**CRITICAL CONCEPT:** This system is NOT about creating universal rules. It's about **training the AI** to notice the subtle patterns and principles that make videos successful.
+
+**How It Works:**
+- Curator adds notes about what they learned from analyzing a video
+- AI extracts the **teaching** from those notes (not assumptions)
+- These learnings accumulate to help the AI suggest better insights in future analyses
+- Over time, AI learns to notice: "Oh, general topics reach wider audiences", "Agitation can keep viewers watching", "Agreement drives engagement"
+
+**What to Include in Curator Notes:**
+- ✅ Specific observations: "comments proved people stayed even through frustration"
+- ✅ Principles discovered: "strong curiosity gap kept people watching"
+- ✅ Nuances noticed: "agitation isn't necessarily bad for views"
+- ✅ Counter-intuitive findings: "they were agitated but stayed to the end"
+- ❌ NOT general assumptions: "this works best for B2B"
+- ❌ NOT categorizations: "avoid for entertainment"
 
 ### Two-Step Process
 
 #### 1. Preview Pattern
 **Endpoint:** `/preview_pattern` (POST)
 
-**Generates:**
+**Purpose:** Extract learnings from curator notes and show preview
+
+**What Gets Extracted:**
 ```python
 pattern_data = {
-    'pattern_summary': str,
-    'pattern_details': dict,
+    'pattern_summary': str,  # What curator is teaching AI
+    'key_insights': [
+        "Direct principle from curator notes",
+        "Another insight from curator notes"
+    ],
     'context': {
         'niche': str,
-        'target_audience': str,
-        'video_type': str,
-        'why_it_worked_here': str
+        'platform': str,
+        'what_happened': str,  # What curator observed
+        'why_it_matters': str   # The lesson
     },
-    'constraints': list[str],  # When NOT to use
-    'applicability': {
-        'works_best_for': list,
-        'could_work_for': list,
-        'avoid_for': list
-    },
-    'variables': {
-        'required': list,
-        'optional': list,
-        'adaptable': list
-    }
+    'when_to_notice': [
+        # Only if curator specifies when to look for this
+    ],
+    'cautions': [
+        # Only if curator explicitly warns about something
+    ],
+    'observed_elements': [
+        # Factual things that were present in video
+    ]
 }
 ```
 
-**Shows:** Preview before storing to confirm pattern is useful
+**Shows:** Preview of what will be stored - curator can verify it extracted their teaching correctly
+
+**IMPORTANT:** If preview shows assumptions not in your notes, the extraction is wrong
+
+### Examples of Good vs Bad Curator Notes
+
+#### ✅ GOOD - Specific Insights
+```
+"Comments proved that people stayed to watch the whole video but were agitated 
+at the creator not getting to the point. But it proves that the hook created a 
+strong enough gap that people stayed even through their frustration. The tension 
+built didn't provide value, entertainment, or satisfaction, but it still built tension.
+
+Other commenters agreed with the video's overall take. Fonts are also a general 
+enough concept that people outside of professional spheres will stay to know what 
+fonts are no-nos, even if they don't have a logo."
+```
+
+**What AI learns:**
+- General topics include wider pool of viewers
+- Agitation isn't necessarily bad if curiosity gap is strong
+- Strong curiosity gap can keep people watching even through frustration
+- Agreement drives engagement (likes, shares, comments)
+- Tension can work even without providing value
+
+#### ❌ BAD - Vague Generalizations
+```
+"This video works because of good pacing and a strong hook."
+```
+
+**Problem:** Too generic - AI can't learn anything specific to notice
+
+#### ❌ BAD - Incorrect Assumptions from Preview
+```
+Preview shows: "Works best for: B2B services, Branding advice"
+But curator notes said: "Fonts are general enough that anyone will watch"
+```
+
+**Problem:** AI invented a niche restriction that contradicts the actual insight
+
+### How to Write Effective Curator Notes
+
+1. **State What You Observed**
+   - "Comments showed people were frustrated but stayed"
+   - "Video got high engagement despite not delivering satisfaction"
+
+2. **Extract the Principle**
+   - "This proves curiosity gap can override frustration"
+   - "General topics reach beyond target audience"
+
+3. **Note Nuances**
+   - "Agitation isn't always bad for retention"
+   - "Agreement increases sharing behavior"
+
+4. **Don't Over-Categorize**
+   - ❌ "This only works for professional content"
+   - ✅ "Professional topics can attract casual viewers if general enough"
+
+5. **State Cautions if Relevant**
+   - "Could cross into rage bait territory if overdone"
+   - "Requires strong hook to offset frustration"
 
 #### 2. Store Pattern
 **Endpoint:** `/submit_for_learning` (POST)

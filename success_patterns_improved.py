@@ -117,21 +117,20 @@ class ContextAwarePatternStore:
                 messages=[
                     {
                         "role": "system",
-                        "content": """You are a pattern extraction expert. Extract video patterns WITH their context.
+                        "content": """You are extracting learnings to train an AI to understand video success nuances.
 
-CRITICAL: Patterns are NOT universal rules. They work in SPECIFIC contexts.
+CRITICAL RULES:
+1. The CURATOR NOTES are PRIMARY SOURCE OF TRUTH - extract insights DIRECTLY from them
+2. DO NOT make assumptions about "works best for" or "avoid for" unless EXPLICITLY stated in curator notes
+3. DO NOT invent constraints - only extract what's actually observed or stated
+4. Focus on extracting PRINCIPLES and INSIGHTS the curator identified
+5. This is for TRAINING the AI to notice these patterns - extract the learning, not assumptions
 
-Your job:
-1. Identify the PATTERN (format, structure, technique)
-2. Identify the CONTEXT (what variables made this work HERE)
-3. Identify CONSTRAINTS (when NOT to use this)
-4. Identify APPLICABILITY (what scenarios this could work for)
-
-Be specific and factual. Avoid causal assumptions."""
+The curator is teaching the AI what to notice. Extract their teaching."""
                     },
                     {
                         "role": "user",
-                        "content": f"""Extract a contextual pattern from this video:
+                        "content": f"""Extract learnings from this video to train the AI.
 
 VIDEO CONTEXT:
 - Niche: {niche}
@@ -141,46 +140,46 @@ VIDEO CONTEXT:
 - Views: {metrics.get('views', 'N/A')}
 - Engagement Rate: {metrics.get('engagement_rate', 'N/A')}
 
-CURATOR NOTES (What to learn from this):
+CURATOR NOTES (PRIMARY SOURCE - what the curator is teaching the AI to notice):
 {curator_notes}
 
-FULL ANALYSIS:
-{analysis_text[:2000]}
+ANALYSIS CONTEXT (for reference only):
+{analysis_text[:1500]}
 
-Extract and return in this EXACT JSON format:
+Extract the learnings in this format. ONLY include what curator explicitly states or teaches:
+
 {{
-    "pattern_summary": "Brief description of the core pattern (e.g., 'This vs That format with visual contrast')",
-    "pattern_details": {{
-        "format_type": "e.g., comparison, tutorial, storytelling, etc.",
-        "hook_structure": "What the hook does in first 3s",
-        "content_flow": "How content is organized",
-        "visual_elements": "Key visual patterns",
-        "text_strategy": "How text overlays are used",
-        "audio_approach": "Audio/music strategy"
-    }},
+    "pattern_summary": "1-2 sentence summary of what the curator is teaching the AI",
+    "key_insights": [
+        "Extract each principle/insight the curator stated",
+        "Use curator's language - don't paraphrase into categories",
+        "Each insight should be a learning to notice in future videos"
+    ],
     "context": {{
         "niche": "{niche}",
-        "target_audience": "Who this resonated with",
         "platform": "{platform}",
-        "video_type": "Type of content",
-        "why_it_worked_here": "Specific reasons this pattern worked in THIS context"
+        "what_happened": "What the curator observed in this specific video",
+        "why_it_matters": "The principle/lesson from curator notes"
     }},
-    "constraints": [
-        "Requires X to work",
-        "Won't work if Y",
-        "Needs Z audience type"
+    "when_to_notice": [
+        "ONLY include if curator states when this pattern appears",
+        "Empty array if not specified"
     ],
-    "applicability": {{
-        "works_best_for": ["scenario 1", "scenario 2"],
-        "could_work_for": ["scenario 3", "scenario 4"],
-        "avoid_for": ["scenario 5", "scenario 6"]
-    }},
-    "variables": {{
-        "required": ["What's absolutely needed"],
-        "optional": ["What's nice to have"],
-        "adaptable": ["What can be changed while keeping the pattern"]
-    }}
-}}"""
+    "cautions": [
+        "ONLY include if curator explicitly warns about something",
+        "Empty array if not mentioned"
+    ],
+    "observed_elements": [
+        "Specific things curator noted were present in video",
+        "Keep factual, not interpretive"
+    ]
+}}
+
+CRITICAL:
+- If curator doesn't mention specific niches/scenarios → don't invent them
+- If curator doesn't state constraints → leave empty
+- Focus on extracting the TEACHING, not creating a categorization system
+- Use curator's own insights as the key_insights array"""
                     }
                 ],
                 max_tokens=1500,
