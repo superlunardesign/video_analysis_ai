@@ -2618,12 +2618,89 @@ def clear_cache():
         return {"status": "error", "message": str(e)}, 500
 
 
+@app.route("/preview_pattern", methods=["POST"])
+@login_required
+def preview_pattern():
+    """
+    Preview what will be stored before submitting pattern for learning.
+    Shows pattern, context, constraints, and applicability.
+    """
+    try:
+        # Admin check
+        if not current_user.is_authenticated or current_user.email.lower() != 'christina@superlunardesign.com':
+            return {
+                "status": "error",
+                "message": "This feature is only available for admin users"
+            }, 403
+
+        data = request.json
+
+        # Get data
+        cache_key = data.get('cache_key')
+        video_url = data.get('video_url')
+        curator_notes = data.get('notes', '').strip()
+        niche = data.get('niche', 'general')
+        platform = data.get('platform', 'tiktok')
+        audience = data.get('audience', '')
+        video_type = data.get('video_type', '')
+
+        if not curator_notes:
+            return {
+                "status": "error",
+                "message": "Please add notes about what patterns to learn from this video"
+            }, 400
+
+        # Get cached analysis
+        if cache_key not in pdf_cache:
+            return {"status": "error", "message": "Analysis not found"}, 404
+
+        cached_data = pdf_cache[cache_key]
+        template_vars = cached_data.get('template_vars', {})
+        analysis_text = template_vars.get('analysis', '')
+
+        # Get metrics
+        metrics = {
+            'views': data.get('views', 0),
+            'engagement_rate': data.get('engagement_rate', 0),
+            'watch_time': data.get('watch_time', '')
+        }
+
+        # Initialize context-aware pattern store
+        from success_patterns_improved import ContextAwarePatternStore
+        pattern_store = ContextAwarePatternStore()
+
+        # Generate preview
+        preview = pattern_store.preview_pattern(
+            analysis_text=analysis_text,
+            video_url=video_url,
+            metrics=metrics,
+            curator_notes=curator_notes,
+            niche=niche,
+            platform=platform,
+            audience=audience,
+            video_type=video_type
+        )
+
+        print(f"[PREVIEW] Generated pattern preview for {current_user.email}")
+
+        return {
+            "status": "success",
+            "preview": preview
+        }, 200
+
+    except Exception as e:
+        print(f"[ERROR] Failed to generate preview: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}, 500
+
+
 @app.route("/submit_for_learning", methods=["POST"])
 @login_required
 def submit_for_learning():
     """
     Submit a video for learning (Admin only: christina@superlunardesign.com).
-    Stores format patterns with curator notes for future reference.
+    Stores format patterns with context, constraints, and applicability rules.
     """
     try:
         # Admin check - must be logged in as admin
@@ -2639,6 +2716,7 @@ def submit_for_learning():
         cache_key = data.get('cache_key')
         video_url = data.get('video_url')
         curator_notes = data.get('notes', '').strip()
+        pattern_data = data.get('pattern_data')  # From preview
 
         if not curator_notes:
             return {
@@ -2651,12 +2729,10 @@ def submit_for_learning():
             return {"status": "error", "message": "Analysis not found"}, 404
 
         cached_data = pdf_cache[cache_key]
-
-        # Get analysis text
         template_vars = cached_data.get('template_vars', {})
         analysis_text = template_vars.get('analysis', '')
 
-        # Get metrics from form
+        # Get metrics
         metrics = {
             'views': data.get('views', 0),
             'engagement_rate': data.get('engagement_rate', 0),
@@ -2666,30 +2742,40 @@ def submit_for_learning():
             'submission_date': datetime.now().isoformat()
         }
 
-        # Initialize success store if not exists
-        from success_patterns import SuccessPatternStore
-        success_store = SuccessPatternStore()
+        # Initialize context-aware pattern store
+        from success_patterns_improved import ContextAwarePatternStore
+        pattern_store = ContextAwarePatternStore()
 
-        # Enhance analysis text with curator notes
-        enhanced_analysis = f"""CURATOR NOTES: {curator_notes}
+        # If pattern_data provided (from preview), use it; otherwise generate new
+        if not pattern_data:
+            # Generate pattern if not previewed
+            preview = pattern_store.preview_pattern(
+                analysis_text=analysis_text,
+                video_url=video_url,
+                metrics=metrics,
+                curator_notes=curator_notes,
+                niche=data.get('niche', 'general'),
+                platform=data.get('platform', 'tiktok'),
+                audience=data.get('audience', ''),
+                video_type=data.get('video_type', '')
+            )
+            pattern_data = preview['preview']
 
-{analysis_text}"""
-
-        # Store pattern
-        success_store.add_successful_video(
-            analysis_text=enhanced_analysis,
+        # Store pattern with context
+        pattern_store.store_pattern(
+            pattern_data=pattern_data,
             video_url=video_url,
             metrics=metrics,
-            niche=data.get('niche', 'general'),
-            platform=data.get('platform', 'tiktok')
+            curator_notes=curator_notes
         )
 
-        print(f"[LEARNING] Pattern submitted by {current_user.email}")
-        print(f"  Notes: {curator_notes[:100]}...")
+        print(f"[LEARNING] Context-aware pattern submitted by {current_user.email}")
+        print(f"  Pattern: {pattern_data.get('pattern_summary', 'N/A')}")
+        print(f"  Context: {pattern_data.get('context', {}).get('niche', 'N/A')}")
 
         return {
             "status": "success",
-            "message": "Video submitted for learning! Your notes will help refine pattern recognition."
+            "message": "Video submitted for learning! Pattern stored with context, constraints, and applicability rules."
         }, 200
 
     except Exception as e:

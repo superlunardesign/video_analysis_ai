@@ -740,9 +740,9 @@
 
     <!-- Admin Learning Submission (Beta) -->
     <div id="adminLearningSection" style="display:none; margin-top: 40px;">
-      <div style="background: rgba(255, 255, 255, 0.95); border-radius: 16px; padding: 30px; max-width: 700px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-        <h3 style="color: #667eea; margin-bottom: 10px;">🧪 Beta: Submit for Learning</h3>
-        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">Admin Only - Help build the pattern knowledge base</p>
+      <div style="background: rgba(255, 255, 255, 0.95); border-radius: 16px; padding: 30px; max-width: 800px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+        <h3 style="color: #667eea; margin-bottom: 10px;">🧪 Beta: Context-Aware Pattern Learning</h3>
+        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">Admin Only - Patterns are stored WITH context, constraints, and applicability rules</p>
 
         <div style="margin-bottom: 20px;">
           <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
@@ -758,6 +758,61 @@
           </p>
         </div>
 
+        <!-- Context Fields -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+          <div>
+            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9rem;">
+              Niche
+            </label>
+            <input
+              type="text"
+              id="videoNiche"
+              placeholder="e.g., fitness, cooking, tech"
+              value="{{ niche|default('general') }}"
+              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem;"
+            >
+          </div>
+          <div>
+            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9rem;">
+              Platform
+            </label>
+            <select
+              id="videoPlatform"
+              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem;"
+            >
+              <option value="tiktok" {% if platform == 'tiktok' %}selected{% endif %}>TikTok</option>
+              <option value="youtube" {% if platform == 'youtube' %}selected{% endif %}>YouTube</option>
+              <option value="instagram" {% if platform == 'instagram' %}selected{% endif %}>Instagram</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+          <div>
+            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9rem;">
+              Target Audience (optional)
+            </label>
+            <input
+              type="text"
+              id="targetAudience"
+              placeholder="e.g., beginners, Gen Z, professionals"
+              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem;"
+            >
+          </div>
+          <div>
+            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9rem;">
+              Video Type (optional)
+            </label>
+            <input
+              type="text"
+              id="videoType"
+              placeholder="e.g., tutorial, comparison, storytelling"
+              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem;"
+            >
+          </div>
+        </div>
+
+        <!-- Metrics -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
           <div>
             <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9rem;">
@@ -783,18 +838,36 @@
           </div>
         </div>
 
+        <!-- Preview Button -->
         <button
-          onclick="submitForLearning()"
-          id="submitLearningBtn"
-          style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
-          onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(102, 126, 234, 0.4)';"
+          onclick="previewPattern()"
+          id="previewBtn"
+          style="width: 100%; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none; padding: 15px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-bottom: 15px;"
+          onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(245, 87, 108, 0.4)';"
           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';"
         >
-          📚 Submit for Learning
+          🔍 Preview Pattern
         </button>
 
+        <!-- Preview Display -->
+        <div id="patternPreview" style="display: none; background: #f8f9fa; border: 2px solid #667eea; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <h4 style="color: #667eea; margin-bottom: 15px;">Pattern Preview</h4>
+          <div id="previewContent"></div>
+
+          <!-- Submit button (only shown after preview) -->
+          <button
+            onclick="submitForLearning()"
+            id="submitLearningBtn"
+            style="width: 100%; background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%); color: white; border: none; padding: 15px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-top: 15px;"
+            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(86, 171, 47, 0.4)';"
+            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';"
+          >
+            ✅ Confirm & Submit for Learning
+          </button>
+        </div>
+
         <p style="color: #888; font-size: 0.8rem; margin-top: 15px; text-align: center;">
-          Your notes will help the AI recognize format patterns for future analyses
+          Preview shows pattern WITH context, constraints, and when to apply it
         </p>
       </div>
     </div>
@@ -807,17 +880,147 @@
       document.getElementById('adminLearningSection').style.display = 'block';
     {% endif %}
 
-    async function submitForLearning() {
+    // Store preview data globally
+    let currentPatternData = null;
+
+    async function previewPattern() {
       const notes = document.getElementById('learningNotes').value.trim();
       const views = parseInt(document.getElementById('videoViews').value) || 0;
       let engagement = document.getElementById('engagementRate').value.trim();
+      const niche = document.getElementById('videoNiche').value.trim();
+      const platform = document.getElementById('videoPlatform').value;
+      const audience = document.getElementById('targetAudience').value.trim();
+      const videoType = document.getElementById('videoType').value.trim();
 
       if (!notes) {
         alert('Please add notes about what patterns to learn from this video');
         return;
       }
 
-      // Parse engagement rate (handle both 0.12 and 12% formats)
+      // Parse engagement rate
+      if (engagement.includes('%')) {
+        engagement = parseFloat(engagement.replace('%', '')) / 100;
+      } else {
+        engagement = parseFloat(engagement) || 0;
+      }
+
+      const btn = document.getElementById('previewBtn');
+      const originalText = btn.textContent;
+      btn.textContent = '⏳ Generating Preview...';
+      btn.disabled = true;
+
+      try {
+        const response = await fetch('/preview_pattern', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            cache_key: '{{ pdf_cache_key|default("") }}',
+            video_url: '{{ tiktok_url|default("") }}',
+            notes: notes,
+            views: views,
+            engagement_rate: engagement,
+            niche: niche,
+            platform: platform,
+            audience: audience,
+            video_type: videoType
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Store pattern data for final submission
+          currentPatternData = data.preview.preview;
+
+          // Display preview
+          displayPreview(data.preview);
+
+          btn.textContent = '✅ Preview Generated';
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+          }, 2000);
+
+        } else {
+          throw new Error(data.message || 'Preview generation failed');
+        }
+
+      } catch (error) {
+        alert('Error: ' + error.message);
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    function displayPreview(previewData) {
+      const preview = previewData.preview;
+      const similarExamples = previewData.similarity_examples || [];
+
+      let html = `
+        <div style="margin-bottom: 15px;">
+          <strong style="color: #667eea;">Pattern Summary:</strong>
+          <p style="margin: 5px 0; color: #333;">${preview.pattern_summary || 'N/A'}</p>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <strong style="color: #667eea;">Context:</strong>
+          <ul style="margin: 5px 0; padding-left: 20px; color: #555;">
+            <li>Niche: ${preview.context?.niche || 'N/A'}</li>
+            <li>Platform: ${preview.context?.platform || 'N/A'}</li>
+            <li>Audience: ${preview.context?.target_audience || 'Not specified'}</li>
+            <li>Why it worked here: ${preview.context?.why_it_worked_here || 'N/A'}</li>
+          </ul>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <strong style="color: #667eea;">Constraints (when NOT to use):</strong>
+          <ul style="margin: 5px 0; padding-left: 20px; color: #555;">
+            ${preview.constraints?.map(c => `<li>${c}</li>`).join('') || '<li>None specified</li>'}
+          </ul>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <strong style="color: #667eea;">Applicability:</strong>
+          <ul style="margin: 5px 0; padding-left: 20px; color: #555;">
+            <li><strong>Works best for:</strong> ${preview.applicability?.works_best_for?.join(', ') || 'Not specified'}</li>
+            <li><strong>Could work for:</strong> ${preview.applicability?.could_work_for?.join(', ') || 'Not specified'}</li>
+            <li><strong>Avoid for:</strong> ${preview.applicability?.avoid_for?.join(', ') || 'None'}</li>
+          </ul>
+        </div>
+      `;
+
+      if (similarExamples.length > 0) {
+        html += `
+          <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #e0e0e0;">
+            <strong style="color: #f5576c;">⚠️ Similar Patterns Already Stored:</strong>
+            <ul style="margin: 5px 0; padding-left: 20px; color: #666; font-size: 0.9rem;">
+              ${similarExamples.map(ex => `
+                <li>${ex.pattern} (Similarity: ${(ex.similarity * 100).toFixed(0)}%)</li>
+              `).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      document.getElementById('previewContent').innerHTML = html;
+      document.getElementById('patternPreview').style.display = 'block';
+    }
+
+    async function submitForLearning() {
+      if (!currentPatternData) {
+        alert('Please preview the pattern first');
+        return;
+      }
+
+      const notes = document.getElementById('learningNotes').value.trim();
+      const views = parseInt(document.getElementById('videoViews').value) || 0;
+      let engagement = document.getElementById('engagementRate').value.trim();
+      const niche = document.getElementById('videoNiche').value.trim();
+      const platform = document.getElementById('videoPlatform').value;
+      const audience = document.getElementById('targetAudience').value.trim();
+      const videoType = document.getElementById('videoType').value.trim();
+
+      // Parse engagement rate
       if (engagement.includes('%')) {
         engagement = parseFloat(engagement.replace('%', '')) / 100;
       } else {
@@ -839,26 +1042,33 @@
             notes: notes,
             views: views,
             engagement_rate: engagement,
-            niche: '{{ niche|default("general") }}',
-            platform: '{{ platform|default("tiktok") }}'
+            niche: niche,
+            platform: platform,
+            audience: audience,
+            video_type: videoType,
+            pattern_data: currentPatternData  // Include the previewed pattern
           })
         });
 
         const data = await response.json();
 
         if (response.ok) {
-          btn.textContent = '✅ Submitted!';
+          btn.textContent = '✅ Submitted Successfully!';
           btn.style.background = 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)';
 
-          // Clear form
+          // Clear form and preview
           document.getElementById('learningNotes').value = '';
           document.getElementById('videoViews').value = '';
           document.getElementById('engagementRate').value = '';
+          document.getElementById('targetAudience').value = '';
+          document.getElementById('videoType').value = '';
+          document.getElementById('patternPreview').style.display = 'none';
+          currentPatternData = null;
 
           setTimeout(() => {
             btn.textContent = originalText;
             btn.disabled = false;
-            btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            btn.style.background = 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)';
           }, 3000);
 
         } else {
