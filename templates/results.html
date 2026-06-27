@@ -802,11 +802,10 @@
   </div>
 
   <script>
-    // Check if admin user and show learning section
-    const userEmail = '{{ user_email|default("") }}';
-    if (userEmail.toLowerCase() === 'christina@superlunardesign.com') {
+    // Check if admin user (via Flask-Login current_user) and show learning section
+    {% if current_user.is_authenticated and current_user.email.lower() == 'christina@superlunardesign.com' %}
       document.getElementById('adminLearningSection').style.display = 'block';
-    }
+    {% endif %}
 
     async function submitForLearning() {
       const notes = document.getElementById('learningNotes').value.trim();
@@ -835,9 +834,8 @@
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
-            user_email: userEmail,
             cache_key: '{{ pdf_cache_key|default("") }}',
-            video_url: '{{ video_url|default("") }}',
+            video_url: '{{ tiktok_url|default("") }}',
             notes: notes,
             views: views,
             engagement_rate: engagement,

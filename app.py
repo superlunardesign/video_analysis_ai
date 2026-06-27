@@ -1826,7 +1826,6 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'frames_per_minute': int(form_data.get('frames_per_minute', 24)),
         'cap': int(form_data.get('cap', 60)),
         'scene_threshold': float(form_data.get('scene_threshold', 0.24)),
-        'user_email': form_data.get('user_email', ''),  # For admin features
         'niche': form_data.get('niche', 'general'),  # For pattern matching
 
         # New conversational fields
@@ -2620,21 +2619,21 @@ def clear_cache():
 
 
 @app.route("/submit_for_learning", methods=["POST"])
+@login_required
 def submit_for_learning():
     """
     Submit a video for learning (Admin only: christina@superlunardesign.com).
     Stores format patterns with curator notes for future reference.
     """
     try:
-        data = request.json
-
-        # Admin check
-        user_email = data.get('user_email', '').lower().strip()
-        if user_email != 'christina@superlunardesign.com':
+        # Admin check - must be logged in as admin
+        if not current_user.is_authenticated or current_user.email.lower() != 'christina@superlunardesign.com':
             return {
                 "status": "error",
                 "message": "This feature is only available for admin users"
             }, 403
+
+        data = request.json
 
         # Get data
         cache_key = data.get('cache_key')
@@ -2663,7 +2662,7 @@ def submit_for_learning():
             'engagement_rate': data.get('engagement_rate', 0),
             'watch_time': data.get('watch_time', ''),
             'curator_notes': curator_notes,
-            'submitted_by': user_email,
+            'submitted_by': current_user.email,
             'submission_date': datetime.now().isoformat()
         }
 
@@ -2685,7 +2684,7 @@ def submit_for_learning():
             platform=data.get('platform', 'tiktok')
         )
 
-        print(f"[LEARNING] Pattern submitted by {user_email}")
+        print(f"[LEARNING] Pattern submitted by {current_user.email}")
         print(f"  Notes: {curator_notes[:100]}...")
 
         return {
