@@ -630,13 +630,23 @@
         }
     }
 
-    // Poll real progress from backend
+    // Poll real progress from backend — use AbortController to cancel stale polls
     let pollInterval;
+    let activePollController = null;
     if (analysisId) {
         pollInterval = setInterval(async () => {
+            // Abort any previous poll that's still pending
+            if (activePollController) {
+                activePollController.abort();
+            }
+            activePollController = new AbortController();
+
             try {
-                const res = await fetch(`/analysis/${analysisId}/status`);
+                const res = await fetch(`/analysis/${analysisId}/status`, {
+                    signal: activePollController.signal
+                });
                 const data = await res.json();
+                activePollController = null;
 
                 if (data.stage) {
                     currentServerStage = data.stage;
@@ -652,10 +662,8 @@
                     clearInterval(pollInterval);
                     clearInterval(smoothInterval);
                     updateUIFromProgress('complete', 100, 'Analysis complete!');
-                    if (!isNewAnalysis) {
-                        document.getElementById('statusDetail').textContent = 'Analysis complete! Redirecting...';
-                        setTimeout(() => { window.location.href = `/analysis/${analysisId}`; }, 1500);
-                    }
+                    document.getElementById('statusDetail').textContent = 'Analysis complete! Redirecting...';
+                    setTimeout(() => { window.location.href = `/analysis/${analysisId}`; }, 1500);
                 } else if (data.status === 'failed') {
                     clearInterval(pollInterval);
                     clearInterval(smoothInterval);
@@ -663,7 +671,9 @@
                     setTimeout(() => { window.location.href = '/'; }, 3000);
                 }
             } catch (e) {
-                // Polling error is fine, fetch is still running
+                if (e.name !== 'AbortError') {
+                    console.warn('Poll error:', e);
+                }
             }
         }, 3000);
     }
@@ -716,48 +726,20 @@
         window.location.href = '/';
     }
 
-    // Start actual processing via fetch (only for new analyses)
+    // Start processing in background (returns immediately, polling tracks progress)
     if (isNewAnalysis && formData) {
         fetch("/process", {
             method: "POST",
             body: formData
         })
-        .then(res => {
-            fetchCompleted = true;
-            clearInterval(pollInterval);
-            clearInterval(smoothInterval);
-
-            uiStageOrder.forEach(uiStage => {
-                const el = document.getElementById('stage-' + uiStage);
-                const bar = document.getElementById('bar-' + uiStage);
-                if (!el || !bar) return;
-                el.classList.remove('active');
-                el.classList.add('completed');
-                bar.style.width = '100%';
-                el.querySelector('.stage-icon').textContent = '✓';
-            });
-
-            const overallBar = document.getElementById('overallProgress');
-            overallBar.style.width = '100%';
-            overallBar.textContent = '100%';
-            document.getElementById('statusDetail').textContent = 'Analysis complete! Loading results...';
-
-            // Redirect to saved analysis
-            setTimeout(() => {
-                window.location.href = `/analysis/${analysisId}`;
-            }, 1500);
+        .then(res => res.json())
+        .then(data => {
+            console.log('Analysis started:', data);
         })
         .catch(error => {
-            fetchCompleted = true;
-            clearInterval(pollInterval);
-            clearInterval(smoothInterval);
-            console.error('Error:', error);
-            if (analysisId) {
-                document.getElementById('statusDetail').textContent = 'Redirecting to results...';
-                setTimeout(() => { window.location.href = `/analysis/${analysisId}`; }, 2000);
-            } else {
-                document.getElementById('statusDetail').textContent = 'An error occurred. Please try again.';
-            }
+            console.error('Failed to start analysis:', error);
+            document.getElementById('statusDetail').textContent = 'Failed to start analysis. Please try again.';
+            setTimeout(() => { window.location.href = '/'; }, 3000);
         });
     }
 </script>

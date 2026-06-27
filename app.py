@@ -5,6 +5,7 @@ import json
 import re
 import asyncio
 import hashlib
+import threading
 from collections import Counter
 from datetime import datetime
 from flask import Flask, request, render_template, make_response, redirect, url_for, flash, jsonify
@@ -2230,51 +2231,65 @@ def analyze_async():
 @app.route("/process", methods=["POST"])
 @login_required
 def process():
-    # Track analysis ID for this request (used for updating status)
-    current_analysis_id = None
+    """Kick off analysis in a background thread and return immediately."""
+    form_data = {
+        'tiktok_url': request.form.get("tiktok_url", "").strip(),
+        'view_count': request.form.get("view_count", "").strip(),
+        'creator_note': request.form.get("creator_note", "").strip(),
+        'strategy': request.form.get("strategy", "smart").strip(),
+        'frames_per_minute': request.form.get("frames_per_minute", "24"),
+        'cap': request.form.get("cap", "40"),
+        'scene_threshold': request.form.get("scene_threshold", "0.24"),
+        'platform': request.form.get("platform", "tiktok").strip(),
+        'target_duration': request.form.get("target_duration", "30").strip(),
+        'goal': request.form.get("goal", "follower_growth").strip(),
+        'tone': request.form.get("tone", "confident, friendly").strip(),
+        'audience': request.form.get("audience", "creators and small business owners").strip(),
+        'analysis_depth': request.form.get("analysis_depth", "standard").strip(),
+        'force_refresh': request.form.get('force_refresh', 'false').lower() == 'true',
+        'results_speed': request.form.get('results_speed', 'standard').strip(),
+    }
+    user_id = current_user.id
 
+    # FIND OR CREATE PROCESSING RECORD
+    current_analysis_id = None
+    processing_analysis = get_user_processing_analysis(user_id)
+    if processing_analysis:
+        age_minutes = (_time.time() - processing_analysis.created_at.timestamp()) / 60 if processing_analysis.created_at else 999
+        if age_minutes < 15:
+            current_analysis_id = processing_analysis.id
+            print(f"[INFO] Using existing processing record {current_analysis_id}")
+        else:
+            print(f"[INFO] Expiring stale processing analysis {processing_analysis.id} ({age_minutes:.0f}m old)")
+            fail_analysis(processing_analysis.id, "Expired: processing took too long")
+            analysis_progress.pop(processing_analysis.id, None)
+
+    if not current_analysis_id:
+        processing_record = create_processing_analysis(user_id, form_data['tiktok_url'])
+        if processing_record:
+            current_analysis_id = processing_record.id
+
+    update_progress(current_analysis_id, 'starting', 'Initializing analysis...', 0)
+
+    thread = threading.Thread(
+        target=_run_analysis_background,
+        args=(form_data, user_id, current_analysis_id),
+        daemon=True
+    )
+    thread.start()
+
+    return jsonify({'started': True, 'analysis_id': current_analysis_id})
+
+
+def _run_analysis_background(form_data, user_id, current_analysis_id):
+    """Run the full analysis pipeline in a background thread."""
+    ctx = app.app_context()
+    ctx.push()
     try:
         start_time = _time.time()
 
-        # Get form data with improved view count handling
-        form_data = {
-            'tiktok_url': request.form.get("tiktok_url", "").strip(),
-            'view_count': request.form.get("view_count", "").strip(),  # Capture view count
-            'creator_note': request.form.get("creator_note", "").strip(),
-            'strategy': request.form.get("strategy", "smart").strip(),
-            'frames_per_minute': request.form.get("frames_per_minute", "24"),
-            'cap': request.form.get("cap", "40"),  # Reduced from 60 to 40 for faster analysis
-            'scene_threshold': request.form.get("scene_threshold", "0.24"),
-            'platform': request.form.get("platform", "tiktok").strip(),
-            'target_duration': request.form.get("target_duration", "30").strip(),
-            'goal': request.form.get("goal", "follower_growth").strip(),
-            'tone': request.form.get("tone", "confident, friendly").strip(),
-            'audience': request.form.get("audience", "creators and small business owners").strip(),
-            'analysis_depth': request.form.get("analysis_depth", "standard").strip(),  # Get analysis depth selection
-        }
-
-        # FIND OR CREATE PROCESSING RECORD
-        if current_user and current_user.is_authenticated:
-            processing_analysis = get_user_processing_analysis(current_user.id)
-            if processing_analysis:
-                age_minutes = (_time.time() - processing_analysis.created_at.timestamp()) / 60 if processing_analysis.created_at else 999
-                if age_minutes < 15:
-                    current_analysis_id = processing_analysis.id
-                    print(f"[INFO] Using existing processing record {current_analysis_id}")
-                else:
-                    print(f"[INFO] Expiring stale processing analysis {processing_analysis.id} ({age_minutes:.0f}m old)")
-                    fail_analysis(processing_analysis.id, "Expired: processing took too long")
-                    analysis_progress.pop(processing_analysis.id, None)
-
-            if not current_analysis_id:
-                processing_record = create_processing_analysis(current_user.id, form_data['tiktok_url'])
-                if processing_record:
-                    current_analysis_id = processing_record.id
-
-            update_progress(current_analysis_id, 'starting', 'Initializing analysis...', 0)
-
-        # 1. CHECK CACHE FIRST (unless force_refresh is requested)
-        force_refresh = request.form.get('force_refresh', 'false').lower() == 'true'
+        # 1. CHECK CACHE FIRST
+        force_refresh = form_data.get('force_refresh', False)
         if not force_refresh:
             cached_result = cache.get_cached_analysis(form_data['tiktok_url'])
             if cached_result:
@@ -2306,8 +2321,7 @@ def process():
                     thumbnail_url = cached_result.get('frame_gallery', [None])[0] if cached_result.get('frame_gallery') else None
                     complete_analysis(current_analysis_id, video_title, thumbnail_url, cached_result, cache_key)
                     analysis_progress.pop(current_analysis_id, None)
-
-                return render_template("results.html", **cached_result)
+                return
 
         # 2. EXTRACT METADATA AUTOMATICALLY (includes saves!)
         print("[INFO] Auto-extracting video metadata with save counts...")
@@ -2434,7 +2448,10 @@ def process():
             scene_threshold = float(form_data['scene_threshold'])
         except ValueError as e:
             print(f"[ERROR] Invalid numeric parameter: {e}")
-            return "Error: Invalid numeric parameters provided", 400
+            if current_analysis_id:
+                fail_analysis(current_analysis_id, f"Invalid parameters: {e}")
+                analysis_progress.pop(current_analysis_id, None)
+            return
 
         # Apply Results Speed tier settings
         results_speed = form_data.get('results_speed', 'standard')
@@ -2457,7 +2474,10 @@ def process():
 
         tiktok_url = form_data['tiktok_url']
         if not tiktok_url:
-            return "Error: TikTok URL is required", 400
+            if current_analysis_id:
+                fail_analysis(current_analysis_id, "TikTok URL is required")
+                analysis_progress.pop(current_analysis_id, None)
+            return
 
         print(f"[INFO] Processing: {tiktok_url}")
         print(f"[INFO] Creator note: {form_data['creator_note']}")
@@ -2779,7 +2799,10 @@ Key patterns for video analysis:
             print("[SUCCESS] Template variables prepared")
         except Exception as e:
             print(f"[ERROR] Template preparation error: {e}")
-            return f"Error preparing results: {str(e)}", 500
+            if current_analysis_id:
+                fail_analysis(current_analysis_id, f"Template error: {e}")
+                analysis_progress.pop(current_analysis_id, None)
+            return
 
         # 5. TRACK PERFORMANCE for continuous improvement
         try:
@@ -2824,8 +2847,8 @@ Key patterns for video analysis:
             cache_key = None
             # Continue anyway - PDF generation is optional
 
-        # 8. SAVE TO USER'S HISTORY (if logged in)
-        if current_user.is_authenticated:
+        # 8. SAVE TO USER'S HISTORY
+        if user_id:
             try:
                 # Get thumbnail from first frame in gallery
                 thumbnail_url = None
@@ -2844,7 +2867,7 @@ Key patterns for video analysis:
                 else:
                     # Legacy: Create new analysis record
                     save_analysis_to_db(
-                        user_id=current_user.id,
+                        user_id=user_id,
                         video_url=form_data['tiktok_url'],
                         video_title=video_title,
                         thumbnail_url=thumbnail_url,
@@ -2856,83 +2879,26 @@ Key patterns for video analysis:
                 # Continue anyway - this shouldn't block the response
 
         update_progress(current_analysis_id, 'complete', 'Analysis complete!', 100)
+        print("[INFO] Analysis complete, results saved to DB")
+        # Clean up progress entry after a short delay
+        _time.sleep(10)
         analysis_progress.pop(current_analysis_id, None)
 
-        print("[INFO] Rendering results template")
-        return render_template("results.html", **template_vars)
-
     except ValueError as e:
-        # Mark analysis as failed if we had one in progress
         if current_analysis_id:
             fail_analysis(current_analysis_id, str(e))
             analysis_progress.pop(current_analysis_id, None)
-
-        # User-friendly errors (video access issues, etc.)
         print(f"[USER ERROR] {str(e)}")
-        error_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Video Access Error</title>
-            <style>
-                body {{
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    min-height: 100vh;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 20px;
-                }}
-                .error-container {{
-                    background: white;
-                    border-radius: 16px;
-                    padding: 40px;
-                    max-width: 600px;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                }}
-                h1 {{ color: #e74c3c; margin-bottom: 20px; }}
-                pre {{
-                    background: #f8f9fa;
-                    padding: 20px;
-                    border-radius: 8px;
-                    border-left: 4px solid #e74c3c;
-                    white-space: pre-wrap;
-                    line-height: 1.6;
-                }}
-                .back-link {{
-                    display: inline-block;
-                    background: #667eea;
-                    color: white;
-                    text-decoration: none;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    margin-top: 20px;
-                }}
-                .back-link:hover {{ background: #5568d3; }}
-            </style>
-        </head>
-        <body>
-            <div class="error-container">
-                <h1>⚠️ Video Access Error</h1>
-                <pre>{str(e)}</pre>
-                <a href="/" class="back-link">← Try Another Video</a>
-            </div>
-        </body>
-        </html>
-        """
-        return error_html, 400
 
     except Exception as e:
-        # Mark analysis as failed if we had one in progress
         if current_analysis_id:
             fail_analysis(current_analysis_id, str(e))
             analysis_progress.pop(current_analysis_id, None)
-
         print(f"[ERROR] Unexpected error: {str(e)}")
         import traceback
         traceback.print_exc()
-        return f"Unexpected error: {str(e)}", 500
+    finally:
+        ctx.pop()
 
 
 @app.route("/download_pdf/<cache_key>", methods=["GET"])
