@@ -16,21 +16,21 @@
             --lunar-blush: #6A74CE;
             --solar-lime: #F5FFA0;
             --stellar-cream: #F0EAE0;
-            
+
             /* Gradients */
             --primary-gradient: linear-gradient(135deg, var(--cosmic-indigo) 0%, var(--eclipse-plum) 50%, var(--celestial-lavender) 100%);
             --accent-gradient: linear-gradient(45deg, var(--lunar-blush) 0%, var(--celestial-lavender) 100%);
-            
+
             /* Typography */
             --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            
+
             /* Spacing */
             --space-xs: 0.5rem;
             --space-sm: 1rem;
             --space-md: 1.5rem;
             --space-lg: 2rem;
             --space-xl: 3rem;
-            
+
             /* Border radius */
             --radius-sm: 8px;
             --radius-md: 12px;
@@ -91,6 +91,8 @@
             border-radius: var(--radius-lg);
             padding: var(--space-xl);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            margin: 0 auto;
         }
 
         /* Form Grid */
@@ -278,15 +280,15 @@
             .container {
                 padding: 0 var(--space-sm);
             }
-            
+
             .form-container {
                 padding: var(--space-lg);
             }
-            
+
             .form-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .section-title {
                 font-size: 1.3rem;
             }
@@ -420,7 +422,7 @@
         }
 
         .accordion.active .accordion-content {
-            max-height: 1000px;
+            max-height: 2000px;
         }
 
         .accordion-body {
@@ -654,145 +656,138 @@
 
         <div class="form-container">
             <form action="/analyze_async" method="POST">
-                <div class="form-grid">
-                    <!-- Essential Fields -->
-                    <div class="field-group full-width">
-                        <label for="tiktok_url">🔗 TikTok URL</label>
-                        <input
-                            type="text"
-                            id="tiktok_url"
-                            name="tiktok_url"
-                            placeholder="https://www.tiktok.com/@user/video/..."
-                            required
-                        >
+                <!-- SIMPLIFIED DEFAULT VIEW -->
+                <div class="field-group" style="margin-bottom: 2rem;">
+                    <label for="tiktok_url" style="font-size: 1rem; margin-bottom: 0.5rem;">Paste TikTok URL</label>
+                    <input
+                        type="text"
+                        id="tiktok_url"
+                        name="tiktok_url"
+                        placeholder="https://www.tiktok.com/@user/video/..."
+                        required
+                        style="font-size: 1.1rem; padding: 1.2rem;"
+                    >
+                </div>
+
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <button type="submit" class="submit-btn" style="width: 100%; font-size: 1.2rem; padding: 1.2rem;">
+                        Analyze Content
+                    </button>
+                </div>
+
+                <!-- ALL ADVANCED OPTIONS COLLAPSED BY DEFAULT -->
+                <div class="accordion" id="allOptionsAccordion">
+                    <div class="accordion-header">
+                        <span class="accordion-title">⚙️ Advanced Options</span>
+                        <span class="accordion-icon">▼</span>
                     </div>
+                    <div class="accordion-content">
+                        <div class="accordion-body">
+                            <div class="form-grid" style="gap: 1.5rem;">
 
-                    <div class="field-group full-width">
-                        <label for="view_count">👁️ View Count <span style="opacity: 0.7; font-weight: normal;">(optional - auto-detected)</span></label>
-                        <input type="text" id="view_count" name="view_count" placeholder="259k, 1.2M, or 50000">
-                        <span class="helper-text">💡 Leave blank to automatically extract views, likes, saves, and engagement metrics</span>
-                    </div>
+                                <div class="field-group full-width">
+                                    <label for="creator_note">📝 Notes (optional)</label>
+                                    <textarea id="creator_note" name="creator_note" placeholder="e.g., Lots of comments but few follows - include stronger CTA" rows="2"></textarea>
+                                </div>
 
-                    <div class="field-group">
-                        <label for="analysis_depth">📊 Analysis Depth</label>
-                        <select id="analysis_depth" name="analysis_depth">
-                            <option value="standard" selected>Standard (Quick & Actionable)</option>
-                            <option value="deep">Deep (Full Psychology)</option>
-                            <option value="extraction_only">Extraction Only (Raw Data)</option>
-                        </select>
-                    </div>
+                                <div class="field-group full-width">
+                                    <label for="view_count">👁️ View Count (optional - auto-detected)</label>
+                                    <input type="text" id="view_count" name="view_count" placeholder="259k, 1.2M, or 50000">
+                                    <span class="helper-text">Leave blank to auto-extract metrics</span>
+                                </div>
 
-                    <div class="field-group">
-                        <label for="results_speed">⚡ Speed</label>
-                        <select id="results_speed" name="results_speed">
-                            <option value="ultra_fast">Ultra Fast (~1min)</option>
-                            <option value="fast">Fast (~2min)</option>
-                            <option value="standard" selected>Standard (~3min)</option>
-                            <option value="thorough">Thorough (~5min)</option>
-                        </select>
-                    </div>
+                                <div class="field-group">
+                                    <label for="analysis_depth">Analysis Depth</label>
+                                    <select id="analysis_depth" name="analysis_depth">
+                                        <option value="standard" selected>Standard</option>
+                                        <option value="deep">Deep Psychology</option>
+                                        <option value="extraction_only">Extraction Only</option>
+                                    </select>
+                                </div>
 
-                    <div class="field-group full-width">
-                        <label for="creator_note">📝 Notes <span style="opacity: 0.7; font-weight: normal;">(optional)</span></label>
-                        <textarea
-                            id="creator_note"
-                            name="creator_note"
-                            placeholder="e.g., Lots of comments but few follows - include stronger CTA"
-                            rows="2"
-                        ></textarea>
-                    </div>
+                                <div class="field-group">
+                                    <label for="results_speed">Speed</label>
+                                    <select id="results_speed" name="results_speed">
+                                        <option value="ultra_fast">Ultra Fast (~1min)</option>
+                                        <option value="fast">Fast (~2min)</option>
+                                        <option value="standard" selected>Standard (~3min)</option>
+                                        <option value="thorough">Thorough (~5min)</option>
+                                    </select>
+                                </div>
 
-                    <!-- Video Ideas Toggle -->
-                    <div class="full-width">
-                        <label class="toggle-container" for="nicheIdeasToggle">
-                            <input type="checkbox" id="nicheIdeasToggle" class="toggle-checkbox">
-                            <div class="toggle-switch"></div>
-                            <span class="toggle-label">💡 Want video ideas for your niche?</span>
-                        </label>
+                                <!-- Video Ideas -->
+                                <div class="full-width" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                                    <label class="toggle-container" for="nicheIdeasToggle">
+                                        <input type="checkbox" id="nicheIdeasToggle" class="toggle-checkbox">
+                                        <div class="toggle-switch"></div>
+                                        <span class="toggle-label">💡 Want video ideas for your niche?</span>
+                                    </label>
 
-                        <div id="nicheIdeasSection" class="collapsible-section">
-                            <div class="field-group">
-                                <label for="platform">Platform</label>
-                                <select id="platform" name="platform">
-                                    <option value="tiktok" selected>TikTok</option>
-                                    <option value="reels">Instagram Reels</option>
-                                    <option value="shorts">YouTube Shorts</option>
-                                </select>
-                            </div>
+                                    <div id="nicheIdeasSection" class="collapsible-section">
+                                        <div class="form-grid" style="gap: 1rem;">
+                                            <div class="field-group">
+                                                <label for="platform">Platform</label>
+                                                <select id="platform" name="platform">
+                                                    <option value="tiktok" selected>TikTok</option>
+                                                    <option value="reels">Instagram Reels</option>
+                                                    <option value="shorts">YouTube Shorts</option>
+                                                </select>
+                                            </div>
+                                            <div class="field-group">
+                                                <label for="target_duration">Duration (sec)</label>
+                                                <input type="text" id="target_duration" name="target_duration" value="30">
+                                            </div>
+                                            <div class="field-group">
+                                                <label for="goal">Goal</label>
+                                                <select id="goal" name="goal">
+                                                    <option value="viral_reach">Viral Reach</option>
+                                                    <option value="follower_growth" selected>Follower Growth</option>
+                                                    <option value="sales_conversions">Sales</option>
+                                                </select>
+                                            </div>
+                                            <div class="field-group">
+                                                <label for="tone">Tone</label>
+                                                <input type="text" id="tone" name="tone" value="same as video">
+                                            </div>
+                                            <div class="field-group">
+                                                <label for="audience">Audience</label>
+                                                <input type="text" id="audience" name="audience" value="same as video">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                            <div class="field-group">
-                                <label for="target_duration">Target Duration (seconds)</label>
-                                <input type="text" id="target_duration" name="target_duration" value="30">
-                            </div>
-
-                            <div class="field-group">
-                                <label for="goal">Goal</label>
-                                <select id="goal" name="goal">
-                                    <option value="viral_reach">Viral Reach</option>
-                                    <option value="follower_growth" selected>Follower Growth</option>
-                                    <option value="sales_conversions">Sales / Conversions</option>
-                                </select>
-                            </div>
-
-                            <div class="field-group">
-                                <label for="tone">Tone</label>
-                                <input type="text" id="tone" name="tone" value="same as video">
-                            </div>
-
-                            <div class="field-group">
-                                <label for="audience">Audience</label>
-                                <input type="text" id="audience" name="audience" value="same as video">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Advanced Options Accordion -->
-                    <div class="full-width">
-                        <div class="accordion" id="advancedAccordion">
-                            <div class="accordion-header">
-                                <span class="accordion-title">⚙️ Advanced Options</span>
-                                <span class="accordion-icon">▼</span>
-                            </div>
-                            <div class="accordion-content">
-                                <div class="accordion-body">
+                                <!-- Frame Extraction -->
+                                <div class="full-width" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                                    <h4 style="color: var(--celestial-lavender); margin-bottom: 1rem; font-size: 0.9rem;">Frame Extraction</h4>
                                     <div class="field-group">
-                                        <label for="strategy">Sampling Strategy</label>
+                                        <label for="strategy">Strategy</label>
                                         <select id="strategy" name="strategy">
-                                            <option value="smart" selected>Smart (Intelligent frame selection)</option>
-                                            <option value="uniform">Uniform (Even intervals)</option>
+                                            <option value="smart" selected>Smart (Scene + Motion)</option>
+                                            <option value="intelligent">Intelligent (Hooks + Text + Endings)</option>
+                                            <option value="uniform">Uniform (Even Intervals)</option>
                                         </select>
                                     </div>
-
                                     <div class="field-group">
-                                        <label for="frames_per_minute">Frames per Minute</label>
+                                        <label for="frames_per_minute">Frames/Min</label>
                                         <input type="text" id="frames_per_minute" name="frames_per_minute" value="12">
-                                        <span class="helper-text">For uniform strategy only</span>
                                     </div>
-
                                     <div class="field-group">
-                                        <label for="cap">Max Frames Cap</label>
+                                        <label for="cap">Max Frames</label>
                                         <input type="text" id="cap" name="cap" value="60">
                                     </div>
-
                                     <div class="field-group">
                                         <label for="scene_threshold">Scene Threshold</label>
                                         <input type="text" id="scene_threshold" name="scene_threshold" value="0.35">
-                                        <span class="helper-text">Higher = fewer frames, Lower = more frames</span>
+                                        <span class="helper-text">Higher = fewer frames</span>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Submit Button -->
-                    <div class="submit-container">
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-                            <button type="submit" class="submit-btn">
-                                Analyze Content
-                            </button>
-                            <button type="button" class="clear-cache-btn" onclick="clearCache()" title="Clear cached analyses to force fresh analysis">
-                                Clear Cache
-                            </button>
+                                <div class="full-width" style="text-align: center; margin-top: 1rem;">
+                                    <button type="button" class="clear-cache-btn" onclick="clearCache()">Clear Cache</button>
+                                </div>
+
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -825,8 +820,8 @@
             }
         });
 
-        // Accordion for Advanced Options
-        const accordion = document.getElementById('advancedAccordion');
+        // Accordion for All Advanced Options
+        const accordion = document.getElementById('allOptionsAccordion');
         const accordionHeader = accordion.querySelector('.accordion-header');
 
         accordionHeader.addEventListener('click', function() {
@@ -955,9 +950,7 @@
                 const tiktokUrlField = document.getElementById('tiktok_url');
                 if (tiktokUrlField) {
                     tiktokUrlField.value = decodeURIComponent(urlParam);
-                    // Scroll to the form
                     tiktokUrlField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // Optional: focus the field
                     setTimeout(() => tiktokUrlField.focus(), 500);
                 }
             }
