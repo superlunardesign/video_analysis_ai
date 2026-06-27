@@ -740,6 +740,19 @@
           <div style="line-height: 1.7; white-space: pre-line;">{{ comment_insights.ai_insights }}</div>
         </div>
         {% endif %}
+
+        {% if comment_insights.top_comments %}
+        <h3 style="margin-top: 1.5rem;">Top Comments</h3>
+        <p style="font-size: 0.85rem; margin-bottom: 1rem; opacity: 0.7;">Sorted by likes</p>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          {% for comment in comment_insights.top_comments[:20] %}
+          <div style="padding: 0.75rem 1rem; background: rgba(255,255,255,0.04); border-radius: 10px; display: flex; gap: 1rem; align-items: flex-start;">
+            <div style="min-width: 50px; text-align: center; padding: 0.3rem 0.5rem; background: rgba(106,116,207,0.2); border-radius: 6px; font-size: 0.8rem; color: var(--solar-lime); white-space: nowrap;">{{ "{:,}".format(comment.likes) }} ♥</div>
+            <div style="font-size: 0.9rem; line-height: 1.5; color: var(--stellar-cream);">{{ comment.text }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
       </div>
       {% else %}
       <div class="section">

@@ -2871,13 +2871,19 @@ Key patterns for video analysis:
                 )
 
                 # Extract key insights for main analysis
+                top_raw_comments = sorted(
+                    comments,
+                    key=lambda c: int(c.get('likes', 0)),
+                    reverse=True
+                )[:30]
                 comment_insights = {
                     'total_comments': comment_analysis.get('total_comments', 0),
                     'categorization': comment_analysis.get('categorization', {}),
                     'consensus_patterns': comment_analysis.get('consensus_patterns', []),
                     'ai_insights': comment_analysis.get('ai_insights', ''),
                     'timestamp_mentions': comment_analysis.get('timestamp_mentions', []),
-                    'emotion_analysis': comment_analysis.get('emotion_analysis', {})
+                    'emotion_analysis': comment_analysis.get('emotion_analysis', {}),
+                    'top_comments': [{'text': c.get('text', ''), 'likes': int(c.get('likes', 0))} for c in top_raw_comments if c.get('text', '').strip()]
                 }
 
                 print(f"[COMMENTS] Analysis complete: {comment_insights['total_comments']} comments")
@@ -3975,6 +3981,7 @@ def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template
             'frame_analyses': template_vars.get('frame_analyses', []),
             'format_fingerprint': template_vars.get('format_fingerprint', {}),
             'format_match': template_vars.get('format_match'),
+            'comment_insights': template_vars.get('comment_insights'),
         }
 
         # Create analysis record
