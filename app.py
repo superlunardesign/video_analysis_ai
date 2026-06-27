@@ -3260,6 +3260,8 @@ def view_analysis(analysis_id):
     template_vars.setdefault('replication_formula', {})
     template_vars.setdefault('exact_hook_breakdown', {})
     template_vars.setdefault('all_hooks_identified', {})
+    template_vars.setdefault('frame_gallery', [])
+    template_vars.setdefault('frame_analyses', [])
 
     # CRITICAL: Set fields needed by results.html template
     # results.html expects 'video_thumbnail' and 'metadata.url'
@@ -3550,6 +3552,10 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             'exact_hook_breakdown': template_vars.get('exact_hook_breakdown', {}),
             'all_hooks_identified': template_vars.get('all_hooks_identified', {}),
 
+            # Frame gallery (base64 images — persist across deploys)
+            'frame_gallery': template_vars.get('frame_gallery', []),
+            'frame_analyses': template_vars.get('frame_analyses', []),
+
             # Legacy fields
             'goal_analysis': template_vars.get('goal_analysis'),
             'overall_assessment': template_vars.get('overall_assessment'),
@@ -3618,8 +3624,8 @@ def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template
             'areas_for_improvement': template_vars.get('areas_for_improvement'),
             'audio_type': template_vars.get('audio_type'),
             'music_info': template_vars.get('music_info'),
-            # Exclude: frame_gallery (base64 images ~200KB)
-            # Exclude: frame_analyses (detailed per-frame data)
+            'frame_gallery': template_vars.get('frame_gallery', []),
+            'frame_analyses': template_vars.get('frame_analyses', []),
         }
 
         # Create analysis record
