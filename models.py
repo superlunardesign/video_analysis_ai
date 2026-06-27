@@ -53,6 +53,9 @@ class Analysis(db.Model):
     # PDF cache key for downloading
     pdf_cache_key = db.Column(db.String(32))
 
+    # Format fingerprint for cross-video comparison
+    format_fingerprint = db.Column(db.JSON)
+
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     completed_at = db.Column(db.DateTime)
@@ -186,6 +189,15 @@ def _run_migrations(app, database_url):
             ))
             db.session.commit()
             print("[DB MIGRATION] Added 'completed_at' column")
+
+        # Migration: Add 'format_fingerprint' column if it doesn't exist
+        if 'format_fingerprint' not in columns:
+            print("[DB MIGRATION] Adding 'format_fingerprint' column to analyses table...")
+            db.session.execute(text(
+                "ALTER TABLE analyses ADD COLUMN format_fingerprint JSONB"
+            ))
+            db.session.commit()
+            print("[DB MIGRATION] Added 'format_fingerprint' column")
 
     except Exception as e:
         print(f"[DB MIGRATION ERROR] {e}")

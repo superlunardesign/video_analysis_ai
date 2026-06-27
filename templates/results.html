@@ -499,6 +499,44 @@
       </div>
       {% endif %}
 
+      {% if format_match %}
+      <!-- Format Match -->
+      <div class="section" style="border: 1px solid rgba(245, 255, 160, 0.3); background: rgba(245, 255, 160, 0.05);">
+        <h2 style="color: var(--solar-lime);">Format Match Found</h2>
+        <p style="font-size: 0.9rem; color: var(--celestial-lavender); margin-bottom: 0.75rem;">
+          This video uses a similar format to a previously analyzed video.
+        </p>
+        {% if format_match.reference_video %}
+        <p style="font-weight: 600; margin-bottom: 0.5rem;">
+          Reference: {{ format_match.reference_video }}
+          {% if format_match.ref_views %} &mdash; {{ format_match.ref_views }} views{% endif %}
+        </p>
+        {% endif %}
+        {% if format_match.similarity %}
+        <p style="font-size: 0.9rem;"><strong>Similarity:</strong> {{ format_match.similarity }}</p>
+        {% endif %}
+        {% if format_match.execution_gaps %}
+        <p style="font-size: 0.9rem;"><strong>Execution gaps:</strong> {{ format_match.execution_gaps }}</p>
+        {% endif %}
+        {% if format_match.advantages %}
+        <p style="font-size: 0.9rem;"><strong>Advantages:</strong> {{ format_match.advantages }}</p>
+        {% endif %}
+        {% if format_match.recommendations %}
+        <p style="font-size: 0.9rem;"><strong>Recommendations:</strong> {{ format_match.recommendations }}</p>
+        {% endif %}
+        {% if format_match.performance_explanation %}
+        <p style="font-size: 0.9rem;"><strong>Why the difference:</strong> {{ format_match.performance_explanation }}</p>
+        {% endif %}
+        {% if format_match.ref_analysis_id %}
+        <p style="margin-top: 0.75rem;">
+          <a href="/analysis/{{ format_match.ref_analysis_id }}" style="color: var(--solar-lime); text-decoration: none;">
+            View reference analysis &#8599;
+          </a>
+        </p>
+        {% endif %}
+      </div>
+      {% endif %}
+
       <!-- What This Video Is -->
       <div class="section">
         <h2>What This Video Is</h2>

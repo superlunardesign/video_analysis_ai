@@ -353,6 +353,29 @@ def parse_delimited_response(response_text, transcript=''):
     if 'KNOWLEDGE_PATTERNS_APPLIED' in sections:
         knowledge_patterns = [line.strip('- ').strip() for line in sections['KNOWLEDGE_PATTERNS_APPLIED'].split('\n') if line.strip().startswith('-')]
 
+    # Parse FORMAT_MATCH into dict (only present when a match was found)
+    format_match = {}
+    if 'FORMAT_MATCH' in sections:
+        for line in sections['FORMAT_MATCH'].split('\n'):
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key = key.strip().lower().replace(' ', '_')
+                if key in ('reference_video', 'similarity', 'execution_gaps',
+                           'advantages', 'recommendations', 'performance_explanation'):
+                    format_match[key] = value.strip()
+
+    # Parse FORMAT_FINGERPRINT into dict
+    format_fingerprint = {}
+    if 'FORMAT_FINGERPRINT' in sections:
+        for line in sections['FORMAT_FINGERPRINT'].split('\n'):
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key = key.strip().lower().replace(' ', '_')
+                value = value.strip()
+                if key in ('hook_type', 'structure', 'pacing', 'text_strategy',
+                           'audio_approach', 'content_format', 'payoff_type', 'format_summary'):
+                    format_fingerprint[key] = value
+
     # Return structured data in the same format template expects
     return {
         'what_this_video_is': sections.get('WHAT_THIS_VIDEO_IS', ''),
@@ -366,6 +389,8 @@ def parse_delimited_response(response_text, transcript=''):
         'timing_mastery': timing,
         'performance_prediction': sections.get('PERFORMANCE_PREDICTION', ''),
         'knowledge_patterns_applied': knowledge_patterns,
+        'format_fingerprint': format_fingerprint,
+        'format_match': format_match if format_match else None,
 
         # Also include as single field for compatibility
         'analysis': sections.get('WHAT_THIS_VIDEO_IS', ''),
@@ -1129,6 +1154,40 @@ def generate_pdf_sync(html_content, output_path=None):
 # MAIN ANALYSIS FUNCTION - COMPREHENSIVE & ADAPTIVE
 # ==============================
 
+def _build_format_match_section(match):
+    """Build format match comparison section for GPT prompt."""
+    if not match:
+        return ""
+
+    ref_scores = match.get('scores', {})
+    scores_str = ', '.join(f"{k}: {v}/10" for k, v in ref_scores.items()) if ref_scores else 'N/A'
+
+    return f"""
+=== FORMAT MATCH DETECTED ===
+A previously analyzed video uses a VERY SIMILAR FORMAT to this one.
+
+REFERENCE VIDEO (Analysis #{match['analysis_id']}):
+- Title: {match['video_title']}
+- Views: {match.get('view_count', 'unknown')}
+- Format: {match['fingerprint'].get('format_summary', 'N/A')}
+- Scores: {scores_str}
+- What it was: {match.get('what_this_video_is', 'N/A')}
+- Why it performed: {match.get('why_it_performed', 'N/A')}
+
+INSTRUCTIONS FOR FORMAT MATCH:
+You MUST include a ===FORMAT_MATCH=== section in your response that:
+1. Acknowledges this video uses a similar format to the reference video
+2. Compares execution quality — what did the reference do better/differently?
+3. Identifies specific moments where this video diverges from the successful version
+4. Gives actionable advice based on what worked in the reference video
+5. Notes whether the performance gap is due to execution, audience, timing, or niche differences
+
+Do NOT just say "similar format" — point out SPECIFIC execution differences.
+If the reference had higher views, explain exactly what it did better.
+If THIS video outperforms the reference, explain what improvements it made.
+"""
+
+
 def _build_comment_section(comment_insights):
     """Build comment analysis section for GPT prompt"""
     if not comment_insights or not comment_insights.get('total_comments'):
@@ -1183,7 +1242,64 @@ Use these insights to identify:
     return section
 
 
-def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown', metadata=None, audio_insights=None, analysis_depth='standard', comment_insights=None):
+def find_format_matches(current_fingerprint, user_id=None, exclude_analysis_id=None):
+    """Find previously analyzed videos with similar format fingerprints."""
+    if not current_fingerprint:
+        return None
+
+    from models import Analysis
+    query = Analysis.query.filter(
+        Analysis.format_fingerprint.isnot(None),
+        Analysis.status == 'completed'
+    )
+    if exclude_analysis_id:
+        query = query.filter(Analysis.id != exclude_analysis_id)
+
+    candidates = query.order_by(Analysis.created_at.desc()).limit(100).all()
+    if not candidates:
+        return None
+
+    compare_keys = ['hook_type', 'structure', 'pacing', 'text_strategy',
+                    'audio_approach', 'content_format', 'payoff_type']
+
+    best_match = None
+    best_score = 0
+
+    for analysis in candidates:
+        fp = analysis.format_fingerprint
+        if not fp or not isinstance(fp, dict):
+            continue
+
+        matched = sum(1 for k in compare_keys
+                      if current_fingerprint.get(k) and fp.get(k)
+                      and current_fingerprint[k].lower() == fp[k].lower())
+        score = matched / len(compare_keys)
+
+        if score > best_score and score >= 0.57:  # At least 4/7 keys match
+            best_score = score
+            data = analysis.analysis_data or {}
+            best_match = {
+                'analysis_id': analysis.id,
+                'video_url': analysis.video_url,
+                'video_title': analysis.video_title or 'Untitled',
+                'score': round(score, 2),
+                'matched_keys': matched,
+                'fingerprint': fp,
+                'view_count': data.get('view_count', data.get('actual_view_count', '')),
+                'what_this_video_is': (data.get('what_this_video_is') or '')[:500],
+                'why_it_performed': (data.get('why_it_performed') or '')[:500],
+                'improvements': (data.get('improvements') or '')[:300],
+                'scores': data.get('scores', {}),
+            }
+
+    if best_match:
+        print(f"[FORMAT MATCH] Found match: Analysis #{best_match['analysis_id']} "
+              f"({best_match['video_title']}) — {best_match['matched_keys']}/7 keys, "
+              f"score={best_match['score']}")
+    return best_match
+
+
+def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown', metadata=None, audio_insights=None, analysis_depth='standard', comment_insights=None, format_match_context=None):
     """Comprehensive analysis that adapts to ALL video types with deep insights"""
     
     # First analyze frames to understand visual content
@@ -1320,6 +1436,8 @@ VISUAL ANALYSIS:
 {_build_comment_section(comment_insights) if comment_insights else ""}
 
 {knowledge_section}
+
+{_build_format_match_section(format_match_context) if format_match_context else ""}
 
 COMPREHENSIVE ANALYSIS INSTRUCTIONS:
 {f"Since this went VIRAL, identify the EXACT psychological triggers and viral mechanics." if performance_level == 'viral' else "Identify opportunities for this specific video that can help improve based on or inspired by proven patterns. Give 2-3 ideas and examples. Instead of saying something like 'enhance visual storytelling' explain to them how they might do that thing and provide strong examples"}
@@ -1590,6 +1708,18 @@ For each interval, describe:
 ===KNOWLEDGE_PATTERNS_APPLIED===
 - [Pattern from knowledge base]: [How it applies to this video]
 - [Another pattern]: [Implementation example]
+
+{"===FORMAT_MATCH===" + chr(10) + "Compare this video's execution to the reference video identified above. Include:" + chr(10) + "reference_video: [Title] (Analysis #[ID])" + chr(10) + "similarity: [what format elements they share]" + chr(10) + "execution_gaps: [specific things the reference did better — exact moments, techniques, pacing differences]" + chr(10) + "advantages: [anything THIS video does better than the reference, if any]" + chr(10) + "recommendations: [2-3 specific improvements based on what worked in the reference]" + chr(10) + "performance_explanation: [why the view count differs — execution, timing, niche, audience, or other factors]" + chr(10) if format_match_context else ""}
+===FORMAT_FINGERPRINT===
+Classify this video's structural FORMAT (not its topic/niche). Use these exact keys:
+hook_type: [one of: text_reveal, question, controversy, transformation_tease, process_start, shocking_stat, relatable_scenario, curiosity_gap, list_tease, direct_address]
+structure: [one of: hook_buildup_reveal, hook_list_cta, hook_process_result, hook_story_lesson, hook_compare_verdict, hook_demo_proof, hook_problem_solution, hook_tutorial_steps]
+pacing: [one of: fast_cuts, slow_reveal, steady_build, rapid_fire, dramatic_pause]
+text_strategy: [one of: bold_statements, step_labels, minimal_text, conversation_style, caption_heavy, none]
+audio_approach: [one of: original_voiceover, trending_sound, original_sound_no_speech, song_with_text, mixed_voice_and_music]
+content_format: [one of: talking_head, process_video, before_after, screen_recording, lifestyle_clip, text_on_screen, mixed_format, product_showcase, storytime, skit]
+payoff_type: [one of: transformation_reveal, information_delivery, emotional_punch, demonstration_result, list_completion, cliffhanger, call_to_action, satisfaction_loop]
+format_summary: [One sentence describing the format pattern, e.g. "Controversial text hook over silent process video with transformation reveal"]
 
 ===END===
 
@@ -2142,6 +2272,8 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         # Knowledge and insights
         'knowledge_insights': gpt_result.get('knowledge_insights', ''),
         'knowledge_patterns_applied': gpt_result.get('knowledge_patterns_applied', []),
+        'format_fingerprint': gpt_result.get('format_fingerprint', {}),
+        'format_match': gpt_result.get('format_match'),
         
         # Video type and hook analysis
         'video_type_analysis': gpt_result.get('video_type_analysis', ''),
@@ -2781,6 +2913,70 @@ Key patterns for video analysis:
                 'audio_analysis': audio_analysis,
             }
         else:
+            # Look for format matches from prior analyses
+            update_progress(current_analysis_id, 'deep_analysis', 'Checking for format matches...', 73)
+            format_match_context = None
+            try:
+                prior_analyses = Analysis.query.filter(
+                    Analysis.format_fingerprint.isnot(None),
+                    Analysis.status == 'completed',
+                    Analysis.id != current_analysis_id
+                ).order_by(Analysis.created_at.desc()).limit(100).all()
+
+                if prior_analyses:
+                    audio_ctx = transcript_data.get('audio_context', {})
+                    is_song = transcript_data.get('is_song_lyrics', False)
+                    has_speech = audio_ctx.get('has_meaningful_speech', False)
+                    if is_song:
+                        audio_tag = 'song_with_text'
+                    elif has_speech:
+                        audio_tag = 'original_voiceover'
+                    else:
+                        audio_tag = 'original_sound_no_speech'
+
+                    preliminary_fp = {'audio_approach': audio_tag}
+                    best_match = None
+                    best_score = 0
+
+                    for a in prior_analyses:
+                        fp = a.format_fingerprint
+                        if not fp or not isinstance(fp, dict):
+                            continue
+                        compare_keys = ['hook_type', 'structure', 'pacing', 'text_strategy',
+                                        'content_format', 'payoff_type']
+                        matched = sum(1 for k in compare_keys
+                                      if fp.get(k) and preliminary_fp.get(k)
+                                      and fp[k].lower() == preliminary_fp[k].lower())
+                        if preliminary_fp.get('audio_approach') and fp.get('audio_approach'):
+                            if preliminary_fp['audio_approach'].lower() == fp['audio_approach'].lower():
+                                matched += 1
+                        score = matched / 7
+                        if score > best_score:
+                            best_score = score
+                            data = a.analysis_data or {}
+                            best_match = {
+                                'analysis_id': a.id,
+                                'video_url': a.video_url,
+                                'video_title': a.video_title or 'Untitled',
+                                'score': round(score, 2),
+                                'matched_keys': matched,
+                                'fingerprint': fp,
+                                'view_count': data.get('view_count', data.get('actual_view_count', '')),
+                                'what_this_video_is': (data.get('what_this_video_is') or '')[:500],
+                                'why_it_performed': (data.get('why_it_performed') or '')[:500],
+                                'improvements': (data.get('improvements') or '')[:300],
+                                'scores': data.get('scores', {}),
+                            }
+
+                    if best_match and best_score >= 0.43:
+                        format_match_context = best_match
+                        print(f"[FORMAT MATCH] Pre-analysis match: #{best_match['analysis_id']} "
+                              f"({best_match['video_title']}) score={best_score}")
+                    else:
+                        print(f"[FORMAT MATCH] No strong match found (best score: {best_score:.2f})")
+            except Exception as e:
+                print(f"[FORMAT MATCH] Error during matching: {e}")
+
             # Run comprehensive analysis with metadata and audio insights
             update_progress(current_analysis_id, 'deep_analysis', 'Running deep psychological analysis...', 75)
             try:
@@ -2796,11 +2992,36 @@ Key patterns for video analysis:
                     knowledge_context,
                     view_count,
                     performance_level,
-                    metadata=metadata,  # Pass metadata with saves
-                    audio_insights=audio_analysis,  # Pass audio analysis
-                    analysis_depth=form_data.get('analysis_depth', 'standard'),  # Pass analysis depth
-                    comment_insights=comment_insights  # Pass comment analysis
+                    metadata=metadata,
+                    audio_insights=audio_analysis,
+                    analysis_depth=form_data.get('analysis_depth', 'standard'),
+                    comment_insights=comment_insights,
+                    format_match_context=format_match_context
                 )
+
+                # Post-analysis format match: now that we have the full fingerprint,
+                # find matches if the pre-analysis match didn't find one
+                if not format_match_context and gpt_result.get('format_fingerprint'):
+                    try:
+                        post_match = find_format_matches(
+                            gpt_result['format_fingerprint'],
+                            user_id=user_id,
+                            exclude_analysis_id=current_analysis_id
+                        )
+                        if post_match:
+                            gpt_result['format_match'] = {
+                                'reference_video': f"{post_match['video_title']} (Analysis #{post_match['analysis_id']})",
+                                'similarity': post_match['fingerprint'].get('format_summary', 'Similar format'),
+                                'ref_views': post_match.get('view_count', 'unknown'),
+                                'ref_what': post_match.get('what_this_video_is', ''),
+                                'ref_why': post_match.get('why_it_performed', ''),
+                                'ref_scores': post_match.get('scores', {}),
+                                'ref_analysis_id': post_match['analysis_id'],
+                                'match_score': post_match['score'],
+                            }
+                            print(f"[FORMAT MATCH] Post-analysis match found: #{post_match['analysis_id']}")
+                    except Exception as e:
+                        print(f"[FORMAT MATCH] Post-match error: {e}")
 
                 # Add transcript quality info, view data, and new metrics
                 gpt_result['transcript_quality'] = transcript_data
@@ -3676,6 +3897,10 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             'frame_gallery': template_vars.get('frame_gallery', []),
             'frame_analyses': template_vars.get('frame_analyses', []),
 
+            # Format fingerprint for cross-video comparison
+            'format_fingerprint': template_vars.get('format_fingerprint', {}),
+            'format_match': template_vars.get('format_match'),
+
             # Legacy fields
             'goal_analysis': template_vars.get('goal_analysis'),
             'overall_assessment': template_vars.get('overall_assessment'),
@@ -3686,6 +3911,7 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
         analysis.video_title = video_title
         analysis.thumbnail_url = thumbnail_url
         analysis.analysis_data = lightweight_data
+        analysis.format_fingerprint = template_vars.get('format_fingerprint', {})
         analysis.pdf_cache_key = pdf_cache_key
         analysis.status = 'completed'
         analysis.completed_at = datetime.utcnow()
@@ -3747,6 +3973,8 @@ def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template
             'music_artist': template_vars.get('music_artist'),
             'frame_gallery': template_vars.get('frame_gallery', []),
             'frame_analyses': template_vars.get('frame_analyses', []),
+            'format_fingerprint': template_vars.get('format_fingerprint', {}),
+            'format_match': template_vars.get('format_match'),
         }
 
         # Create analysis record
@@ -3755,6 +3983,7 @@ def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template
             video_url=normalized_url,
             video_title=video_title,
             thumbnail_url=thumbnail_url,
+            format_fingerprint=template_vars.get('format_fingerprint', {}),
             analysis_data=lightweight_data,
             pdf_cache_key=pdf_cache_key,
             status='completed',
