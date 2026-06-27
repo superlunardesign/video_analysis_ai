@@ -2740,64 +2740,36 @@ def view_analysis(analysis_id):
         flash('Analysis not found.', 'error')
         return redirect(url_for('history'))
 
-    # Use the lightweight summary template for viewing past analyses
-    # The full results.html requires many variables we don't store
-    template_vars = analysis.analysis_data or {}
+    template_vars = None
 
-    # Add additional context for the summary template
+    # First, try to get full data from PDF cache (has complete template_vars)
+    if analysis.pdf_cache_key and analysis.pdf_cache_key in pdf_cache:
+        cached_data = pdf_cache[analysis.pdf_cache_key]
+        template_vars = cached_data.get('template_vars', {}).copy()
+        print(f"[VIEW] Using full cached data for analysis {analysis_id}")
+
+    # Fall back to lightweight database data
+    if not template_vars:
+        template_vars = analysis.analysis_data or {}
+        print(f"[VIEW] Using lightweight DB data for analysis {analysis_id}")
+
+    # Add context from database record
     template_vars['video_url'] = analysis.video_url
     template_vars['video_title'] = analysis.video_title
     template_vars['thumbnail_url'] = analysis.thumbnail_url
     template_vars['created_at'] = analysis.created_at
     template_vars['analysis_id'] = analysis.id
+    template_vars['pdf_cache_key'] = analysis.pdf_cache_key
+    template_vars['is_saved_analysis'] = True  # Flag for template to know this is saved
 
-    # BACKWARDS COMPATIBILITY: Fix data types and extract summary fields
-
-    # Fix overall_assessment - ensure it exists and is not empty
-    if not template_vars.get('overall_assessment') or not str(template_vars.get('overall_assessment', '')).strip():
-        analysis_text = (
-            template_vars.get('analysis') or
-            template_vars.get('gpt_response') or
-            template_vars.get('raw_analysis_text') or
-            template_vars.get('goal_analysis') or
-            ''
-        )
-        if isinstance(analysis_text, str) and analysis_text.strip():
-            template_vars['overall_assessment'] = analysis_text[:500] + '...' if len(analysis_text) > 500 else analysis_text
-
-    # Fix primary_strengths - must be a list
-    strengths = template_vars.get('primary_strengths') or template_vars.get('strengths')
-    if not strengths or (isinstance(strengths, str) and strengths):
-        # If it's a string, convert to list
-        strengths_text = strengths if isinstance(strengths, str) else ''
-        if strengths_text:
-            strengths_list = [s.strip('- •\n\r\t') for s in strengths_text.split('\n') if s.strip('- •\n\r\t')]
-            template_vars['primary_strengths'] = strengths_list[:5] if strengths_list else None
-    elif not isinstance(strengths, list):
-        template_vars['primary_strengths'] = None
-
-    # Fix areas_for_improvement - must be a list
-    improvements = (
-        template_vars.get('areas_for_improvement') or
-        template_vars.get('improvement_areas') or
-        template_vars.get('improvement_opportunities') or
-        template_vars.get('improvements')
-    )
-    if improvements and isinstance(improvements, str):
-        # Convert string to list
-        improvements_list = [s.strip('- •\n\r\t') for s in improvements.split('\n') if s.strip('- •\n\r\t')]
-        template_vars['areas_for_improvement'] = improvements_list[:5] if improvements_list else None
-    elif not isinstance(improvements, list):
-        # Try to extract from other fields
-        for field in ['improvement_areas', 'improvement_opportunities', 'improvements']:
-            text = template_vars.get(field, '')
-            if isinstance(text, str) and text.strip():
-                improvements_list = [s.strip('- •\n\r\t') for s in text.split('\n') if s.strip('- •\n\r\t')]
-                if improvements_list:
-                    template_vars['areas_for_improvement'] = improvements_list[:5]
-                    break
-
-    return render_template("analysis_summary.html", **template_vars)
+    # Try to use full results template, fall back to summary if it fails
+    try:
+        return render_template("results.html", **template_vars)
+    except Exception as e:
+        print(f"[WARNING] Could not render results.html for saved analysis: {e}")
+        import traceback
+        traceback.print_exc()
+        return render_template("analysis_summary.html", **template_vars)
 
 
 @app.route("/analysis/<int:analysis_id>", methods=["DELETE"])
