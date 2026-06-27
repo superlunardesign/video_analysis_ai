@@ -2276,6 +2276,13 @@ def process():
                 except Exception as e:
                     print(f"[WARNING] Failed to cache PDF data for cached result: {e}")
 
+                # Complete the processing record so it doesn't stay stale
+                if current_analysis_id:
+                    video_title = cached_result.get('video_title', cached_result.get('metadata', {}).get('title', 'analysis'))
+                    thumbnail_url = cached_result.get('frame_gallery', [None])[0] if cached_result.get('frame_gallery') else None
+                    complete_analysis(current_analysis_id, video_title, thumbnail_url, cached_result, cache_key)
+                    analysis_progress.pop(current_analysis_id, None)
+
                 return render_template("results.html", **cached_result)
 
         # 2. EXTRACT METADATA AUTOMATICALLY (includes saves!)

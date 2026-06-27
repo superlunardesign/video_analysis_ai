@@ -5,7 +5,8 @@ timeout = 300
 
 # Worker configuration
 workers = 2
-worker_class = 'sync'
+threads = 4
+worker_class = 'gthread'
 worker_connections = 1000
 
 # Logging
