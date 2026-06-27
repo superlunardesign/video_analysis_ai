@@ -715,7 +715,15 @@
     <div class="tab-content" id="tab-data">
 
       <div class="section">
+        {% if is_song_lyrics %}
+        <h2>Audio: Song Lyrics</h2>
+        <p style="color: var(--celestial-lavender); font-size: 0.9rem; margin-bottom: 0.5rem;">
+          &#9835; Attached sound — these are song lyrics, not the creator speaking.
+          {% if music_info %}<strong>{{ music_info }}</strong>{% endif %}
+        </p>
+        {% else %}
         <h2>Transcript</h2>
+        {% endif %}
         <div style="max-height: 400px; overflow-y: auto; border-radius: 8px;">
           <pre>{{ transcript or "(No verbal content - visual/ambient audio)" }}</pre>
         </div>

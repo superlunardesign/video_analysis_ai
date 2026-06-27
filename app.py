@@ -637,17 +637,30 @@ def _repair_json(json_str):
 # AUDIO/VIDEO ANALYSIS HELPERS
 # ==============================
 
-def analyze_audio_with_visual_context(transcript_text, frames_summaries_text):
+def analyze_audio_with_visual_context(transcript_text, frames_summaries_text, metadata=None):
     """
-    Intelligently analyze audio by considering visual context
-    Don't assume random sounds - correlate with what's happening visually. some transcripts may actually be songs or trending quotes from movies, tv shows, or other viral videos. determine what type of sound this is.
+    Intelligently analyze audio by considering visual context and metadata.
+    Uses the track name from metadata to detect songs vs original speech.
     """
-    
+
     has_meaningful_speech = False
     transcript_quality = 'unknown'
     likely_sound_source = None
     audio_visual_correlation = {}
-    
+    is_song_lyrics = False
+    track_name = ''
+
+    # Check metadata for song/sound info
+    if metadata:
+        track_name = (metadata.get('track', '') or '').strip()
+        artist_name = (metadata.get('artist', '') or '').strip()
+        is_original_sound = 'original sound' in track_name.lower() if track_name else True
+
+        if track_name and not is_original_sound:
+            is_song_lyrics = True
+            likely_sound_source = f"song: {track_name}" + (f" by {artist_name}" if artist_name else "")
+            print(f"[AUDIO] Detected attached song: {likely_sound_source}")
+
     if transcript_text and len(transcript_text.strip()) > 20:
         transcript_lower = transcript_text.lower()
         words = transcript_lower.split()
@@ -734,8 +747,10 @@ def analyze_audio_with_visual_context(transcript_text, frames_summaries_text):
         
         # Check for actual speech patterns
         elif len(unique_words) > 10 and len(words) > 15:
-            # Check if it might be quotes or viral audio
-            if any(indicator in transcript_lower for indicator in 
+            if is_song_lyrics:
+                has_meaningful_speech = False
+                transcript_quality = 'song_lyrics'
+            elif any(indicator in transcript_lower for indicator in
                    ['he said', 'she said', 'they said', 'pov:', 'when you', 'that moment']):
                 has_meaningful_speech = True
                 transcript_quality = 'viral_audio_possible'
@@ -743,9 +758,12 @@ def analyze_audio_with_visual_context(transcript_text, frames_summaries_text):
                 has_meaningful_speech = True
                 transcript_quality = 'original_speech'
         else:
-            # Short but potentially meaningful
-            has_meaningful_speech = True
-            transcript_quality = 'brief_speech'
+            if is_song_lyrics:
+                has_meaningful_speech = False
+                transcript_quality = 'song_lyrics'
+            else:
+                has_meaningful_speech = True
+                transcript_quality = 'brief_speech'
     else:
         has_meaningful_speech = False
         transcript_quality = 'no_audio_detected'
@@ -762,6 +780,8 @@ def analyze_audio_with_visual_context(transcript_text, frames_summaries_text):
             elif any(word in frames_lower for word in ['skincare', 'makeup', 'routine']):
                 likely_sound_source = 'beauty routine sounds'
     
+    audio_type = 'song_lyrics' if is_song_lyrics else ('original_speech' if has_meaningful_speech else 'visual_only')
+
     return {
         'has_meaningful_speech': has_meaningful_speech,
         'transcript_quality': transcript_quality,
@@ -769,7 +789,9 @@ def analyze_audio_with_visual_context(transcript_text, frames_summaries_text):
         'audio_visual_correlation': audio_visual_correlation,
         'transcript_text': transcript_text if has_meaningful_speech else None,
         'audio_description': likely_sound_source or transcript_quality,
-        'type': 'original_speech' if has_meaningful_speech else 'visual_only',
+        'type': audio_type,
+        'is_song_lyrics': is_song_lyrics,
+        'track_name': track_name,
         'viral_audio_check': transcript_quality == 'viral_audio_possible'
     }
 
@@ -832,17 +854,29 @@ def enhanced_extract_audio_and_frames(tiktok_url, strategy, frames_per_minute, c
         raise e
 
 
-def enhanced_transcribe_audio_with_context(audio_path, frames_summaries_text):
-    """Enhanced transcription that considers visual context for better interpretation"""
+def enhanced_transcribe_audio_with_context(audio_path, frames_summaries_text, metadata=None):
+    """Enhanced transcription that considers visual context and metadata for better interpretation."""
     try:
         # Get basic transcription first
         transcript = transcribe_audio(audio_path)
-        
-        # Analyze with visual context
-        audio_analysis = analyze_audio_with_visual_context(transcript, frames_summaries_text)
+
+        # Analyze with visual context + metadata track info
+        audio_analysis = analyze_audio_with_visual_context(transcript, frames_summaries_text, metadata=metadata)
         
         # Build comprehensive result
-        if audio_analysis['has_meaningful_speech']:
+        if audio_analysis.get('is_song_lyrics'):
+            track = audio_analysis.get('track_name', 'Unknown')
+            return {
+                'transcript': transcript if transcript else "",
+                'quality': 'song_lyrics',
+                'quality_reason': f"Attached song detected: {track}. Transcript contains song lyrics, not creator speech.",
+                'is_reliable': False,
+                'is_song_lyrics': True,
+                'track_name': track,
+                'audio_context': audio_analysis,
+                'sound_interpretation': audio_analysis['likely_sound_source']
+            }
+        elif audio_analysis['has_meaningful_speech']:
             return {
                 'transcript': transcript,
                 'quality': 'good',
@@ -851,9 +885,8 @@ def enhanced_transcribe_audio_with_context(audio_path, frames_summaries_text):
                 'audio_context': audio_analysis
             }
         else:
-            # Provide context-aware description of non-speech audio
             quality_reason = f"Non-speech audio detected: {audio_analysis['likely_sound_source'] or 'ambient sounds'}"
-            
+
             return {
                 'transcript': transcript if transcript else "",
                 'quality': audio_analysis['transcript_quality'],
@@ -907,18 +940,22 @@ def create_visual_content_description(frames_summaries_text, audio_context=None)
         frames_lower = frames_summaries_text.lower() if frames_summaries_text else ""
         content_type = 'general'
         
-        # Detect content type
-        if any(word in frames_lower for word in ['drawing', 'art', 'sketch', 'illustrat', 'coloring']):
+        # Detect content type using word boundaries to avoid false matches
+        import re
+        def _has_word(text, words):
+            return any(re.search(r'\b' + w, text) for w in words)
+
+        if _has_word(frames_lower, ['drawing', 'artwork', 'sketch', 'illustrat', 'coloring', 'painting a ']):
             content_type = 'visual_art_process'
-        elif any(word in frames_lower for word in ['transform', 'before', 'after', 'change']):
+        elif _has_word(frames_lower, ['transform', 'before and after', 'before vs']):
             content_type = 'transformation'
-        elif any(word in frames_lower for word in ['routine', 'skincare', 'makeup', 'beauty']):
+        elif _has_word(frames_lower, ['skincare', 'makeup', 'beauty routine']):
             content_type = 'beauty_routine'
-        elif any(word in frames_lower for word in ['cooking', 'recipe', 'food', 'baking']):
+        elif _has_word(frames_lower, ['cooking', 'recipe', 'baking', 'food prep']):
             content_type = 'cooking_tutorial'
-        elif any(word in frames_lower for word in ['unbox', 'package', 'reveal', 'opening']):
+        elif _has_word(frames_lower, ['unbox', 'package', 'reveal', 'opening a ']):
             content_type = 'unboxing'
-        elif any(word in frames_lower for word in ['clean', 'organiz', 'tidy', 'sort']):
+        elif _has_word(frames_lower, ['cleaning', 'organizing', 'tidying', 'sorting']):
             content_type = 'organizing'
         
         # Get satisfaction analysis
@@ -1152,9 +1189,9 @@ def run_main_analysis(transcript_text, frames_summaries_text, creator_note, plat
     # First analyze frames to understand visual content
     visual_content_analysis = create_visual_content_description(frames_summaries_text)
     
-    # Then analyze audio with visual context
-    audio_analysis = analyze_audio_with_visual_context(transcript_text, frames_summaries_text)
-    
+    # Then analyze audio with visual context + metadata track info
+    audio_analysis = analyze_audio_with_visual_context(transcript_text, frames_summaries_text, metadata=metadata)
+
     # Use audio analysis results
     has_speech = audio_analysis['has_meaningful_speech']
     audio_type_info = audio_analysis
@@ -1209,7 +1246,23 @@ DEEP ANALYSIS REQUIREMENTS:
 
     # Adapt prompt based on video type
     video_type_context = ""
-    if not has_speech:
+    is_song = audio_type_info.get('is_song_lyrics', False)
+    if is_song:
+        song_name = audio_type_info.get('track_name', 'an attached song')
+        video_type_context = f"""
+This video uses an ATTACHED SONG ("{song_name}") — NOT the creator speaking.
+CRITICAL: The transcript below contains SONG LYRICS, not the creator's words. Do NOT:
+- Treat the lyrics as the creator's message or voice
+- Assume the song's lyrics relate to the video's topic or meaning
+- Cite lyrics as "what the creator said"
+The song is background audio chosen for mood/trend, not for its lyrical content.
+Focus analysis on:
+- Visual hooks and on-screen text (the creator's ACTUAL message)
+- Why this sound was chosen (trending, mood, pacing)
+- How the audio rhythm complements the visual pacing
+- Visual satisfaction elements: {visual_content_analysis.get('satisfaction_analysis', {}).get('satisfaction_elements', {})}
+"""
+    elif not has_speech:
         video_type_context = f"""
 This is a VISUAL-ONLY or AMBIENT AUDIO video with {audio_type_info.get('likely_sound_source', 'ambient sounds')}.
 Focus analysis on:
@@ -1222,7 +1275,7 @@ Focus analysis on:
     else:
         video_type_context = """
 This video has VERBAL CONTENT. Analyze:
-- How verbal (froms transcript) and visual elements work together
+- How verbal (from transcript) and visual elements work together
 - Whether on-screen text reinforces or adds to spoken content
 - The relationship between what's said and what's shown
 - Speech delivery effectiveness and clarity
@@ -1252,7 +1305,7 @@ CRITICAL CONTEXT:
 - Views: {view_count}
 
 AUDIO CONTEXT:
-{f"Speech detected: {transcript_text}" if has_speech else f"Non-speech audio: {audio_type_info.get('likely_sound_source', 'ambient sounds')} (based on visual activity)"}
+{f"SONG LYRICS (attached track: {audio_type_info.get('track_name', 'unknown')}): {transcript_text}  — NOTE: These are song lyrics, NOT the creator speaking. Do not interpret them as the video's message." if is_song else (f"Speech detected: {transcript_text}" if has_speech else f"Non-speech audio: {audio_type_info.get('likely_sound_source', 'ambient sounds')} (based on visual activity)")}
 
 VISUAL CONTENT (frames - what's SHOWN/WRITTEN):
 {frames_summaries_text}
@@ -1402,7 +1455,7 @@ PERFORMANCE CALIBRATION:
 - If creator mentions "inquiries" or "sales" = SUCCESS regardless of views
 
 AUDIO CONTEXT:
-{f"Speech detected: {transcript_text}" if has_speech else f"Non-speech audio: {audio_type_info.get('likely_sound_source', 'ambient sounds')} (based on visual activity)"}
+{f"SONG LYRICS (attached track: {audio_type_info.get('track_name', 'unknown')}): {transcript_text}  — NOTE: These are song lyrics, NOT the creator speaking. Do not interpret them as the video's message." if is_song else (f"Speech detected: {transcript_text}" if has_speech else f"Non-speech audio: {audio_type_info.get('likely_sound_source', 'ambient sounds')} (based on visual activity)")}
 
 VISUAL CONTENT (frames - what's SHOWN/WRITTEN):
 {frames_summaries_text}
@@ -2065,6 +2118,7 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'transcript_for_analysis': transcript_data.get('transcript', ''),
         'audio_context': transcript_data.get('audio_context', {}),
         'sound_interpretation': transcript_data.get('sound_interpretation', ''),
+        'is_song_lyrics': transcript_data.get('is_song_lyrics', False),
         
         # Frame analysis
         'frame_summary': frames_summaries_text if frames_summaries_text else "",
@@ -2580,10 +2634,12 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
 
         # Enhanced audio transcription WITH visual context
         try:
-            transcript_data = enhanced_transcribe_audio_with_context(audio_path, frames_summaries_text)
+            transcript_data = enhanced_transcribe_audio_with_context(audio_path, frames_summaries_text, metadata=metadata)
             print(f"[INFO] Audio interpretation: {transcript_data.get('audio_context', {}).get('audio_description', 'unknown')}")
             print(f"[INFO] Transcript quality: {transcript_data.get('quality', 'unknown')}")
-            if transcript_data.get('audio_context', {}).get('likely_sound_source'):
+            if transcript_data.get('is_song_lyrics'):
+                print(f"[INFO] Song lyrics detected — track: {transcript_data.get('track_name', 'unknown')}")
+            elif transcript_data.get('audio_context', {}).get('likely_sound_source'):
                 print(f"[INFO] Likely sound source: {transcript_data['audio_context']['likely_sound_source']}")
         except Exception as e:
             print(f"[ERROR] Enhanced transcription error: {e}")
