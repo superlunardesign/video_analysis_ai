@@ -1826,6 +1826,8 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'frames_per_minute': int(form_data.get('frames_per_minute', 24)),
         'cap': int(form_data.get('cap', 60)),
         'scene_threshold': float(form_data.get('scene_threshold', 0.24)),
+        'user_email': form_data.get('user_email', ''),  # For admin features
+        'niche': form_data.get('niche', 'general'),  # For pattern matching
 
         # New conversational fields
         'what_this_video_is': gpt_result.get('what_this_video_is', ''),
@@ -2614,6 +2616,87 @@ def clear_cache():
         return {"status": "success", "message": "Cache cleared successfully"}, 200
     except Exception as e:
         print(f"[CACHE ERROR] Failed to clear cache: {e}")
+        return {"status": "error", "message": str(e)}, 500
+
+
+@app.route("/submit_for_learning", methods=["POST"])
+def submit_for_learning():
+    """
+    Submit a video for learning (Admin only: christina@superlunardesign.com).
+    Stores format patterns with curator notes for future reference.
+    """
+    try:
+        data = request.json
+
+        # Admin check
+        user_email = data.get('user_email', '').lower().strip()
+        if user_email != 'christina@superlunardesign.com':
+            return {
+                "status": "error",
+                "message": "This feature is only available for admin users"
+            }, 403
+
+        # Get data
+        cache_key = data.get('cache_key')
+        video_url = data.get('video_url')
+        curator_notes = data.get('notes', '').strip()
+
+        if not curator_notes:
+            return {
+                "status": "error",
+                "message": "Please add notes about what patterns to learn from this video"
+            }, 400
+
+        # Get cached analysis
+        if cache_key not in pdf_cache:
+            return {"status": "error", "message": "Analysis not found"}, 404
+
+        cached_data = pdf_cache[cache_key]
+
+        # Get analysis text
+        template_vars = cached_data.get('template_vars', {})
+        analysis_text = template_vars.get('analysis', '')
+
+        # Get metrics from form
+        metrics = {
+            'views': data.get('views', 0),
+            'engagement_rate': data.get('engagement_rate', 0),
+            'watch_time': data.get('watch_time', ''),
+            'curator_notes': curator_notes,
+            'submitted_by': user_email,
+            'submission_date': datetime.now().isoformat()
+        }
+
+        # Initialize success store if not exists
+        from success_patterns import SuccessPatternStore
+        success_store = SuccessPatternStore()
+
+        # Enhance analysis text with curator notes
+        enhanced_analysis = f"""CURATOR NOTES: {curator_notes}
+
+{analysis_text}"""
+
+        # Store pattern
+        success_store.add_successful_video(
+            analysis_text=enhanced_analysis,
+            video_url=video_url,
+            metrics=metrics,
+            niche=data.get('niche', 'general'),
+            platform=data.get('platform', 'tiktok')
+        )
+
+        print(f"[LEARNING] Pattern submitted by {user_email}")
+        print(f"  Notes: {curator_notes[:100]}...")
+
+        return {
+            "status": "success",
+            "message": "Video submitted for learning! Your notes will help refine pattern recognition."
+        }, 200
+
+    except Exception as e:
+        print(f"[ERROR] Failed to submit for learning: {e}")
+        import traceback
+        traceback.print_exc()
         return {"status": "error", "message": str(e)}, 500
 
 

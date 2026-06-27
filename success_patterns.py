@@ -104,44 +104,53 @@ class SuccessPatternStore:
         print(f"  Views: {metrics.get('views', 'N/A')}, Engagement: {metrics.get('engagement_rate', 'N/A')}")
 
     def _extract_patterns(self, analysis_text: str, metrics: Dict) -> str:
-        """Extract key success patterns using GPT-4"""
+        """Extract factual format patterns (not causal success factors)"""
         try:
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an expert at identifying viral video patterns. Extract the KEY SUCCESS FACTORS that made this video perform well."
+                        "content": """You are a video format pattern analyzer. Extract FACTUAL STRUCTURAL PATTERNS, not assumptions about why it succeeded.
+
+Focus on:
+- Observable formats (e.g., "this vs that", "before/after", "reaction", "tutorial")
+- Hook structures (question, shock value, promise, etc.)
+- Content organization (reveal timing, pacing, segment structure)
+- Visual patterns (text placement, editing style, transitions)
+- Script formulas (opening line pattern, call-to-action placement)
+
+DO NOT make assumptions about causation. Report what IS present, not why it worked."""
                     },
                     {
                         "role": "user",
-                        "content": f"""This video achieved:
+                        "content": f"""This video had:
 - Views: {metrics.get('views', 'N/A')}
 - Engagement Rate: {metrics.get('engagement_rate', 'N/A')}
 - Average Watch Time: {metrics.get('watch_time', 'N/A')}
 
-Full Analysis:
+Analysis:
 {analysis_text}
 
-Extract and summarize the TOP 5 SUCCESS PATTERNS:
-1. Hook strategy
-2. Visual/editing patterns
-3. Text overlay strategy
-4. Content structure
-5. Engagement tactics
+Extract OBSERVABLE FORMAT PATTERNS:
+1. Content Format Type (e.g., "this vs that", "tutorial", "storytime")
+2. Hook Structure (first 3s pattern)
+3. Script Formula (opening/body/closing pattern)
+4. Visual Organization (text, editing, pacing)
+5. Structural Elements (reveals, callbacks, CTAs)
 
-Format as a concise, actionable pattern summary."""
+Be FACTUAL. Report patterns present, not assumed reasons for success."""
                     }
                 ],
                 max_tokens=800,
-                temperature=0.3
+                temperature=0.2  # Lower for more factual
             )
 
             return response.choices[0].message.content
         except Exception as e:
             print(f"[ERROR] Pattern extraction failed: {e}")
             # Fallback to simple extraction
-            return f"High-performing video analysis (Views: {metrics.get('views', 'N/A')})\n\n{analysis_text[:1000]}"
+            return f"High-performing video patterns (Views: {metrics.get('views', 'N/A')})\n\n{analysis_text[:1000]}"
 
     def _create_embedding(self, text: str) -> np.ndarray:
         """Create embedding for similarity search"""
@@ -208,26 +217,43 @@ Format as a concise, actionable pattern summary."""
 
         return results
 
-    def get_pattern_insights(self, current_analysis: str, niche: Optional[str] = None) -> str:
+    def get_pattern_insights(
+        self,
+        current_analysis: str,
+        niche: Optional[str] = None,
+        include_formats_only: bool = True
+    ) -> str:
         """
-        Get formatted insights from similar successful videos.
+        Get formatted insights from similar videos (BETA FEATURE).
+
+        Args:
+            current_analysis: Current video analysis
+            niche: Optional niche filter
+            include_formats_only: If True, focus on format patterns only (recommended)
         """
         similar = self.find_similar_patterns(current_analysis, top_k=3, niche_filter=niche)
 
         if not similar:
-            return "No similar high-performing videos in knowledge base yet."
+            return ""  # Don't show anything if no patterns
 
-        insights = ["PATTERNS FROM SIMILAR HIGH-PERFORMING VIDEOS:\n"]
+        insights = ["=" * 80]
+        insights.append("🧪 BETA: FORMAT PATTERNS FROM SIMILAR VIDEOS")
+        insights.append("=" * 80)
+        insights.append("\nNote: These are OBSERVED PATTERNS, not proven success formulas.")
+        insights.append("Use as creative inspiration, not rigid rules.\n")
 
         for i, result in enumerate(similar, 1):
             meta = result['metadata']
             pattern = result['pattern']
 
-            insights.append(f"\n{i}. Similar Video (Views: {meta['metrics'].get('views', 'N/A')}, "
-                          f"Platform: {meta.get('platform', 'N/A')}, "
-                          f"Similarity: {result['similarity']:.2%})")
-            insights.append(f"\n{pattern['summary']}\n")
-            insights.append("-" * 80)
+            insights.append(f"\nPattern {i} (from video with {meta['metrics'].get('views', 'N/A')} views):")
+            insights.append(f"Platform: {meta.get('platform', 'N/A')} | Similarity: {result['similarity']:.1%}")
+            insights.append("\nObserved Format:")
+            insights.append(f"{pattern['summary']}")
+            insights.append("\n" + "-" * 80)
+
+        insights.append("\n💡 TIP: Look for recurring formats across multiple patterns.")
+        insights.append("Common patterns ≠ guaranteed success, but they're worth testing!\n")
 
         return "\n".join(insights)
 

@@ -735,9 +735,144 @@
       <a href="/" class="back-link">← Analyze Another Video</a>
 {% if pdf_cache_key %}
       <a href="/download_pdf/{{ pdf_cache_key }}" class="back-link" style="background-color:darkturquoise; color:white;">Download PDF Report ↓</a>
-      {% endif %}
-
+{% endif %}
     </div>
+
+    <!-- Admin Learning Submission (Beta) -->
+    <div id="adminLearningSection" style="display:none; margin-top: 40px;">
+      <div style="background: rgba(255, 255, 255, 0.95); border-radius: 16px; padding: 30px; max-width: 700px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+        <h3 style="color: #667eea; margin-bottom: 10px;">🧪 Beta: Submit for Learning</h3>
+        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">Admin Only - Help build the pattern knowledge base</p>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
+            What patterns should we learn from this video?
+          </label>
+          <textarea
+            id="learningNotes"
+            placeholder="e.g., 'This vs That' format with 3-second hook showing the contrast. Overlay text drives curiosity. No talking, just text + b-roll."
+            style="width: 100%; min-height: 120px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: inherit; font-size: 0.95rem; resize: vertical;"
+          ></textarea>
+          <p style="color: #888; font-size: 0.85rem; margin-top: 5px;">
+            Focus on FORMATS and STRUCTURES (not opinions about why it succeeded)
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+          <div>
+            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9rem;">
+              Views (optional)
+            </label>
+            <input
+              type="number"
+              id="videoViews"
+              placeholder="e.g., 150000"
+              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem;"
+            >
+          </div>
+          <div>
+            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9rem;">
+              Engagement Rate (optional)
+            </label>
+            <input
+              type="text"
+              id="engagementRate"
+              placeholder="e.g., 0.12 or 12%"
+              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem;"
+            >
+          </div>
+        </div>
+
+        <button
+          onclick="submitForLearning()"
+          id="submitLearningBtn"
+          style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+          onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(102, 126, 234, 0.4)';"
+          onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';"
+        >
+          📚 Submit for Learning
+        </button>
+
+        <p style="color: #888; font-size: 0.8rem; margin-top: 15px; text-align: center;">
+          Your notes will help the AI recognize format patterns for future analyses
+        </p>
+      </div>
+    </div>
+
   </div>
+
+  <script>
+    // Check if admin user and show learning section
+    const userEmail = '{{ user_email|default("") }}';
+    if (userEmail.toLowerCase() === 'christina@superlunardesign.com') {
+      document.getElementById('adminLearningSection').style.display = 'block';
+    }
+
+    async function submitForLearning() {
+      const notes = document.getElementById('learningNotes').value.trim();
+      const views = parseInt(document.getElementById('videoViews').value) || 0;
+      let engagement = document.getElementById('engagementRate').value.trim();
+
+      if (!notes) {
+        alert('Please add notes about what patterns to learn from this video');
+        return;
+      }
+
+      // Parse engagement rate (handle both 0.12 and 12% formats)
+      if (engagement.includes('%')) {
+        engagement = parseFloat(engagement.replace('%', '')) / 100;
+      } else {
+        engagement = parseFloat(engagement) || 0;
+      }
+
+      const btn = document.getElementById('submitLearningBtn');
+      const originalText = btn.textContent;
+      btn.textContent = '⏳ Submitting...';
+      btn.disabled = true;
+
+      try {
+        const response = await fetch('/submit_for_learning', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            user_email: userEmail,
+            cache_key: '{{ pdf_cache_key|default("") }}',
+            video_url: '{{ video_url|default("") }}',
+            notes: notes,
+            views: views,
+            engagement_rate: engagement,
+            niche: '{{ niche|default("general") }}',
+            platform: '{{ platform|default("tiktok") }}'
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          btn.textContent = '✅ Submitted!';
+          btn.style.background = 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)';
+
+          // Clear form
+          document.getElementById('learningNotes').value = '';
+          document.getElementById('videoViews').value = '';
+          document.getElementById('engagementRate').value = '';
+
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+            btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+          }, 3000);
+
+        } else {
+          throw new Error(data.message || 'Submission failed');
+        }
+
+      } catch (error) {
+        alert('Error: ' + error.message);
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }
+    }
+  </script>
 </body>
 </html>
