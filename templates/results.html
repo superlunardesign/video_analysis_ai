@@ -625,7 +625,7 @@
         <h4>Scenarios for Your Niche:</h4>
         <div style="white-space: pre-wrap; line-height: 1.8; margin: 1rem 0; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
           {% for scenario in replication_formula.scenarios_for_same_niche %}
-          {{ scenario | markdown_bold('#FFF8E1') | safe }}
+          {{ scenario | markdown_bold('#000000') | safe }}
 
           {% endfor %}
         </div>
@@ -634,7 +634,7 @@
         <p style="margin-left: 1rem; line-height: 1.6;">{{ replication_formula.why_it_works }}</p>
 
         <p style="margin-top: 1.5rem;"><strong>Text Template:</strong></p>
-        <div style="white-space: pre-wrap; line-height: 1.8; margin: 1rem 0; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; font-family: 'Courier New', monospace;">{{ replication_formula.text_template | markdown_bold('#FFF8E1') | safe }}</div>
+        <div style="white-space: pre-wrap; line-height: 1.8; margin: 1rem 0; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; font-family: 'Courier New', monospace;">{{ replication_formula.text_template | markdown_bold('#000000') | safe }}</div>
 
         <p style="margin-top: 1.5rem;"><strong>Visual Requirements:</strong></p>
         <p style="margin-left: 1rem; line-height: 1.6;">{{ replication_formula.visual_requirements }}</p>
