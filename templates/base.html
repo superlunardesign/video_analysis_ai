@@ -315,11 +315,18 @@
         }
 
         /* Responsive */
-        @media (max-width: 768px) {
+        @media (max-width: 640px) {
             .container { padding: 0 var(--space-sm); }
             .form-container { padding: var(--space-lg); }
-            .nav { flex-direction: column; gap: var(--space-sm); }
-            .nav-links { flex-wrap: wrap; justify-content: center; }
+            .nav { flex-direction: column; gap: var(--space-sm); align-items: flex-start; }
+            .nav-links { flex-wrap: wrap; justify-content: flex-start; width: 100%; }
+        }
+
+        /* Ensure nav stays horizontal on tablets and larger */
+        @media (min-width: 641px) {
+            .nav {
+                flex-direction: row !important;
+            }
         }
 
         {% block extra_styles %}{% endblock %}
