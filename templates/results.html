@@ -1,378 +1,310 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Analysis Results</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --cosmic-indigo: #17172D;
+      --eclipse-plum: #3F4B9E;
+      --celestial-lavender: #B7B4ED;
+      --lunar-blush: #6A74CE;
+      --solar-lime: #F5FFA0;
+      --stellar-cream: #F0EAE0;
+      --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+
+    body {
+      font-family: var(--font-primary);
       line-height: 1.6;
-      color: #1a1a1a;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: var(--stellar-cream);
+      background: linear-gradient(135deg, var(--cosmic-indigo) 0%, var(--eclipse-plum) 50%, var(--celestial-lavender) 100%);
       min-height: 100vh;
     }
-    
+
     .container {
-      max-width: 1200px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 20px;
     }
-    
-    .header {
-      text-align: center;
-      color: white;
-      padding: 30px 0;
-    }
-    
-    .header h1 {
-      font-size: 2.5rem;
-      margin-bottom: 15px;
-    }
-    
-    /* Score Cards */
-    .scores-section {
-      background: white;
-      border-radius: 16px;
-      padding: 30px;
-      margin-bottom: 30px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    }
-    
-    .scores-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 20px;
-      margin-top: 25px;
-    }
-    
-    .score-card {
-      text-align: center;
-      padding: 20px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-    
-    .score-value {
-      font-size: 2.5rem;
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-    
-    .score-label {
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .score-explanation {
-      font-size: 0.85rem;
-      margin-top: 10px;
-      opacity: 0.95;
-      line-height: 1.4;
-    }
-    
-    /* Content Type Badge */
-    .content-type-badge {
-      display: inline-block;
-      background: #10b981;
-      color: white;
-      padding: 8px 20px;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      margin: 15px 0;
-    }
-    
-    .content-type-badge.viral {
-      background: #f59e0b;
-    }
-    
-    .content-type-badge.visual {
-      background: #8b5cf6;
-    }
-    
-    /* Content Sections */
-    .section {
-      background: white;
-      border-radius: 16px;
-      padding: 30px;
-      margin-bottom: 25px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-    }
-    
-    .section h2 {
-      font-size: 1.6rem;
-      margin-bottom: 20px;
-      color: #2d3748;
-      border-bottom: 3px solid #667eea;
-      padding-bottom: 10px;
-    }
-    
-    .section h3 {
-      font-size: 1.2rem;
-      margin: 25px 0 15px 0;
-      color: #4a5568;
-    }
-    
-    .section p, .section pre {
-      color: #4a5568;
-      line-height: 1.8;
-      margin-bottom: 15px;
-    }
-    
-    pre {
-      white-space: pre-wrap;
-      font-family: inherit;
-      background: #f7fafc;
-      padding: 20px;
-      border-radius: 8px;
-      border-left: 4px solid #667eea;
-    }
-    
-    /* Hook Breakdown */
-    .hook-element {
-      background: linear-gradient(135deg, #f6f9fc 0%, #e9ecef 100%);
-      border-left: 4px solid #667eea;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-    }
-    
-    .hook-label {
-      font-weight: bold;
-      color: #2d3748;
-      margin-bottom: 10px;
-      font-size: 1.1rem;
-    }
-    
-    /* Viral Audio Analysis */
-    .viral-audio-box {
-      background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
-      border: 2px solid #f59e0b;
-      border-radius: 12px;
-      padding: 25px;
-      margin: 20px 0;
-    }
-    
-    .viral-audio-timing {
-      background: white;
-      border-radius: 8px;
-      padding: 15px;
-      margin: 15px 0;
-    }
-    
-    .timing-moment {
-      display: flex;
-      align-items: flex-start;
-      margin-bottom: 15px;
-      padding-bottom: 15px;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    
-    .timing-moment:last-child {
-      border-bottom: none;
-    }
-    
-    .timing-label {
-      font-weight: bold;
-      color: #f59e0b;
-      min-width: 100px;
-      margin-right: 15px;
-    }
-    
-    .timing-content {
-      flex: 1;
-      color: #4a5568;
-    }
-    
-    /* Alternative Hooks */
-    .hook-item {
-      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-      padding: 18px;
-      border-radius: 10px;
-      border-left: 4px solid #f59e0b;
-      margin-bottom: 15px;
-      font-style: italic;
-      font-size: 1.05rem;
-      color: #1a1a1a;
-    }
-    
-    /* Formula Sections */
-    .formula-box {
-      background: #f0f4f8;
-      border: 2px solid #cbd5e0;
-      border-radius: 10px;
-      padding: 25px;
-      margin: 20px 0;
-    }
-    
-    .formula-title {
-      font-weight: bold;
-      color: #2d3748;
-      margin-bottom: 15px;
-      font-size: 1.1rem;
-    }
-    
-    /* Info Boxes */
-    .info-box {
-      background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-      border: 1px solid #0ea5e9;
-      border-radius: 10px;
-      padding: 20px;
-      margin: 20px 0;
-    }
-    
-    .warning-box {
-      background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
-      border: 1px solid #f59e0b;
-      border-radius: 10px;
-      padding: 20px;
-      margin: 20px 0;
-    }
-    
-    .success-box {
-      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-      border: 1px solid #10b981;
-      border-radius: 10px;
-      padding: 20px;
-      margin: 20px 0;
-    }
-    
-    /* Frame Gallery */
-    .frame-gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 15px;
-      margin-top: 20px;
-    }
-    
-    .frame-item {
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    
-    .frame-item img {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-    
-    /* Back Link */
-    .back-link {
-      display: inline-block;
-      background: white;
-      color: #667eea;
-      text-decoration: none;
-      padding: 15px 30px;
-      border-radius: 30px;
-      margin: 30px auto;
-      font-weight: 600;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-      transition: transform 0.3s;
-    }
-    
-    .back-link:hover {
-      transform: translateY(-2px);
-    }
-    
-    .center {
-      text-align: center;
-    }
 
-    /* Navigation Bar */
+    /* Navigation */
     .results-nav {
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(10px);
-      padding: 12px 20px;
+      background: rgba(23, 23, 45, 0.8);
+      backdrop-filter: blur(20px);
+      padding: 12px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: sticky;
       top: 0;
-      z-index: 100;
+      z-index: 200;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
 
-    .nav-brand {
-      display: flex;
-      flex-direction: column;
-      text-decoration: none;
-    }
+    .nav-brand { display: flex; flex-direction: column; text-decoration: none; }
+    .nav-brand-title { font-size: 1.1rem; font-weight: 700; color: var(--solar-lime); }
+    .nav-brand-subtitle { display: flex; align-items: center; gap: 0.3rem; font-size: 0.65rem; color: var(--celestial-lavender); margin-top: 2px; }
+    .nav-brand-subtitle img { height: 12px; width: auto; }
+    .nav-links { display: flex; gap: 15px; align-items: center; }
+    .nav-link { color: var(--stellar-cream); text-decoration: none; font-weight: 500; padding: 6px 12px; border-radius: 20px; transition: all 0.3s; font-size: 0.9rem; }
+    .nav-link:hover { color: var(--solar-lime); }
+    .nav-link.btn { background: linear-gradient(45deg, var(--lunar-blush), var(--celestial-lavender)); color: var(--cosmic-indigo); font-weight: 600; }
 
-    .nav-brand-title {
-      font-size: 1.1rem;
+    /* Header */
+    .header { text-align: center; padding: 2rem 0 1rem; }
+    .header h1 {
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
       font-weight: 700;
-      color: #c4f94a;
+      background: linear-gradient(45deg, var(--solar-lime), var(--celestial-lavender));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
     }
+    .header p { color: var(--celestial-lavender); font-size: 1rem; }
 
-    .nav-brand-subtitle {
+    .meta-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; justify-content: center; }
+    .meta-tag { background: rgba(255,255,255,0.1); color: var(--stellar-cream); padding: 5px 14px; border-radius: 20px; font-size: 0.85rem; backdrop-filter: blur(10px); }
+
+    /* Tab Navigation */
+    .tab-nav {
       display: flex;
-      align-items: center;
-      gap: 0.3rem;
-      font-size: 0.65rem;
-      color: #b7b4ed;
-      margin-top: 2px;
+      gap: 4px;
+      background: rgba(23, 23, 45, 0.6);
+      backdrop-filter: blur(20px);
+      padding: 6px;
+      border-radius: 16px;
+      margin: 1.5rem 0;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      position: sticky;
+      top: 56px;
+      z-index: 150;
     }
-
-    .nav-brand-subtitle img {
-      height: 12px;
-      width: auto;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 15px;
-      align-items: center;
-    }
-
-    .nav-link {
-      color: white;
-      text-decoration: none;
-      font-weight: 500;
-      padding: 6px 12px;
-      border-radius: 20px;
-      transition: all 0.3s ease;
-      font-size: 0.9rem;
-    }
-
-    .nav-link:hover {
-      color: #c4f94a;
-    }
-
-    .nav-link.btn {
-      background: linear-gradient(135deg, #c4f94a, #b7b4ed);
-      color: #1a1a2e;
+    .tab-btn {
+      flex: 1;
+      min-width: max-content;
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      color: var(--celestial-lavender);
+      font-family: var(--font-primary);
+      font-size: 0.85rem;
       font-weight: 600;
+      cursor: pointer;
+      border-radius: 12px;
+      transition: all 0.3s;
+      white-space: nowrap;
     }
+    .tab-btn:hover { background: rgba(255,255,255,0.05); color: var(--stellar-cream); }
+    .tab-btn.active { background: var(--lunar-blush); color: white; }
 
-    .nav-link.btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 15px rgba(196, 249, 74, 0.3);
-    }
+    .tab-content { display: none; animation: fadeIn 0.3s ease; }
+    .tab-content.active { display: block; }
 
-    /* Meta Tags */
-    .meta-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 15px;
-      justify-content: center;
-    }
-    
-    .meta-tag {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      padding: 6px 15px;
-      border-radius: 20px;
-      font-size: 0.9rem;
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Cards / Sections */
+    .section {
+      background: rgba(255, 255, 255, 0.05);
       backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
     }
+    .section h2 {
+      font-size: 1.3rem;
+      color: var(--stellar-cream);
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid rgba(106, 116, 207, 0.4);
+    }
+    .section h3 { font-size: 1.05rem; color: var(--stellar-cream); margin: 1.25rem 0 0.75rem; }
+    .section p, .section pre { color: var(--celestial-lavender); line-height: 1.8; margin-bottom: 0.75rem; }
+    pre { white-space: pre-wrap; font-family: inherit; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; border-left: 3px solid var(--lunar-blush); }
+
+    /* Scores */
+    .scores-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-top: 1rem;
+    }
+    .score-card {
+      text-align: center;
+      padding: 1rem;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(63, 75, 158, 0.5), rgba(106, 116, 207, 0.3));
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .score-value { font-size: 2rem; font-weight: 700; color: var(--solar-lime); }
+    .score-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--celestial-lavender); margin-top: 4px; }
+
+    /* Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-top: 1rem;
+    }
+    .metric-card {
+      text-align: center;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .metric-value { font-size: 1.8rem; font-weight: 700; color: var(--solar-lime); }
+    .metric-label { font-size: 0.8rem; color: var(--celestial-lavender); margin-top: 4px; }
+    .metric-sub { font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+    .metric-card.highlight { border: 2px solid var(--solar-lime); }
+
+    /* Hook Elements */
+    .hook-element {
+      background: rgba(106, 116, 207, 0.15);
+      border-left: 4px solid var(--lunar-blush);
+      padding: 1rem;
+      border-radius: 0 12px 12px 0;
+      margin-bottom: 12px;
+    }
+    .hook-label { font-weight: 700; color: var(--stellar-cream); margin-bottom: 8px; font-size: 1rem; }
+    .hook-element p { color: var(--celestial-lavender); margin-bottom: 6px; }
+
+    /* Formula */
+    .formula-box {
+      background: rgba(106, 116, 207, 0.1);
+      border: 1px solid rgba(106, 116, 207, 0.3);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1rem 0;
+    }
+    .formula-box h3 { color: var(--solar-lime); margin-bottom: 1rem; }
+
+    /* Info/Warning/Success Boxes */
+    .info-box { background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.4); border-radius: 10px; padding: 1rem; margin: 1rem 0; color: var(--stellar-cream); }
+    .warning-box { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 10px; padding: 1rem; margin: 1rem 0; color: var(--stellar-cream); }
+    .success-box { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 10px; padding: 1rem; margin: 1rem 0; color: var(--stellar-cream); }
+
+    /* Comment Analysis */
+    .comment-pattern {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: rgba(106, 116, 207, 0.1);
+      border-left: 3px solid var(--solar-lime);
+      border-radius: 0 8px 8px 0;
+    }
+    .comment-pattern-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem; }
+    .comment-pattern-header strong { color: var(--stellar-cream); }
+    .comment-pattern-header span { color: var(--solar-lime); font-size: 0.85rem; }
+    .comment-example { font-size: 0.85rem; color: var(--celestial-lavender); font-style: italic; }
+
+    .emotion-tag { display: inline-block; padding: 0.4rem 0.8rem; background: rgba(255,255,255,0.05); border-radius: 20px; font-size: 0.85rem; margin: 0.25rem; }
+    .emotion-tag .label { color: var(--stellar-cream); text-transform: capitalize; }
+    .emotion-tag .value { color: var(--solar-lime); margin-left: 0.4rem; font-weight: 600; }
+
+    /* Frame Gallery */
+    .frame-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 1rem; }
+    .frame-item { border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+    .frame-item img { width: 100%; height: auto; display: block; }
+
+    /* Timing */
+    .timing-moment { display: flex; align-items: flex-start; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .timing-moment:last-child { border-bottom: none; }
+    .timing-label { font-weight: 700; color: var(--solar-lime); min-width: 90px; margin-right: 1rem; }
+    .timing-content { flex: 1; color: var(--celestial-lavender); }
+
+    /* Sticky Action Bar */
+    .sticky-actions {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(23, 23, 45, 0.95);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      z-index: 300;
+      flex-wrap: wrap;
+    }
+    .action-btn {
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s;
+      cursor: pointer;
+      border: none;
+      font-family: var(--font-primary);
+      font-size: 0.9rem;
+    }
+    .action-btn.primary { background: linear-gradient(45deg, var(--lunar-blush), var(--celestial-lavender)); color: var(--cosmic-indigo); }
+    .action-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(106,116,207,0.4); }
+    .action-btn.secondary { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: var(--stellar-cream); }
+    .action-btn.secondary:hover { border-color: var(--solar-lime); color: var(--solar-lime); }
+
+    /* Admin Learning Section */
+    .admin-section {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-top: 2rem;
+    }
+    .admin-section h3 { color: var(--lunar-blush); margin-bottom: 0.5rem; }
+    .admin-section label { display: block; font-weight: 600; margin-bottom: 5px; color: var(--stellar-cream); font-size: 0.9rem; }
+    .admin-section input, .admin-section textarea, .admin-section select {
+      width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+      background: rgba(255,255,255,0.05); color: white; font-family: var(--font-primary); font-size: 0.95rem;
+      margin-bottom: 12px;
+    }
+    .admin-section input:focus, .admin-section textarea:focus, .admin-section select:focus {
+      outline: none; border-color: var(--lunar-blush);
+    }
+    .admin-btn {
+      width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; font-family: var(--font-primary);
+    }
+    .admin-btn.preview { background: linear-gradient(135deg, var(--lunar-blush), var(--celestial-lavender)); color: var(--cosmic-indigo); }
+    .admin-btn.submit { background: linear-gradient(135deg, #56ab2f, #a8e063); color: white; margin-top: 12px; }
+    .admin-btn:hover { transform: translateY(-2px); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container { padding: 12px; }
+      .section { padding: 1rem; }
+      .results-nav { padding: 10px 16px; }
+      .nav-links { gap: 8px; }
+      .tab-nav { gap: 2px; padding: 4px; }
+      .tab-btn { padding: 8px 12px; font-size: 0.75rem; }
+      .scores-grid { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+      .sticky-actions { padding: 10px 12px; gap: 8px; }
+      .action-btn { padding: 8px 14px; font-size: 0.8rem; }
+      .frame-gallery { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+    }
+
+    @media (max-width: 480px) {
+      .nav-links { display: none; }
+      .tab-btn { padding: 8px 10px; font-size: 0.7rem; }
+    }
+
+    /* Bottom padding for sticky bar */
+    body { padding-bottom: 70px; }
   </style>
 </head>
 <body>
-  <!-- Navigation Bar -->
+  <!-- Navigation -->
   <nav class="results-nav">
     <a href="/" class="nav-brand">
       <span class="nav-brand-title">TikTok Analyzer</span>
@@ -380,7 +312,7 @@
     </a>
     <div class="nav-links">
       {% if current_user and current_user.is_authenticated %}
-        <a href="/history" class="nav-link">My History</a>
+        <a href="/history" class="nav-link">History</a>
         <a href="/logout" class="nav-link">Logout</a>
       {% else %}
         <a href="/login" class="nav-link">Login</a>
@@ -392,607 +324,452 @@
   <div class="container" id="content-to-pdf">
     <!-- Header -->
     <div class="header">
-      <h1>🎯 Complete Video Analysis</h1>
+      <h1>Complete Video Analysis</h1>
       <p>Deep dive into what makes your content work</p>
 
-      <!-- Video Preview Thumbnail -->
       {% if video_thumbnail %}
-      <div style="margin: 1.5rem auto; max-width: 400px;">
+      <div style="margin: 1.5rem auto; max-width: 350px;">
         <img src="{{ video_thumbnail }}" alt="Video Preview" style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
       </div>
       {% endif %}
 
       {% if metadata and metadata.url %}
       <p style="margin-top: 0.5rem;">
-        <a href="{{ metadata.url }}" target="_blank" style="color: var(--solar-lime); text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.95rem;">
-          🔗 View Original Video
-          <span style="font-size: 0.8rem; opacity: 0.7;">↗</span>
+        <a href="{{ metadata.url }}" target="_blank" style="color: var(--solar-lime); text-decoration: none; font-size: 0.95rem;">
+          View Original Video <span style="font-size: 0.8rem;">&#8599;</span>
         </a>
       </p>
       {% endif %}
+
       <div class="meta-tags">
-        {% if platform %}
-        <span class="meta-tag">{{ platform.title() }}</span>
-        {% endif %}
-        {% if metadata and metadata.uploader %}
-        <span class="meta-tag">👤 @{{ metadata.uploader }}</span>
-        {% endif %}
-        {% if metadata and metadata.track %}
-        <span class="meta-tag">🎵 {{ metadata.track }}</span>
-        {% endif %}
-        {% if target_duration %}
-        <span class="meta-tag">{{ target_duration }}s video</span>
-        {% endif %}
-        {% if goal %}
-        <span class="meta-tag">Goal: {{ goal.replace('_', ' ').title() }}</span>
-        {% endif %}
-        {% if actual_view_count %}
-        <span class="meta-tag">{{ actual_view_count }} views</span>
-        {% endif %}
-        {% if performance_level == 'viral' %}
-        <span class="meta-tag">🔥 Viral Content</span>
-        {% endif %}
+        {% if platform %}<span class="meta-tag">{{ platform.title() }}</span>{% endif %}
+        {% if metadata and metadata.uploader %}<span class="meta-tag">@{{ metadata.uploader }}</span>{% endif %}
+        {% if metadata and metadata.track %}<span class="meta-tag">{{ metadata.track }}</span>{% endif %}
+        {% if target_duration %}<span class="meta-tag">{{ target_duration }}s</span>{% endif %}
+        {% if goal %}<span class="meta-tag">{{ goal.replace('_', ' ').title() }}</span>{% endif %}
+        {% if actual_view_count %}<span class="meta-tag">{{ actual_view_count }} views</span>{% endif %}
+        {% if performance_level == 'viral' %}<span class="meta-tag" style="background: rgba(245,158,11,0.3);">Viral</span>{% endif %}
       </div>
     </div>
 
-    <!-- Auto-Detected Metrics -->
-    {% if metadata and metadata.view_count %}
-    <div class="section" style="background: linear-gradient(135deg, rgba(111, 116, 206, 0.1), rgba(183, 180, 237, 0.1)); border-left: 4px solid var(--lunar-blush);">
-      <h2>📊 Auto-Detected Engagement Metrics</h2>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
-        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px;">
-          <div style="font-size: 2rem; font-weight: 700; color: var(--solar-lime);">{{ "{:,}".format(metadata.view_count) }}</div>
-          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">Views</div>
-        </div>
-        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px;">
-          <div style="font-size: 2rem; font-weight: 700; color: var(--solar-lime);">{{ "{:,}".format(metadata.like_count) }}</div>
-          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">Likes</div>
-          <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem;">{{ metadata.engagement_metrics.like_rate }}% rate</div>
-        </div>
-        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px; {% if metadata.high_value_content %}border: 2px solid var(--solar-lime);{% endif %}">
-          <div style="font-size: 2rem; font-weight: 700; color: {% if metadata.high_value_content %}var(--solar-lime){% else %}var(--lunar-blush){% endif %};">
-            🔁 {{ "{:,}".format(metadata.repost_count) }}
-          </div>
-          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">REPOSTS</div>
-          <div style="color: {% if metadata.high_value_content %}var(--solar-lime){% else %}rgba(255, 255, 255, 0.6){% endif %}; font-size: 0.8rem;">
-            {{ metadata.engagement_metrics.repost_rate }}% rate
-            {% if metadata.high_value_content %}✨ Highly Shareable!{% endif %}
-          </div>
-        </div>
-        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px;">
-          <div style="font-size: 2rem; font-weight: 700; color: var(--lunar-blush);">{{ "{:,}".format(metadata.comment_count) }}</div>
-          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">Comments</div>
-          <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem;">{{ metadata.engagement_metrics.comment_rate }}% rate</div>
-        </div>
-        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px;">
-          <div style="font-size: 2rem; font-weight: 700; color: var(--celestial-lavender);">{{ metadata.engagement_metrics.total_engagement_rate }}%</div>
-          <div style="color: var(--celestial-lavender); font-size: 0.9rem; margin-top: 0.5rem;">Total Engagement</div>
-        </div>
-      </div>
-
-      {% if metadata.engagement_metrics.repost_rate > 2.0 %}
-      <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(106, 116, 207, 0.2); border-radius: 12px; border-left: 3px solid var(--solar-lime);">
-        <strong style="color: var(--stellar-cream);">🔁 High Repost Rate Detected:</strong>
-        <p style="margin-top: 0.5rem; color: var(--celestial-lavender);">
-          {{ metadata.engagement_metrics.repost_rate }}% repost rate indicates strong shareability and viral potential. This content resonates enough that viewers want to share it with their own audience.
-        </p>
-      </div>
-      {% endif %}
-
-      {% if audio_analysis and audio_analysis.viral_sound and audio_analysis.viral_sound.is_viral %}
-      <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(106, 116, 207, 0.2); border-radius: 12px; border-left: 3px solid var(--solar-lime);">
-        <strong style="color: var(--stellar-cream);">🎵 Viral Sound Detected:</strong>
-        <p style="margin-top: 0.5rem; color: var(--celestial-lavender);">
-          "{{ audio_analysis.viral_sound.sound_name }}" by {{ audio_analysis.viral_sound.artist }}
-        </p>
-      </div>
-      {% endif %}
+    <!-- TAB NAVIGATION -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
+      <button class="tab-btn" onclick="switchTab('hooks')">Hook Breakdown</button>
+      <button class="tab-btn" onclick="switchTab('formula')">Replication Formula</button>
+      <button class="tab-btn" onclick="switchTab('comments')">Comments</button>
+      <button class="tab-btn" onclick="switchTab('data')">Transcript & Frames</button>
     </div>
-    {% endif %}
 
-    <!-- Extraction Only Mode -->
+    <!-- ===== EXTRACTION ONLY MODE ===== -->
     {% if extraction_only %}
-    <div class="section">
-      <h2>📊 Video Metadata</h2>
-      {% if metadata %}
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
-        <div><strong>Duration:</strong> {{ metadata.duration }}s</div>
-        <div><strong>Upload Date:</strong> {{ metadata.upload_date }}</div>
-        {% if metadata.uploader %}<div><strong>Uploader:</strong> @{{ metadata.uploader }}</div>{% endif %}
-        {% if metadata.track %}<div><strong>Track:</strong> {{ metadata.track }}</div>{% endif %}
-        {% if metadata.view_count %}<div><strong>Views:</strong> {{ "{:,}".format(metadata.view_count) }}</div>{% endif %}
-        {% if metadata.like_count %}<div><strong>Likes:</strong> {{ "{:,}".format(metadata.like_count) }}</div>{% endif %}
-        {% if metadata.comment_count %}<div><strong>Comments:</strong> {{ "{:,}".format(metadata.comment_count) }}</div>{% endif %}
-        {% if metadata.repost_count %}<div><strong>Reposts:</strong> {{ "{:,}".format(metadata.repost_count) }}</div>{% endif %}
+    <div class="tab-content active" id="tab-overview">
+      <div class="section">
+        <h2>Video Metadata</h2>
+        {% if metadata %}
+        <div class="metrics-grid">
+          {% if metadata.duration %}<div class="metric-card"><div class="metric-value">{{ metadata.duration }}s</div><div class="metric-label">Duration</div></div>{% endif %}
+          {% if metadata.view_count %}<div class="metric-card"><div class="metric-value">{{ "{:,}".format(metadata.view_count) }}</div><div class="metric-label">Views</div></div>{% endif %}
+          {% if metadata.like_count %}<div class="metric-card"><div class="metric-value">{{ "{:,}".format(metadata.like_count) }}</div><div class="metric-label">Likes</div></div>{% endif %}
+          {% if metadata.comment_count %}<div class="metric-card"><div class="metric-value">{{ "{:,}".format(metadata.comment_count) }}</div><div class="metric-label">Comments</div></div>{% endif %}
+        </div>
+        {% if metadata.hashtags %}
+        <p style="margin-top: 1rem;"><strong>Hashtags:</strong> {{ metadata.hashtags|join(', ') }}</p>
+        {% endif %}
+        {% endif %}
       </div>
-      {% if metadata.hashtags %}
-      <div style="margin-top: 1rem;"><strong>Hashtags:</strong> {{ metadata.hashtags|join(', ') }}</div>
-      {% endif %}
-      {% endif %}
-    </div>
-
-    <div class="section">
-      <h2>📝 Transcript</h2>
-      {% if transcript_quality and transcript_quality.transcript %}
-      <div style="white-space: pre-wrap; line-height: 1.8; background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 8px; font-family: 'Courier New', monospace;">{{ transcript_quality.transcript }}</div>
-      <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
-        <strong>Quality:</strong> {{ transcript_quality.quality }}<br>
-        <strong>Word Count:</strong> {{ transcript_quality.word_count }}<br>
-        <strong>Confidence:</strong> {{ transcript_quality.average_confidence }}
+      <div class="section">
+        <h2>Transcript</h2>
+        {% if transcript_quality and transcript_quality.transcript %}
+        <pre>{{ transcript_quality.transcript }}</pre>
+        {% else %}
+        <p style="opacity: 0.6;">No transcript available</p>
+        {% endif %}
       </div>
-      {% else %}
-      <p style="color: rgba(255,255,255,0.6);">No transcript available</p>
-      {% endif %}
-    </div>
-
-    <div class="section">
-      <h2>🖼️ Frame Summaries</h2>
-      {% if frames_summaries %}
-      <div style="white-space: pre-wrap; line-height: 1.8; background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 8px;">{{ frames_summaries }}</div>
-      {% else %}
-      <p style="color: rgba(255,255,255,0.6);">No frame data available</p>
-      {% endif %}
-    </div>
-
-    {% if audio_analysis %}
-    <div class="section">
-      <h2>🎵 Audio Analysis</h2>
-      <div style="display: grid; gap: 1rem;">
-        {% if audio_analysis.tempo %}<div><strong>Tempo:</strong> {{ "%.1f"|format(audio_analysis.tempo) }} BPM</div>{% endif %}
-        {% if audio_analysis.energy %}<div><strong>Energy:</strong> {{ "%.2f"|format(audio_analysis.energy) }}</div>{% endif %}
-        {% if audio_analysis.is_music is defined %}<div><strong>Contains Music:</strong> {{ 'Yes' if audio_analysis.is_music else 'No' }}</div>{% endif %}
+      <div class="section">
+        <h2>Frame Summaries</h2>
+        {% if frames_summaries %}<pre>{{ frames_summaries }}</pre>{% else %}<p style="opacity: 0.6;">No frame data</p>{% endif %}
+      </div>
+      {% if audio_analysis %}
+      <div class="section">
+        <h2>Audio Analysis</h2>
+        {% if audio_analysis.tempo %}<p><strong>Tempo:</strong> {{ "%.1f"|format(audio_analysis.tempo) }} BPM</p>{% endif %}
+        {% if audio_analysis.energy %}<p><strong>Energy:</strong> {{ "%.2f"|format(audio_analysis.energy) }}</p>{% endif %}
         {% if audio_analysis.viral_sound and audio_analysis.viral_sound.is_viral %}
-        <div style="padding: 1rem; background: rgba(106, 116, 207, 0.2); border-radius: 8px; border-left: 3px solid var(--solar-lime);">
-          <strong style="color: var(--stellar-cream);">🎵 Viral Sound Detected:</strong><br>
-          <span style="color: var(--celestial-lavender);">"{{ audio_analysis.viral_sound.sound_name }}" by {{ audio_analysis.viral_sound.artist }}</span>
+        <div class="info-box">
+          <strong>Viral Sound:</strong> "{{ audio_analysis.viral_sound.sound_name }}" by {{ audio_analysis.viral_sound.artist }}
         </div>
         {% endif %}
       </div>
+      {% endif %}
     </div>
-    {% endif %}
 
     {% elif is_raw_text_fallback %}
-    <!-- Raw Text Fallback Notice -->
-    <div class="warning-box" style="margin: 20px 0;">
-      <h3 style="margin-bottom: 10px;">⚠️ Analysis Format Notice</h3>
-      <p>The analysis below is shown in raw text format due to a formatting issue. The intelligent analysis from Claude is complete and accurate, just not structured in the usual sections.</p>
+    <!-- Raw Text Fallback -->
+    <div class="tab-content active" id="tab-overview">
+      <div class="warning-box"><h3>Analysis Format Notice</h3><p>Shown in raw text format due to formatting issue. The analysis is complete and accurate.</p></div>
+      <div class="section"><h2>Complete Analysis</h2><pre>{{ raw_analysis_text }}</pre></div>
     </div>
 
-    <div class="section">
-      <h2>📝 Complete Analysis (Raw Text)</h2>
-      <div style="white-space: pre-wrap; line-height: 1.8; background: #f8f9fa; padding: 25px; border-radius: 8px; border-left: 4px solid #667eea;">
-        {{ raw_analysis_text }}
-      </div>
-    </div>
     {% else %}
 
-    <!-- What This Video Is -->
-    <div class="section">
-      <h2>🎬 What This Video Is</h2>
-      <div style="white-space: pre-line; line-height: 1.8;">{{ what_this_video_is or analysis }}</div>
-    </div>
+    <!-- ===== TAB 1: OVERVIEW ===== -->
+    <div class="tab-content active" id="tab-overview">
 
-    <!-- Why It Performed -->
-    <div class="section">
-      <h2>📈 Why It Performed This Way</h2>
-      <div style="white-space: pre-line; line-height: 1.8;">{{ why_it_performed or performance_deep_dive }}</div>
-    </div>
-
-    <!-- All Hooks Identified -->
-    <div class="section">
-      <h2>🎣 All Hooks Identified</h2>
-      
-      {% if all_hooks_identified %}
-      <div class="hook-element">
-        <div class="hook-label">📝 TEXT HOOKS</div>
-        {% for hook in all_hooks_identified.text_hooks %}
-        <p>• {{ hook }}</p>
-        {% endfor %}
-      </div>
-      
-      <div class="hook-element">
-        <div class="hook-label">👁️ VISUAL HOOKS</div>
-        {% for hook in all_hooks_identified.visual_hooks %}
-        <p>• {{ hook }}</p>
-        {% endfor %}
-      </div>
-      
-      <div class="hook-element">
-        <div class="hook-label">🔊 VERBAL HOOKS</div>
-        {% for hook in all_hooks_identified.verbal_hooks %}
-        <p>• {{ hook }}</p>
-        {% endfor %}
-      </div>
-      
-      <div class="hook-element">
-        <div class="hook-label">🧠 PSYCHOLOGICAL HOOKS</div>
-        {% for hook in all_hooks_identified.psychological_hooks %}
-        <p>• {{ hook }}</p>
-        {% endfor %}
-      </div>
-      {% endif %}
-    </div>
-
-    <!-- Replication Formula -->
-    <div class="section">
-      <h2>📋 How to Replicate This Formula</h2>
-      
-      {% if replication_formula %}
-      <div class="formula-box">
-        <h3>{{ replication_formula.formula_name }}</h3>
-        <p><strong>Structure:</strong> {{ replication_formula.structure }}</p>
-        
-        <h4>Scenarios for Your Niche:</h4>
-        <div style="white-space: pre-wrap; line-height: 1.8; margin: 1rem 0; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
-          {% for scenario in replication_formula.scenarios_for_same_niche %}
-          {{ scenario | markdown_bold('#000000') | safe }}
-
-          {% endfor %}
-        </div>
-
-        <p style="margin-top: 1.5rem;"><strong>Why It Works:</strong></p>
-        <p style="margin-left: 1rem; line-height: 1.6;">{{ replication_formula.why_it_works }}</p>
-
-        <p style="margin-top: 1.5rem;"><strong>Text Template:</strong></p>
-        <div style="white-space: pre-wrap; line-height: 1.8; margin: 1rem 0; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; font-family: 'Courier New', monospace;">{{ replication_formula.text_template | markdown_bold('#000000') | safe }}</div>
-
-        <p style="margin-top: 1.5rem;"><strong>Visual Requirements:</strong></p>
-        <p style="margin-left: 1rem; line-height: 1.6;">{{ replication_formula.visual_requirements }}</p>
-      </div>
-      {% endif %}
-    </div>
-
-    {% endif %}
-    <!-- End of raw text fallback conditional -->
-
-    <!-- Performance Scores -->
-    {% if scores %}
-    <div class="scores-section">
-      <h2>📊 Performance Breakdown</h2>
-      {% if creator_note %}
-      <div class="info-box">
-        <strong>Your Context:</strong> {{ creator_note }}
-      </div>
-      {% endif %}
-
-      <div class="scores-grid">
-        <div class="score-card">
-          <div class="score-value">{{ scores.hook_strength|default('N/A') }}{% if scores.hook_strength %}/10{% endif %}</div>
-          <div class="score-label">Hook Power</div>
-        </div>
-
-        <div class="score-card">
-          <div class="score-value">{{ scores.promise_clarity|default('N/A') }}{% if scores.promise_clarity %}/10{% endif %}</div>
-          <div class="score-label">Clear Promise</div>
-        </div>
-
-        <div class="score-card">
-          <div class="score-value">{{ scores.retention_design|default('N/A') }}{% if scores.retention_design %}/10{% endif %}</div>
-          <div class="score-label">Retention</div>
-        </div>
-
-        <div class="score-card">
-          <div class="score-value">{{ scores.engagement_potential|default('N/A') }}{% if scores.engagement_potential %}/10{% endif %}</div>
-          <div class="score-label">Engagement</div>
-        </div>
-
-        <div class="score-card">
-          <div class="score-value">{{ scores.goal_alignment|default('N/A') }}{% if scores.goal_alignment %}/10{% endif %}</div>
-          <div class="score-label">Goal Match</div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Improvements -->
-    <div class="section">
-      <h2>💡 Improvements</h2>
-      <div style="white-space: pre-line; line-height: 1.8;">{{ improvements or improvement_opportunities }}</div>
-    </div>
-
-    <!-- Viral Mechanics -->
-    <div class="section">
-      <h2>🚀 Viral Mechanics</h2>
-      <div style="white-space: pre-line; line-height: 1.8;">{{ viral_mechanics }}</div>
-    </div>
-
-    <!-- Timing Breakdown -->
-    {% if timing_mastery %}
-    <div class="section">
-      <h2>⏰ Timing Mastery</h2>
-      {% for time, content in timing_mastery.items() %}
-      <div class="timing-moment">
-        <div class="timing-label">{{ time }}</div>
-        <div class="timing-content">{{ content }}</div>
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- Performance Prediction -->
-    <div class="section">
-      <h2>📊 Performance Prediction</h2>
-      <div style="white-space: pre-line; line-height: 1.8;">{{ performance_prediction }}</div>
-    </div>
-
-    <!-- Comment Analysis -->
-    {% if comment_insights and comment_insights.total_comments > 0 %}
-    <div class="section">
-      <h2>💬 Viewer Comment Analysis</h2>
-      <p style="color: var(--celestial-lavender); margin-bottom: 1rem;">
-        Analyzed {{ comment_insights.total_comments }} comments to understand what viewers ACTUALLY engaged with
-      </p>
-
-      <!-- Categorization -->
-      {% if comment_insights.categorization %}
-      <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(106, 116, 207, 0.15); border-radius: 12px;">
-        <h3 style="font-size: 1rem; color: var(--stellar-cream); margin-bottom: 0.75rem;">Comment Types</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">
-          {% for category, percentage in comment_insights.categorization.percentages.items() %}
-          <div style="text-align: center; padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
-            <div style="font-size: 1.3rem; font-weight: 700; color: var(--solar-lime);">{{ percentage }}%</div>
-            <div style="font-size: 0.75rem; color: var(--celestial-lavender); text-transform: capitalize;">{{ category.replace('_', ' ') }}</div>
+      <!-- Auto-Detected Metrics -->
+      {% if metadata and metadata.view_count %}
+      <div class="section">
+        <h2>Auto-Detected Engagement</h2>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-value">{{ "{:,}".format(metadata.view_count) }}</div>
+            <div class="metric-label">Views</div>
           </div>
-          {% endfor %}
+          <div class="metric-card">
+            <div class="metric-value">{{ "{:,}".format(metadata.like_count) }}</div>
+            <div class="metric-label">Likes</div>
+            {% if metadata.engagement_metrics %}<div class="metric-sub">{{ metadata.engagement_metrics.like_rate }}% rate</div>{% endif %}
+          </div>
+          <div class="metric-card {% if metadata.high_value_content %}highlight{% endif %}">
+            <div class="metric-value">{{ "{:,}".format(metadata.repost_count) }}</div>
+            <div class="metric-label">Reposts</div>
+            {% if metadata.engagement_metrics %}<div class="metric-sub">{{ metadata.engagement_metrics.repost_rate }}% rate</div>{% endif %}
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">{{ "{:,}".format(metadata.comment_count) }}</div>
+            <div class="metric-label">Comments</div>
+            {% if metadata.engagement_metrics %}<div class="metric-sub">{{ metadata.engagement_metrics.comment_rate }}% rate</div>{% endif %}
+          </div>
+          {% if metadata.engagement_metrics %}
+          <div class="metric-card">
+            <div class="metric-value">{{ metadata.engagement_metrics.total_engagement_rate }}%</div>
+            <div class="metric-label">Total Engagement</div>
+          </div>
+          {% endif %}
         </div>
-        {% if comment_insights.categorization.insight %}
-        <p style="margin-top: 0.75rem; color: var(--celestial-lavender); font-size: 0.9rem; font-style: italic;">
-          {{ comment_insights.categorization.insight }}
-        </p>
+
+        {% if metadata.engagement_metrics and metadata.engagement_metrics.repost_rate > 2.0 %}
+        <div class="info-box" style="margin-top: 1rem;">
+          <strong>High Repost Rate:</strong> {{ metadata.engagement_metrics.repost_rate }}% indicates strong shareability and viral potential.
+        </div>
+        {% endif %}
+
+        {% if audio_analysis and audio_analysis.viral_sound and audio_analysis.viral_sound.is_viral %}
+        <div class="info-box" style="margin-top: 0.75rem;">
+          <strong>Viral Sound:</strong> "{{ audio_analysis.viral_sound.sound_name }}" by {{ audio_analysis.viral_sound.artist }}
+        </div>
         {% endif %}
       </div>
       {% endif %}
 
-      <!-- Consensus Patterns (What Viewers Collectively Agreed On) -->
-      {% if comment_insights.consensus_patterns %}
-      <div style="margin-bottom: 1.5rem;">
-        <h3 style="font-size: 1rem; color: var(--stellar-cream); margin-bottom: 0.75rem;">🔥 Consensus Patterns (Ranked by Total Likes)</h3>
-        <p style="font-size: 0.85rem; color: var(--celestial-lavender); margin-bottom: 1rem;">
-          What viewers collectively agreed on — sorted by total likes across similar comments
-        </p>
-        {% for pattern in comment_insights.consensus_patterns[:5] %}
-        <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(106, 116, 207, 0.1); border-left: 3px solid var(--solar-lime); border-radius: 0 8px 8px 0;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <strong style="color: var(--stellar-cream);">{{ pattern.theme }}</strong>
-            <span style="color: var(--solar-lime); font-size: 0.85rem;">{{ pattern.mentions }} mentions • {{ pattern.total_likes }} total likes</span>
-          </div>
-          {% if pattern.examples %}
-          <div style="font-size: 0.85rem; color: var(--celestial-lavender); font-style: italic;">
-            Example: "{{ pattern.examples[0].text[:100] }}{% if pattern.examples[0].text|length > 100 %}...{% endif %}" ({{ pattern.examples[0].likes }} likes)
-          </div>
-          {% endif %}
+      <!-- Scores -->
+      {% if scores %}
+      <div class="section">
+        <h2>Performance Scores</h2>
+        {% if creator_note %}<div class="info-box"><strong>Your Notes:</strong> {{ creator_note }}</div>{% endif %}
+        <div class="scores-grid">
+          <div class="score-card"><div class="score-value">{{ scores.hook_strength|default('N/A') }}{% if scores.hook_strength %}/10{% endif %}</div><div class="score-label">Hook Power</div></div>
+          <div class="score-card"><div class="score-value">{{ scores.promise_clarity|default('N/A') }}{% if scores.promise_clarity %}/10{% endif %}</div><div class="score-label">Clear Promise</div></div>
+          <div class="score-card"><div class="score-value">{{ scores.retention_design|default('N/A') }}{% if scores.retention_design %}/10{% endif %}</div><div class="score-label">Retention</div></div>
+          <div class="score-card"><div class="score-value">{{ scores.engagement_potential|default('N/A') }}{% if scores.engagement_potential %}/10{% endif %}</div><div class="score-label">Engagement</div></div>
+          <div class="score-card"><div class="score-value">{{ scores.goal_alignment|default('N/A') }}{% if scores.goal_alignment %}/10{% endif %}</div><div class="score-label">Goal Match</div></div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- What This Video Is -->
+      <div class="section">
+        <h2>What This Video Is</h2>
+        <div style="white-space: pre-line; line-height: 1.8;">{{ what_this_video_is or analysis }}</div>
+      </div>
+
+      <!-- Why It Performed -->
+      <div class="section">
+        <h2>Why It Performed This Way</h2>
+        <div style="white-space: pre-line; line-height: 1.8;">{{ why_it_performed or performance_deep_dive }}</div>
+      </div>
+
+      <!-- Viral Mechanics -->
+      {% if viral_mechanics %}
+      <div class="section">
+        <h2>Viral Mechanics</h2>
+        <div style="white-space: pre-line; line-height: 1.8;">{{ viral_mechanics }}</div>
+      </div>
+      {% endif %}
+
+      <!-- Performance Prediction -->
+      {% if performance_prediction %}
+      <div class="section">
+        <h2>Performance Prediction</h2>
+        <div style="white-space: pre-line; line-height: 1.8;">{{ performance_prediction }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ===== TAB 2: HOOK BREAKDOWN ===== -->
+    <div class="tab-content" id="tab-hooks">
+
+      {% if all_hooks_identified %}
+      <div class="section">
+        <h2>All Hooks Identified</h2>
+
+        {% if all_hooks_identified.text_hooks %}
+        <div class="hook-element">
+          <div class="hook-label">TEXT HOOKS</div>
+          {% for hook in all_hooks_identified.text_hooks %}<p>{{ hook }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if all_hooks_identified.visual_hooks %}
+        <div class="hook-element">
+          <div class="hook-label">VISUAL HOOKS</div>
+          {% for hook in all_hooks_identified.visual_hooks %}<p>{{ hook }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if all_hooks_identified.verbal_hooks %}
+        <div class="hook-element">
+          <div class="hook-label">VERBAL HOOKS</div>
+          {% for hook in all_hooks_identified.verbal_hooks %}<p>{{ hook }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if all_hooks_identified.psychological_hooks %}
+        <div class="hook-element">
+          <div class="hook-label">PSYCHOLOGICAL HOOKS</div>
+          {% for hook in all_hooks_identified.psychological_hooks %}<p>{{ hook }}</p>{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Timing Mastery -->
+      {% if timing_mastery %}
+      <div class="section">
+        <h2>Timing Mastery</h2>
+        {% for time, content in timing_mastery.items() %}
+        <div class="timing-moment">
+          <div class="timing-label">{{ time }}</div>
+          <div class="timing-content">{{ content }}</div>
         </div>
         {% endfor %}
       </div>
       {% endif %}
+    </div>
 
-      <!-- Top Emotions -->
-      {% if comment_insights.emotion_analysis %}
-      <div style="margin-bottom: 1.5rem;">
-        <h3 style="font-size: 1rem; color: var(--stellar-cream); margin-bottom: 0.75rem;">😊 Emotional Reactions</h3>
-        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-          {% for emotion, score in comment_insights.emotion_analysis.items() %}
-          {% if score > 5 %}
-          <div style="padding: 0.5rem 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 20px; font-size: 0.85rem;">
-            <span style="color: var(--stellar-cream); text-transform: capitalize;">{{ emotion }}</span>
-            <span style="color: var(--solar-lime); margin-left: 0.5rem; font-weight: 600;">{{ score }}%</span>
+    <!-- ===== TAB 3: REPLICATION FORMULA ===== -->
+    <div class="tab-content" id="tab-formula">
+
+      {% if replication_formula %}
+      <div class="section">
+        <h2>How to Replicate This Formula</h2>
+        <div class="formula-box">
+          <h3>{{ replication_formula.formula_name }}</h3>
+          <p><strong style="color: var(--stellar-cream);">Structure:</strong> {{ replication_formula.structure }}</p>
+
+          {% if replication_formula.scenarios_for_same_niche %}
+          <h3 style="margin-top: 1.5rem;">Scenarios for Your Niche</h3>
+          <div style="white-space: pre-wrap; line-height: 1.8; margin: 1rem 0; padding: 1rem; background: rgba(0,0,0,0.15); border-radius: 8px;">
+            {% for scenario in replication_formula.scenarios_for_same_niche %}
+            {{ scenario | markdown_bold('#F0EAE0') | safe }}
+
+            {% endfor %}
           </div>
           {% endif %}
+
+          <p style="margin-top: 1.5rem;"><strong style="color: var(--stellar-cream);">Why It Works:</strong></p>
+          <p>{{ replication_formula.why_it_works }}</p>
+
+          {% if replication_formula.text_template %}
+          <p style="margin-top: 1.5rem;"><strong style="color: var(--stellar-cream);">Text Template:</strong></p>
+          <pre>{{ replication_formula.text_template | markdown_bold('#F0EAE0') | safe }}</pre>
+          {% endif %}
+
+          {% if replication_formula.visual_requirements %}
+          <p style="margin-top: 1.5rem;"><strong style="color: var(--stellar-cream);">Visual Requirements:</strong></p>
+          <p>{{ replication_formula.visual_requirements }}</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Improvements -->
+      {% if improvements or improvement_opportunities %}
+      <div class="section">
+        <h2>Improvements</h2>
+        <div style="white-space: pre-line; line-height: 1.8;">{{ improvements or improvement_opportunities }}</div>
+      </div>
+      {% endif %}
+
+      <!-- Knowledge Patterns -->
+      {% if knowledge_patterns_applied %}
+      <div class="section">
+        <h2>Proven Patterns Applied</h2>
+        <ul style="padding-left: 1.5rem;">
+          {% for pattern in knowledge_patterns_applied %}<li style="margin-bottom: 0.5rem; color: var(--celestial-lavender);">{{ pattern }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ===== TAB 4: COMMENTS ===== -->
+    <div class="tab-content" id="tab-comments">
+
+      {% if comment_insights and comment_insights.total_comments > 0 %}
+      <div class="section">
+        <h2>Viewer Comment Analysis</h2>
+        <p style="margin-bottom: 1rem;">Analyzed {{ comment_insights.total_comments }} comments to understand what viewers engaged with</p>
+
+        {% if comment_insights.categorization %}
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(106,116,207,0.15); border-radius: 12px;">
+          <h3 style="margin-bottom: 0.75rem;">Comment Types</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.75rem;">
+            {% for category, percentage in comment_insights.categorization.percentages.items() %}
+            <div style="text-align: center; padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+              <div style="font-size: 1.3rem; font-weight: 700; color: var(--solar-lime);">{{ percentage }}%</div>
+              <div style="font-size: 0.75rem; color: var(--celestial-lavender); text-transform: capitalize;">{{ category.replace('_', ' ') }}</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% if comment_insights.categorization.insight %}
+          <p style="margin-top: 0.75rem; font-style: italic; font-size: 0.9rem;">{{ comment_insights.categorization.insight }}</p>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {% if comment_insights.consensus_patterns %}
+        <h3>Consensus Patterns (Ranked by Likes)</h3>
+        <p style="font-size: 0.85rem; margin-bottom: 1rem;">What viewers collectively agreed on</p>
+        {% for pattern in comment_insights.consensus_patterns[:5] %}
+        <div class="comment-pattern">
+          <div class="comment-pattern-header">
+            <strong>{{ pattern.theme }}</strong>
+            <span>{{ pattern.mentions }} mentions &middot; {{ pattern.total_likes }} likes</span>
+          </div>
+          {% if pattern.examples %}
+          <div class="comment-example">"{{ pattern.examples[0].text[:100] }}{% if pattern.examples[0].text|length > 100 %}...{% endif %}" ({{ pattern.examples[0].likes }} likes)</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if comment_insights.emotion_analysis %}
+        <h3 style="margin-top: 1.5rem;">Emotional Reactions</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+          {% for emotion, score in comment_insights.emotion_analysis.items() %}
+          {% if score > 5 %}
+          <div class="emotion-tag"><span class="label">{{ emotion }}</span><span class="value">{{ score }}%</span></div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if comment_insights.timestamp_mentions %}
+        <h3 style="margin-top: 1.5rem;">Moments Viewers Highlighted</h3>
+        {% for mention in comment_insights.timestamp_mentions[:5] %}
+        <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+          <div style="font-weight: 600; color: var(--solar-lime);">{{ mention.timestamp }} <span style="color: var(--celestial-lavender); font-weight: normal; font-size: 0.85rem;">({{ mention.mentions }} mentions)</span></div>
+          <div class="comment-example">"{{ mention.example_comments[0][:120] }}{% if mention.example_comments[0]|length > 120 %}...{% endif %}"</div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if comment_insights.ai_insights %}
+        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(106,116,207,0.2); border-radius: 12px; border-left: 3px solid var(--solar-lime);">
+          <h3 style="margin-bottom: 0.75rem;">AI Analysis of Comments</h3>
+          <div style="line-height: 1.7; white-space: pre-line;">{{ comment_insights.ai_insights }}</div>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="section">
+        <h2>Viewer Comment Analysis</h2>
+        <p style="opacity: 0.6;">No comment data available for this analysis. Comments are fetched when available from the platform.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ===== TAB 5: TRANSCRIPT & FRAMES ===== -->
+    <div class="tab-content" id="tab-data">
+
+      <div class="section">
+        <h2>Transcript</h2>
+        <div style="max-height: 400px; overflow-y: auto; border-radius: 8px;">
+          <pre>{{ transcript or "(No verbal content - visual/ambient audio)" }}</pre>
+        </div>
+      </div>
+
+      {% if frame_gallery %}
+      <div class="section">
+        <h2>Analyzed Frames</h2>
+        <div class="frame-gallery">
+          {% for img in frame_gallery %}
+          <div class="frame-item"><img src="{{ img }}" alt="Frame {{ loop.index }}" loading="lazy"></div>
           {% endfor %}
         </div>
       </div>
       {% endif %}
-
-      <!-- Timestamp Mentions -->
-      {% if comment_insights.timestamp_mentions %}
-      <div style="margin-bottom: 1.5rem;">
-        <h3 style="font-size: 1rem; color: var(--stellar-cream); margin-bottom: 0.75rem;">⏱️ Moments Viewers Highlighted</h3>
-        {% for mention in comment_insights.timestamp_mentions[:5] %}
-        <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: rgba(255, 255, 255, 0.03); border-radius: 8px;">
-          <div style="font-weight: 600; color: var(--solar-lime);">{{ mention.timestamp }} <span style="color: var(--celestial-lavender); font-weight: normal; font-size: 0.85rem;">({{ mention.mentions }} mentions)</span></div>
-          <div style="font-size: 0.85rem; color: var(--celestial-lavender); margin-top: 0.25rem; font-style: italic;">
-            "{{ mention.example_comments[0][:120] }}{% if mention.example_comments[0]|length > 120 %}...{% endif %}"
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %}
-
-      <!-- AI Insights -->
-      {% if comment_insights.ai_insights %}
-      <div style="padding: 1rem; background: rgba(106, 116, 207, 0.2); border-radius: 12px; border-left: 3px solid var(--solar-lime);">
-        <h3 style="font-size: 1rem; color: var(--stellar-cream); margin-bottom: 0.75rem;">🤖 AI Analysis of Comments</h3>
-        <div style="color: var(--celestial-lavender); line-height: 1.7; white-space: pre-line;">{{ comment_insights.ai_insights }}</div>
-      </div>
-      {% endif %}
     </div>
+
     {% endif %}
+    <!-- End extraction/raw/normal conditional -->
 
-    <!-- Knowledge Patterns -->
-    {% if knowledge_patterns_applied %}
-    <div class="section">
-      <h2>📚 Proven Patterns Applied</h2>
-      <ul>
-        {% for pattern in knowledge_patterns_applied %}
-        <li>{{ pattern }}</li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
+    <!-- Admin Learning (Only visible to admin) -->
+    <div id="adminLearningSection" style="display:none;">
+      <div class="admin-section">
+        <h3>Beta: Context-Aware Pattern Learning</h3>
+        <p style="color: var(--celestial-lavender); font-size: 0.85rem; margin-bottom: 1rem;">Admin Only - Patterns stored with context and applicability rules</p>
 
-    <!-- Transcript -->
-    <div class="section">
-      <h2>📝 Transcript</h2>
-      <div style="background: #f7fafc; padding: 20px; border-radius: 8px; max-height: 300px; overflow-y: auto;">
-        <pre>{{ transcript or "(No verbal content - visual/ambient audio)" }}</pre>
-      </div>
-    </div>
+        <label>What patterns should we learn from this video?</label>
+        <textarea id="learningNotes" placeholder="e.g., 'This vs That' format with 3-second hook showing contrast..." rows="4"></textarea>
+        <p style="color: var(--celestial-lavender); font-size: 0.8rem; margin-top: -8px; margin-bottom: 12px;">Focus on FORMATS and STRUCTURES (not opinions about why it succeeded)</p>
 
-    <!-- Frame Gallery -->
-    <div class="section">
-      <h2>🎞️ Analyzed Frames</h2>
-      <div class="frame-gallery">
-        {% for img in frame_gallery %}
-        <div class="frame-item">
-          <img src="{{ img }}" alt="Frame {{ loop.index }}" loading="lazy">
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <div class="center">
-      <a href="/" class="back-link">← Analyze Another Video</a>
-      {% if tiktok_url or video_url %}
-      <a href="/?url={{ (tiktok_url or video_url)|urlencode }}" class="back-link" style="background-color:#764ba2; color:white;">🔄 Re-run This Analysis</a>
-      {% endif %}
-{% if pdf_cache_key %}
-      <a href="/download_pdf/{{ pdf_cache_key }}" class="back-link" style="background-color:darkturquoise; color:white;">Download PDF Report ↓</a>
-{% endif %}
-    </div>
-
-    <!-- Admin Learning Submission (Beta) -->
-    <div id="adminLearningSection" style="display:none; margin-top: 40px;">
-      <div style="background: rgba(255, 255, 255, 0.95); border-radius: 16px; padding: 30px; max-width: 800px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-        <h3 style="color: #667eea; margin-bottom: 10px;">🧪 Beta: Context-Aware Pattern Learning</h3>
-        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">Admin Only - Patterns are stored WITH context, constraints, and applicability rules</p>
-
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
-            What patterns should we learn from this video?
-          </label>
-          <textarea
-            id="learningNotes"
-            placeholder="e.g., 'This vs That' format with 3-second hook showing the contrast. Overlay text drives curiosity. No talking, just text + b-roll."
-            style="width: 100%; min-height: 120px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: inherit; font-size: 0.95rem; resize: vertical;"
-          ></textarea>
-          <p style="color: #888; font-size: 0.85rem; margin-top: 5px;">
-            Focus on FORMATS and STRUCTURES (not opinions about why it succeeded)
-          </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div><label>Niche</label><input type="text" id="videoNiche" placeholder="e.g., fitness, cooking" value="{{ niche|default('general') }}"></div>
+          <div><label>Platform</label><select id="videoPlatform"><option value="tiktok" {% if platform == 'tiktok' %}selected{% endif %}>TikTok</option><option value="youtube" {% if platform == 'youtube' %}selected{% endif %}>YouTube</option><option value="instagram" {% if platform == 'instagram' %}selected{% endif %}>Instagram</option></select></div>
+          <div><label>Target Audience</label><input type="text" id="targetAudience" placeholder="e.g., beginners, Gen Z"></div>
+          <div><label>Video Type</label><input type="text" id="videoType" placeholder="e.g., tutorial, comparison"></div>
+          <div><label>Views</label><input type="number" id="videoViews" placeholder="e.g., 150000"></div>
+          <div><label>Engagement Rate</label><input type="text" id="engagementRate" placeholder="e.g., 0.12 or 12%"></div>
         </div>
 
-        <!-- Context Fields -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-          <div>
-            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9rem;">
-              Niche
-            </label>
-            <input
-              type="text"
-              id="videoNiche"
-              placeholder="e.g., fitness, cooking, tech"
-              value="{{ niche|default('general') }}"
-              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem;"
-            >
-          </div>
-          <div>
-            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9rem;">
-              Platform
-            </label>
-            <select
-              id="videoPlatform"
-              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem;"
-            >
-              <option value="tiktok" {% if platform == 'tiktok' %}selected{% endif %}>TikTok</option>
-              <option value="youtube" {% if platform == 'youtube' %}selected{% endif %}>YouTube</option>
-              <option value="instagram" {% if platform == 'instagram' %}selected{% endif %}>Instagram</option>
-            </select>
-          </div>
-        </div>
+        <button onclick="previewPattern()" id="previewBtn" class="admin-btn preview">Preview Pattern</button>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-          <div>
-            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9rem;">
-              Target Audience (optional)
-            </label>
-            <input
-              type="text"
-              id="targetAudience"
-              placeholder="e.g., beginners, Gen Z, professionals"
-              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem;"
-            >
-          </div>
-          <div>
-            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9rem;">
-              Video Type (optional)
-            </label>
-            <input
-              type="text"
-              id="videoType"
-              placeholder="e.g., tutorial, comparison, storytelling"
-              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem;"
-            >
-          </div>
-        </div>
-
-        <!-- Metrics -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-          <div>
-            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9rem;">
-              Views (optional)
-            </label>
-            <input
-              type="number"
-              id="videoViews"
-              placeholder="e.g., 150000"
-              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem;"
-            >
-          </div>
-          <div>
-            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9rem;">
-              Engagement Rate (optional)
-            </label>
-            <input
-              type="text"
-              id="engagementRate"
-              placeholder="e.g., 0.12 or 12%"
-              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem;"
-            >
-          </div>
-        </div>
-
-        <!-- Preview Button -->
-        <button
-          onclick="previewPattern()"
-          id="previewBtn"
-          style="width: 100%; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none; padding: 15px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-bottom: 15px;"
-          onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(245, 87, 108, 0.4)';"
-          onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';"
-        >
-          🔍 Preview Pattern
-        </button>
-
-        <!-- Preview Display -->
-        <div id="patternPreview" style="display: none; background: #f8f9fa; border: 2px solid #667eea; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-          <h4 style="color: #667eea; margin-bottom: 15px;">Pattern Preview</h4>
+        <div id="patternPreview" style="display: none; background: rgba(0,0,0,0.2); border: 1px solid var(--lunar-blush); border-radius: 12px; padding: 1rem; margin-top: 1rem;">
+          <h4 style="color: var(--lunar-blush); margin-bottom: 1rem;">Pattern Preview</h4>
           <div id="previewContent"></div>
-
-          <!-- Submit button (only shown after preview) -->
-          <button
-            onclick="submitForLearning()"
-            id="submitLearningBtn"
-            style="width: 100%; background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%); color: white; border: none; padding: 15px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-top: 15px;"
-            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(86, 171, 47, 0.4)';"
-            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';"
-          >
-            ✅ Confirm & Submit for Learning
-          </button>
+          <button onclick="submitForLearning()" id="submitLearningBtn" class="admin-btn submit">Confirm & Submit for Learning</button>
         </div>
-
-        <p style="color: #888; font-size: 0.8rem; margin-top: 15px; text-align: center;">
-          Preview shows pattern WITH context, constraints, and when to apply it
-        </p>
       </div>
     </div>
 
   </div>
 
+  <!-- STICKY ACTION BAR -->
+  <div class="sticky-actions">
+    <a href="/" class="action-btn primary">Analyze Another</a>
+    {% if tiktok_url or video_url %}
+    <a href="/?url={{ (tiktok_url or video_url)|urlencode }}" class="action-btn secondary">Re-run Analysis</a>
+    {% endif %}
+    {% if pdf_cache_key %}
+    <a href="/download_pdf/{{ pdf_cache_key }}" class="action-btn secondary">Download PDF</a>
+    {% endif %}
+  </div>
+
   <script>
-    // Check if admin user (via Flask-Login current_user) and show learning section
-    {% if current_user.is_authenticated and current_user.email.lower() == 'christina@superlunardesign.com' %}
+    // Tab switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    // Admin learning section
+    {% if current_user and current_user.is_authenticated and current_user.email.lower() == 'christina@superlunardesign.com' %}
       document.getElementById('adminLearningSection').style.display = 'block';
     {% endif %}
 
-    // Store preview data globally
     let currentPatternData = null;
 
     async function previewPattern() {
@@ -1004,21 +781,11 @@
       const audience = document.getElementById('targetAudience').value.trim();
       const videoType = document.getElementById('videoType').value.trim();
 
-      if (!notes) {
-        alert('Please add notes about what patterns to learn from this video');
-        return;
-      }
-
-      // Parse engagement rate
-      if (engagement.includes('%')) {
-        engagement = parseFloat(engagement.replace('%', '')) / 100;
-      } else {
-        engagement = parseFloat(engagement) || 0;
-      }
+      if (!notes) { alert('Please add notes about what patterns to learn'); return; }
+      if (engagement.includes('%')) { engagement = parseFloat(engagement.replace('%', '')) / 100; } else { engagement = parseFloat(engagement) || 0; }
 
       const btn = document.getElementById('previewBtn');
-      const originalText = btn.textContent;
-      btn.textContent = '⏳ Generating Preview...';
+      btn.textContent = 'Generating Preview...';
       btn.disabled = true;
 
       try {
@@ -1028,102 +795,38 @@
           body: JSON.stringify({
             cache_key: '{{ pdf_cache_key|default("") }}',
             video_url: '{{ tiktok_url|default("") }}',
-            notes: notes,
-            views: views,
-            engagement_rate: engagement,
-            niche: niche,
-            platform: platform,
-            audience: audience,
-            video_type: videoType
+            notes, views, engagement_rate: engagement, niche, platform, audience, video_type: videoType
           })
         });
-
         const data = await response.json();
-
         if (response.ok) {
-          // Store pattern data for final submission
           currentPatternData = data.preview.preview;
-
-          // Display preview
           displayPreview(data.preview);
-
-          btn.textContent = '✅ Preview Generated';
-          setTimeout(() => {
-            btn.textContent = originalText;
-            btn.disabled = false;
-          }, 2000);
-
-        } else {
-          throw new Error(data.message || 'Preview generation failed');
-        }
-
-      } catch (error) {
-        alert('Error: ' + error.message);
-        btn.textContent = originalText;
-        btn.disabled = false;
-      }
+          btn.textContent = 'Preview Generated';
+          setTimeout(() => { btn.textContent = 'Preview Pattern'; btn.disabled = false; }, 2000);
+        } else { throw new Error(data.message || 'Preview failed'); }
+      } catch (error) { alert('Error: ' + error.message); btn.textContent = 'Preview Pattern'; btn.disabled = false; }
     }
 
     function displayPreview(previewData) {
       const preview = previewData.preview;
-      const similarExamples = previewData.similarity_examples || [];
-
+      const similar = previewData.similarity_examples || [];
       let html = `
-        <div style="margin-bottom: 15px;">
-          <strong style="color: #667eea;">Pattern Summary:</strong>
-          <p style="margin: 5px 0; color: #333;">${preview.pattern_summary || 'N/A'}</p>
-        </div>
-
-        <div style="margin-bottom: 15px;">
-          <strong style="color: #667eea;">Context:</strong>
-          <ul style="margin: 5px 0; padding-left: 20px; color: #555;">
-            <li>Niche: ${preview.context?.niche || 'N/A'}</li>
-            <li>Platform: ${preview.context?.platform || 'N/A'}</li>
-            <li>Audience: ${preview.context?.target_audience || 'Not specified'}</li>
-            <li>Why it worked here: ${preview.context?.why_it_worked_here || 'N/A'}</li>
-          </ul>
-        </div>
-
-        <div style="margin-bottom: 15px;">
-          <strong style="color: #667eea;">Constraints (when NOT to use):</strong>
-          <ul style="margin: 5px 0; padding-left: 20px; color: #555;">
-            ${preview.constraints?.map(c => `<li>${c}</li>`).join('') || '<li>None specified</li>'}
-          </ul>
-        </div>
-
-        <div style="margin-bottom: 15px;">
-          <strong style="color: #667eea;">Applicability:</strong>
-          <ul style="margin: 5px 0; padding-left: 20px; color: #555;">
-            <li><strong>Works best for:</strong> ${preview.applicability?.works_best_for?.join(', ') || 'Not specified'}</li>
-            <li><strong>Could work for:</strong> ${preview.applicability?.could_work_for?.join(', ') || 'Not specified'}</li>
-            <li><strong>Avoid for:</strong> ${preview.applicability?.avoid_for?.join(', ') || 'None'}</li>
-          </ul>
-        </div>
+        <p><strong style="color: var(--lunar-blush);">Summary:</strong> ${preview.pattern_summary || 'N/A'}</p>
+        <p><strong style="color: var(--lunar-blush);">Context:</strong> ${preview.context?.niche || 'N/A'} / ${preview.context?.platform || 'N/A'}</p>
+        <p><strong style="color: var(--lunar-blush);">Why it worked:</strong> ${preview.context?.why_it_worked_here || 'N/A'}</p>
       `;
-
-      if (similarExamples.length > 0) {
-        html += `
-          <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #e0e0e0;">
-            <strong style="color: #f5576c;">⚠️ Similar Patterns Already Stored:</strong>
-            <ul style="margin: 5px 0; padding-left: 20px; color: #666; font-size: 0.9rem;">
-              ${similarExamples.map(ex => `
-                <li>${ex.pattern} (Similarity: ${(ex.similarity * 100).toFixed(0)}%)</li>
-              `).join('')}
-            </ul>
-          </div>
-        `;
+      if (similar.length > 0) {
+        html += `<p style="margin-top: 1rem; color: var(--solar-lime);"><strong>Similar patterns already stored:</strong></p><ul style="padding-left: 1.5rem;">`;
+        similar.forEach(ex => { html += `<li>${ex.pattern} (${(ex.similarity * 100).toFixed(0)}% similar)</li>`; });
+        html += `</ul>`;
       }
-
       document.getElementById('previewContent').innerHTML = html;
       document.getElementById('patternPreview').style.display = 'block';
     }
 
     async function submitForLearning() {
-      if (!currentPatternData) {
-        alert('Please preview the pattern first');
-        return;
-      }
-
+      if (!currentPatternData) { alert('Preview first'); return; }
       const notes = document.getElementById('learningNotes').value.trim();
       const views = parseInt(document.getElementById('videoViews').value) || 0;
       let engagement = document.getElementById('engagementRate').value.trim();
@@ -1131,17 +834,10 @@
       const platform = document.getElementById('videoPlatform').value;
       const audience = document.getElementById('targetAudience').value.trim();
       const videoType = document.getElementById('videoType').value.trim();
-
-      // Parse engagement rate
-      if (engagement.includes('%')) {
-        engagement = parseFloat(engagement.replace('%', '')) / 100;
-      } else {
-        engagement = parseFloat(engagement) || 0;
-      }
+      if (engagement.includes('%')) { engagement = parseFloat(engagement.replace('%', '')) / 100; } else { engagement = parseFloat(engagement) || 0; }
 
       const btn = document.getElementById('submitLearningBtn');
-      const originalText = btn.textContent;
-      btn.textContent = '⏳ Submitting...';
+      btn.textContent = 'Submitting...';
       btn.disabled = true;
 
       try {
@@ -1151,47 +847,19 @@
           body: JSON.stringify({
             cache_key: '{{ pdf_cache_key|default("") }}',
             video_url: '{{ tiktok_url|default("") }}',
-            notes: notes,
-            views: views,
-            engagement_rate: engagement,
-            niche: niche,
-            platform: platform,
-            audience: audience,
-            video_type: videoType,
-            pattern_data: currentPatternData  // Include the previewed pattern
+            notes, views, engagement_rate: engagement, niche, platform, audience, video_type: videoType,
+            pattern_data: currentPatternData
           })
         });
-
         const data = await response.json();
-
         if (response.ok) {
-          btn.textContent = '✅ Submitted Successfully!';
-          btn.style.background = 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)';
-
-          // Clear form and preview
+          btn.textContent = 'Submitted!';
           document.getElementById('learningNotes').value = '';
-          document.getElementById('videoViews').value = '';
-          document.getElementById('engagementRate').value = '';
-          document.getElementById('targetAudience').value = '';
-          document.getElementById('videoType').value = '';
           document.getElementById('patternPreview').style.display = 'none';
           currentPatternData = null;
-
-          setTimeout(() => {
-            btn.textContent = originalText;
-            btn.disabled = false;
-            btn.style.background = 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)';
-          }, 3000);
-
-        } else {
-          throw new Error(data.message || 'Submission failed');
-        }
-
-      } catch (error) {
-        alert('Error: ' + error.message);
-        btn.textContent = originalText;
-        btn.disabled = false;
-      }
+          setTimeout(() => { btn.textContent = 'Confirm & Submit for Learning'; btn.disabled = false; }, 3000);
+        } else { throw new Error(data.message || 'Submission failed'); }
+      } catch (error) { alert('Error: ' + error.message); btn.textContent = 'Confirm & Submit for Learning'; btn.disabled = false; }
     }
   </script>
 </body>
