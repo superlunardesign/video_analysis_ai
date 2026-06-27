@@ -212,6 +212,7 @@ Extract and return in this EXACT JSON format:
     ):
         """
         Store a pattern after user confirmation.
+        Auto-detects if pattern is similar to existing ones and aggregates learnings.
 
         Args:
             pattern_data: The pattern data from preview (possibly edited by user)
@@ -219,9 +220,25 @@ Extract and return in this EXACT JSON format:
             metrics: Performance metrics
             curator_notes: Curator's notes
         """
-        # Create embedding from pattern summary + context
-        embedding_text = f"{pattern_data.get('pattern_summary', '')} {pattern_data.get('context', {}).get('niche', '')} {pattern_data.get('context', {}).get('target_audience', '')}"
+        # Create embedding from pattern summary (without niche for better cross-niche matching)
+        embedding_text = pattern_data.get('pattern_summary', '')
         embedding = self._create_embedding(embedding_text)
+
+        # Check if this is a similar pattern we've seen before
+        similar_patterns = self._find_similar_existing_patterns(pattern_data, top_k=1)
+
+        if similar_patterns and similar_patterns[0]['similarity'] > 0.85:
+            # Very similar pattern exists - this might be the same format in a different niche
+            print(f"[PATTERN INSIGHT] Similar pattern detected (similarity: {similar_patterns[0]['similarity']:.2f})")
+            print(f"  Existing: {similar_patterns[0]['pattern']} in {similar_patterns[0]['context'].get('niche')}")
+            print(f"  New: {pattern_data.get('pattern_summary')} in {pattern_data.get('context', {}).get('niche')}")
+
+            # Check if different niches → might be universal pattern
+            existing_niche = similar_patterns[0]['context'].get('niche', '').lower()
+            new_niche = pattern_data.get('context', {}).get('niche', '').lower()
+
+            if existing_niche != new_niche and existing_niche and new_niche:
+                print(f"  → LEARNING: This format works across multiple niches!")
 
         # Store pattern with full context
         self.patterns.append({
@@ -239,9 +256,14 @@ Extract and return in this EXACT JSON format:
             self.embeddings = np.vstack([self.embeddings, embedding])
 
         self._save_all()
+
+        # Analyze pattern universality
+        universality = self._analyze_pattern_universality(pattern_data)
+
         print(f"[PATTERN STORED] {pattern_data.get('pattern_summary', 'Pattern')}")
         print(f"  Context: {pattern_data.get('context', {}).get('niche', 'N/A')}")
-        print(f"  Applicability: {len(pattern_data.get('applicability', {}).get('works_best_for', []))} scenarios")
+        print(f"  Universality: {universality['type']} ({universality['confidence']})")
+        print(f"  Seen in niches: {', '.join(universality['niches'])}")
 
     def _create_embedding(self, text: str) -> np.ndarray:
         """Create embedding for similarity search"""
@@ -290,9 +312,10 @@ Extract and return in this EXACT JSON format:
         Find patterns that are APPLICABLE to the current video context.
 
         This is smarter than just similarity - it considers:
-        1. Context match (niche, audience, video type)
-        2. Applicability rules
-        3. Constraints
+        1. Pattern universality (universal patterns suggested regardless of niche)
+        2. Context match (niche, audience, video type)
+        3. Applicability rules
+        4. Constraints
 
         Args:
             current_video_context: Dict with 'niche', 'audience', 'video_type', etc.
@@ -308,6 +331,9 @@ Extract and return in this EXACT JSON format:
         for idx, pattern_entry in enumerate(self.patterns):
             pattern_data = pattern_entry['pattern_data']
 
+            # Analyze pattern universality
+            universality = self._analyze_pattern_universality(pattern_data)
+
             # Calculate context match score
             context_score = self._calculate_context_match(
                 pattern_data.get('context', {}),
@@ -320,8 +346,23 @@ Extract and return in this EXACT JSON format:
                 current_video_context
             )
 
-            # Combined score
-            relevance_score = (context_score * 0.6) + (applicability_score * 0.4)
+            # Adjust scoring based on universality
+            if universality['type'] == 'universal':
+                # Universal patterns get a boost even with low context match
+                context_weight = 0.3  # Less weight on exact niche match
+                universal_boost = 0.3  # Boost for being universal
+            elif universality['type'] == 'cross-niche':
+                context_weight = 0.5
+                universal_boost = 0.15
+            else:
+                # Niche-specific patterns need strong context match
+                context_weight = 0.7
+                universal_boost = 0.0
+
+            # Combined score with universality consideration
+            relevance_score = (context_score * context_weight) + \
+                            (applicability_score * (1 - context_weight)) + \
+                            universal_boost
 
             if relevance_score > 0.4:  # Threshold for relevance
                 applicable.append({
@@ -329,8 +370,13 @@ Extract and return in this EXACT JSON format:
                     'relevance_score': relevance_score,
                     'context_match': context_score,
                     'applicability_match': applicability_score,
+                    'universality': universality,
                     'metrics': pattern_entry['metrics'],
-                    'why_suggested': self._explain_suggestion(pattern_data, current_video_context)
+                    'why_suggested': self._explain_suggestion_with_universality(
+                        pattern_data,
+                        current_video_context,
+                        universality
+                    )
                 })
 
         # Sort by relevance
@@ -386,6 +432,39 @@ Extract and return in this EXACT JSON format:
 
         return 0.3  # Default moderate score
 
+    def _explain_suggestion_with_universality(
+        self,
+        pattern_data: Dict,
+        current_context: Dict,
+        universality: Dict
+    ) -> str:
+        """Generate explanation including universality insights"""
+        reasons = []
+
+        # Add universality context
+        if universality['type'] == 'universal':
+            reasons.append(f"Universal format (works across {len(universality['niches'])} niches)")
+        elif universality['type'] == 'cross-niche':
+            reasons.append(f"Cross-niche format (seen in: {', '.join(universality['niches'][:3])})")
+
+        pattern_context = pattern_data.get('context', {})
+
+        if pattern_context.get('niche') == current_context.get('niche'):
+            reasons.append(f"Same niche ({current_context.get('niche')})")
+
+        if pattern_context.get('platform') == current_context.get('platform'):
+            reasons.append(f"Same platform ({current_context.get('platform')})")
+
+        applicability = pattern_data.get('applicability', {})
+        video_type = current_context.get('video_type', '').lower()
+
+        for scenario in applicability.get('works_best_for', []):
+            if scenario.lower() in video_type:
+                reasons.append(f"Works best for {scenario}")
+                break
+
+        return " | ".join(reasons) if reasons else "Pattern similarity"
+
     def _explain_suggestion(self, pattern_data: Dict, current_context: Dict) -> str:
         """Generate explanation for why this pattern is being suggested"""
         reasons = []
@@ -407,3 +486,73 @@ Extract and return in this EXACT JSON format:
                 break
 
         return " | ".join(reasons) if reasons else "Pattern similarity"
+
+    def _analyze_pattern_universality(self, new_pattern: Dict) -> Dict:
+        """
+        Analyze if this pattern is universal or niche-specific.
+        Checks how many different niches have similar patterns.
+
+        Returns:
+            Dict with 'type' (universal/cross-niche/niche-specific),
+            'confidence' (high/medium/low),
+            'niches' (list of niches this pattern appears in)
+        """
+        if not self.patterns:
+            return {
+                'type': 'niche-specific',
+                'confidence': 'low (first example)',
+                'niches': [new_pattern.get('context', {}).get('niche', 'unknown')]
+            }
+
+        # Find all similar patterns (high similarity on format, not context)
+        pattern_summary = new_pattern.get('pattern_summary', '')
+        embedding = self._create_embedding(pattern_summary)
+
+        # Calculate similarities to all existing patterns
+        if self.embeddings is not None and len(self.embeddings) > 0:
+            similarities = np.dot(self.embeddings, embedding)
+
+            # Find patterns with >0.80 similarity (same format family)
+            similar_indices = np.where(similarities > 0.80)[0]
+
+            # Collect niches where this pattern appears
+            niches_seen = set()
+            niches_seen.add(new_pattern.get('context', {}).get('niche', 'unknown').lower())
+
+            for idx in similar_indices:
+                niche = self.patterns[idx]['pattern_data'].get('context', {}).get('niche', '').lower()
+                if niche:
+                    niches_seen.add(niche)
+
+            # Determine universality
+            unique_niches = [n for n in niches_seen if n and n != 'unknown' and n != 'general']
+            niche_count = len(unique_niches)
+
+            if niche_count >= 4:
+                return {
+                    'type': 'universal',
+                    'confidence': 'high',
+                    'niches': sorted(unique_niches),
+                    'example_count': len(similar_indices) + 1
+                }
+            elif niche_count >= 2:
+                return {
+                    'type': 'cross-niche',
+                    'confidence': 'medium',
+                    'niches': sorted(unique_niches),
+                    'example_count': len(similar_indices) + 1
+                }
+            else:
+                return {
+                    'type': 'niche-specific',
+                    'confidence': 'low' if len(similar_indices) < 2 else 'medium',
+                    'niches': sorted(unique_niches) if unique_niches else ['unknown'],
+                    'example_count': len(similar_indices) + 1
+                }
+
+        return {
+            'type': 'niche-specific',
+            'confidence': 'low',
+            'niches': [new_pattern.get('context', {}).get('niche', 'unknown')],
+            'example_count': 1
+        }
