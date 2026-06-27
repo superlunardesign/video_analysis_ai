@@ -1,0 +1,133 @@
+::::CONSOLE LOGS for analysis 42 ::::
+
+[DB] Created processing analysis 42 for user 1
+[INFO] Auto-extracting video metadata with save counts...
+[DEBUG] Available fields in yt-dlp: id, formats, subtitles, http_headers, channel, channel_id, uploader, uploader_id, channel_url, uploader_url, track, artists, duration, title, description, timestamp, view_count, like_count, repost_count, comment_count, thumbnails, webpage_url, original_url, webpage_url_basename, webpage_url_domain, extractor, extractor_key, playlist, playlist_index, thumbnail, display_id, fulltitle, duration_string, upload_date, release_year, artist, requested_subtitles, _has_drm, epoch, ext, vcodec, acodec, format_id, tbr, quality, format_note, preference, filesize, width, height, url, protocol, resolution, dynamic_range, aspect_ratio, cookies, video_ext, audio_ext, vbr, abr, format
+[DEBUG] All numeric fields with values > 0: {'duration': 89, 'timestamp': 1782322087, 'view_count': 1513, 'like_count': 95, 'repost_count': 5, 'comment_count': 4, 'epoch': 1782583465, 'tbr': 573, 'quality': 3, 'filesize': 6413507, 'width': 1080, 'height': 1920, 'aspect_ratio': 0.56}
+[DEBUG] Checking for save count fields:
+[SUCCESS] Metadata extracted:
+  Uploader: superlunardesign
+  Track: original sound
+  Views: 1,513
+  Likes: 95
+  Reposts: 5 (0.33%)
+  Comments: 4
+[AUTO-DETECTED] Uploader: superlunardesign
+[AUTO-DETECTED] Track: original sound by Christina Brand + Web Designer
+[AUTO-DETECTED] Views: 2k
+[AUTO-DETECTED] Likes: 95
+[AUTO-DETECTED] Reposts: 5 (0.33%)
+[AUTO-DETECTED] Engagement: 6.87%
+[INFO] Final parsed view count: 2k (Performance: low)
+[SPEED] Standard mode: 40 frames
+[INFO] Processing: https://www.tiktok.com/@superlunardesign/video/7655014976645565727?is_from_webapp=1&sender_device=pc&web_id=7433909590868018719
+[INFO] Creator note: 
+[INFO] Strategy: smart, Goal: follower_growth
+[INFO] Results Speed: standard (cap=40, threshold=0.35)
+[INFO] Extracting audio and frames...
+[INFO] Starting enhanced extraction for https://www.tiktok.com/@superlunardesign/video/7655014976645565727?is_from_webapp=1&sender_device=pc&web_id=7433909590868018719
+[smart] scene hits: 0 at []
+[smart] motion hits: 2 at [0.267, 5.133]
+[smart] timestamps after merge+anchors: 25
+[VIEW] Using lightweight DB data for analysis 41
+[VIEW] DB data keys: ['video_title', 'creator', 'platform', 'target_duration', 'goal', 'niche', 'view_count', 'like_count', 'comment_count', 'share_count', 'video_description', 'hashtags', 'audio_type', 'music_info', 'what_this_video_is', 'why_it_performed', 'replication_formula', 'improvements', 'viral_mechanics', 'performance_prediction', 'scores', 'exact_hook_breakdown', 'all_hooks_identified', 'goal_analysis', 'overall_assessment', 'primary_strengths', 'areas_for_improvement']
+[VIEW] Has replication_formula: True
+[VIEW] Has scores: True
+[WARNING] Smart extraction only got 2 frames, falling back to uniform
+[SUCCESS] Extraction complete: audio + 44 frames
+[SUCCESS] Extracted 44 frames
+[INFO] Starting parallel analysis of audio and frames...
+[PARALLEL] Transcription complete: 1886 chars
+[INFO] Analyzing 44 frames with enhanced text detection
+[INFO] Frame analysis: 44 frames in 5 groups (group size: 10)
+[INFO] Analyzing frame group 1/5 (10 frames)...
+[INFO] Analyzing frame group 2/5 (10 frames)...
+[INFO] Analyzing frame group 3/5 (10 frames)...
+[INFO] Analyzing frame group 4/5 (10 frames)...
+[INFO] Audio features: tempo=83.4bpm, energy=0.036 (31.5s)
+[INFO] ACRCloud configured for viral sound detection
+[INFO] ACRCloud viral check complete (0.2s)
+[TIMING] Total audio analysis: 31.6s
+[PARALLEL] Audio analysis complete
+[INFO] Analyzing frame group 5/5 (4 frames)...
+[SUCCESS] Frame analysis complete
+[PARALLEL] Frame analysis complete: 15657 chars
+[INFO] Audio interpretation: viral_audio_possible
+[INFO] Transcript quality: good
+[INFO] Loading knowledge using smart RAG retrieval...
+[BASELINE] Loaded 20 essential chunks (29990 chars)
+[BASELINE] Files: x8u4vlfmj1n62gdem7rbpyq52jcg.pdf
+[SPECIFIC] Loading follower_growth knowledge
+[SPECIFIC] Loaded 21 goal/context chunks (31492 chars)
+[SMART RAG] Essential docs: 1 files
+[SMART RAG] Goal-specific docs: 1 files for 'follower_growth'
+[SMART RAG TOTAL] 63596 chars (20 essential + 21 specific chunks)
+[SUCCESS] Smart RAG retrieved 63596 chars
+[SUCCESS] Citations: 41 relevant chunks
+[COMMENTS] Attempting to fetch comments...
+[COMMENTS] Fetching from tiktok...
+[SUCCESS] Fetched 3 TikTok comments (total available: 4)
+[COMMENTS] Analyzing 3 comments...
+[COMMENTS] Analysis complete: 3 comments
+[COMMENTS] Consensus patterns found: 0
+[INFO] Running COMPREHENSIVE analysis for low visual_art_process...
+[INFO] View count: 2k, Audio type: viral_audio_possible
+[INFO] Visual satisfaction score: 2/5
+[INFO] Knowledge base: 63596 chars
+==> Detected service running on port 10000
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+[INFO] Parsing delimited response...
+[SCORES] Raw SCORES section content:
+hook_strength: 7
+promise_clarity: 4
+retention_design: 3
+engagement_potential: 5
+viral_potential: 4
+satisfaction_delivery: 3
+goal_alignment: 4
+[SCORES] Parsed hook_strength: 7
+[SCORES] Parsed promise_clarity: 4
+[SCORES] Parsed retention_design: 3
+[SCORES] Parsed engagement_potential: 5
+[SCORES] Parsed viral_potential: 4
+[SCORES] Parsed satisfaction_delivery: 3
+[SCORES] Parsed goal_alignment: 4
+[INFO] Successfully parsed 13 fields from response
+[SUCCESS] Analysis complete
+[INFO] Content type: original_speech
+[INFO] Audio type: viral_audio_possible
+[INFO] Performance level: low
+[DEBUG] gpt_result has replication_formula: True
+[DEBUG] gpt_result has scores: True
+[DEBUG] gpt_result has what_this_video_is: True
+[DEBUG] replication_formula type: <class 'dict'>
+[DEBUG] replication_formula keys: ['formula_name', 'structure', 'scenarios_for_same_niche', '0-3s', '3-8s', '8-20s', '20-35s', '35-50s', '50-60s', 'why_it_works', 'text_template', 'visual_requirements']
+[TEMPLATE_PREP] gpt_result keys: ['what_this_video_is', 'why_it_performed', 'all_hooks_identified', 'replication_formula', 'analysis', 'viral_mechanics', 'psychological_breakdown', 'performance_deep_dive', 'content_type_analysis', 'audio_visual_analysis', 'visual_content_analysis', 'exact_hook_breakdown', 'timing_mastery', 'scores', 'hooks', 'formulas', 'replication_framework', 'improvement_opportunities', 'improvements', 'performance_prediction']
+[TEMPLATE_PREP] Has replication_formula: True
+[TEMPLATE_PREP] Has scores: True
+[TEMPLATE_PREP] Has what_this_video_is: True
+[TEMPLATE_PREP] Returning template_vars with replication_formula: True
+[TEMPLATE_PREP] Returning template_vars with scores: True
+[TEMPLATE_PREP] replication_formula type: <class 'dict'>
+[TEMPLATE_PREP] replication_formula value: {'formula_name': 'The Industry Insider Expose Formula', 'structure': '0-3s: Controversial statement about industry practices, 3-8s: Promise to rank/reveal them, 8-45s: Specific examples with visual proof, 45-60s: Final reveal + authority positioning', 'scenarios_for_same_niche': ['**Scenario1: Red Flags Your Designer Is Amateur**'], '0-3s': '"The difference between a $500 logo and a $5000 logo isn\'t what you think." [Show two logos side by side, blurred]', '3-8s': '"I\'m breaking down 3 things cheap designers skip that cost you customers. Let\'s start with the obvious one."', '8-20s': 'Thing #1 - "Cheap designers ask about your favorite colors" [Show pink swatches example]. "Expensive designers research your customer psychology. See the difference?"', '20-35s': 'Thing #2 - "Cheap designers make what you tell them to make" [Show scissors logo example]. "Expensive designers tell you why your idea won\'t work and what will."', '35-50s': 'Thing #3 - "Cheap designers use Canva templates" [Show Canva interface]. "Expensive designers create proprietary assets. This is why one scales and one doesn\'t."', '50-60s': '"You get what you pay for. But now you know what to pay for."', 'why_it_works': 'This formula works because it opens with a controversial statement that challenges assumptions (0-3s creates immediate "wait, what?" reaction), then promises specific, ranked information (3-8s builds structure and anticipation). The middle section (8-45s) delivers concrete, visual examples that viewers can recognize and react to—this is where the original video fails by staying too abstract. Each example includes visual proof (screenshots, interface shots, before/after) that makes the content shareable and credible. The payoff comes at 75-85% through the video, maintaining tension throughout. The final 10-15% repositions authority and includes soft CTA. The psychology works because viewers get both education (what to look for) and tribal validation (I\'m smart for knowing this now).', 'text_template': '**Added Text (Overlay Throughout):** Individual words in bold yellow for emphasis on key concepts only (not random filler words)\n**0-3s:** "RED FLAG 🚩" or "NEVER HIRE A DESIGNER WHO..." (large, bold, high-contrast)\n**3-8s:** "Here are the 3 biggest warnings ranked ⚠️"\n**8-12s:** "#3: [SPECIFIC PRACTICE]" (show the practice visually)\n**12-20s:** "Why this matters: [CONSEQUENCE]" (show example of consequence)\n**20-24s:** "#2: [SPECIFIC PRACTICE]" (visual example)\n**24-35s:** "This cost one client $50k in rebranding" (show before/after or screenshot)\n**35-40s:** "#1: [BIGGEST RED FLAG]" (build anticipation)\n**40-50s:** "Here\'s what happens when you ignore this..." (show worst-case scenario)\n**50-55s:** "Hire strategists, not decorators"\n**55-60s:** "Link in bio for my process ↗️"', 'visual_requirements': 'Show SPECIFIC examples that viewers can recognize: 1) Screenshot of actual designer messages/questions that demonstrate the red flag (blurred client names for privacy)—this makes it tangible and shareable. 2) Side-by-side comparisons of "wrong way vs right way" (Canva template next to custom design, amateur logo grid next to strategic presentation)—visual contrast creates instant understanding and emotional reaction. 3) Mock-ups or case studies showing consequences (cheap logo on business cards looking unprofessional, rebranding costs)—this builds stakes and urgency. These work because they transform abstract concepts into concrete, visual evidence that viewers can screenshot, share, and use to evaluate their own situations.'}
+[SUCCESS] Template variables prepared
+[TRACKER] Recorded prediction for https://www.tiktok.com/@superlunardesign/video/765...
+[TRACKER] Performance data recorded
+[CACHE] Saved full analysis
+[CACHE] Analysis cached for future requests
+[SUCCESS] Analysis completed in 258.2s
+[PDF CACHE] Saved to disk: 933d53c191ac4645
+[PDF CACHE] Stored data with key: 933d53c191ac4645
+[DB] Saving analysis 42
+[DB] lightweight_data keys: ['video_title', 'creator', 'platform', 'target_duration', 'goal', 'niche', 'view_count', 'like_count', 'comment_count', 'share_count', 'video_description', 'hashtags', 'audio_type', 'music_info', 'what_this_video_is', 'why_it_performed', 'replication_formula', 'improvements', 'viral_mechanics', 'performance_prediction', 'scores', 'exact_hook_breakdown', 'all_hooks_identified', 'goal_analysis', 'overall_assessment', 'primary_strengths', 'areas_for_improvement']
+[DB] Has replication_formula: True
+[DB] Has scores: True
+[DB] Replication formula type: <class 'dict'>
+[DB] Completed analysis 42: That last one is actually a hard no #branddesign #logodesigner
+[INFO] Rendering results template
+
+::::CONSOLE LOGS FOR VIEWING SAVED SUMMARY OF ANALYSIS 42 IN HISTORY::::
+[VIEW] Using lightweight DB data for analysis 42
+[VIEW] DB data keys: ['video_title', 'creator', 'platform', 'target_duration', 'goal', 'niche', 'view_count', 'like_count', 'comment_count', 'share_count', 'video_description', 'hashtags', 'audio_type', 'music_info', 'what_this_video_is', 'why_it_performed', 'replication_formula', 'improvements', 'viral_mechanics', 'performance_prediction', 'scores', 'exact_hook_breakdown', 'all_hooks_identified', 'goal_analysis', 'overall_assessment', 'primary_strengths', 'areas_for_improvement']
+[VIEW] Has replication_formula: True
+[VIEW] Has scores: True
