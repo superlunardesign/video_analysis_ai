@@ -116,10 +116,58 @@ def _api_retry(callable_fn, *args, **kwargs):
             _time.sleep(sleep_s)
 
 
-def parse_delimited_response(response_text):
+def _filter_caption_text(text_hooks, transcript):
+    """
+    Filter out text that's likely captions (matches transcript) from text hooks.
+    Only keep text that's DIFFERENT from transcript (actual text overlays).
+
+    Args:
+        text_hooks: List of text hooks extracted from frames
+        transcript: Full transcript text
+
+    Returns:
+        Filtered list of text hooks (captions removed)
+    """
+    if not text_hooks or not transcript:
+        return text_hooks
+
+    filtered_hooks = []
+    transcript_lower = transcript.lower()
+
+    for hook in text_hooks:
+        # Extract just the text part (before any timestamp or description)
+        # Format might be: '"text here" (0-3s)' or just 'text here'
+        hook_text = hook.split('(')[0].strip(' "\'')
+
+        # Skip if empty after cleaning
+        if not hook_text or len(hook_text) < 3:
+            continue
+
+        # Check if this text appears in transcript (likely a caption)
+        if hook_text.lower() in transcript_lower:
+            # This is likely a caption, not a text hook
+            print(f"[FILTER] Removed caption text: '{hook_text}' (found in transcript)")
+            continue
+
+        # Also check for single words that are too common (filler words from captions)
+        if len(hook_text.split()) == 1 and hook_text.lower() in ['be', 'not', 'from', 'the', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'can', 'may', 'might', 'must']:
+            print(f"[FILTER] Removed common word: '{hook_text}' (likely caption fragment)")
+            continue
+
+        # Keep this as a real text hook
+        filtered_hooks.append(hook)
+
+    return filtered_hooks
+
+
+def parse_delimited_response(response_text, transcript=''):
     """
     Parse delimiter-based response format into structured data.
     This replaces JSON parsing with 100% reliable delimiter parsing.
+
+    Args:
+        response_text: The GPT response with === delimiters
+        transcript: Video transcript to filter caption text from hooks
 
     Format:
     ===SECTION_NAME===
@@ -247,7 +295,11 @@ def parse_delimited_response(response_text):
     all_hooks = {}
     if 'ALL_HOOKS_TEXT' in sections:
         hooks = [line.strip('- ').strip() for line in sections['ALL_HOOKS_TEXT'].split('\n') if line.strip().startswith('-')]
-        all_hooks['text_hooks'] = hooks
+        # Filter out caption text (text that matches transcript)
+        filtered_hooks = _filter_caption_text(hooks, transcript)
+        all_hooks['text_hooks'] = filtered_hooks
+        if len(hooks) != len(filtered_hooks):
+            print(f"[HOOKS] Filtered {len(hooks) - len(filtered_hooks)} caption texts from text hooks")
 
     if 'ALL_HOOKS_VISUAL' in sections:
         hooks = [line.strip('- ').strip() for line in sections['ALL_HOOKS_VISUAL'].split('\n') if line.strip().startswith('-')]
@@ -1546,7 +1598,7 @@ ONLY suggest earlier reveals for:
 
         # Parse delimiter-based response (no JSON issues!)
         print("[INFO] Parsing delimited response...")
-        parsed = parse_delimited_response(response_text)
+        parsed = parse_delimited_response(response_text, transcript=transcript_text)
         print(f"[INFO] Successfully parsed {len(parsed)} fields from response")
         
         # Process scores with performance-based defaults
@@ -3029,6 +3081,12 @@ def view_analysis(analysis_id):
         print(f"[VIEW] DB data keys: {list(template_vars.keys()) if template_vars else 'None'}")
         print(f"[VIEW] Has replication_formula: {'replication_formula' in template_vars}")
         print(f"[VIEW] Has scores: {'scores' in template_vars}")
+        print(f"[VIEW] Has transcript: {'transcript' in template_vars}")
+        print(f"[VIEW] Has video_description: {'video_description' in template_vars}")
+        if 'transcript' in template_vars:
+            print(f"[VIEW] Transcript length: {len(template_vars['transcript']) if template_vars['transcript'] else 0}")
+        if 'video_description' in template_vars:
+            print(f"[VIEW] Description: {template_vars['video_description'][:100] if template_vars['video_description'] else 'None'}")
 
     # Add context from database record
     template_vars['video_url'] = analysis.video_url
@@ -3062,13 +3120,17 @@ def view_analysis(analysis_id):
     # Set transcript_quality with transcript text if available
     if 'transcript_quality' not in template_vars or not template_vars['transcript_quality']:
         template_vars['transcript_quality'] = {}
-    # If transcript exists in saved data, use it
+
+    # Ensure transcript field is accessible for templates (both direct and nested)
     if 'transcript' in template_vars and template_vars['transcript']:
+        # Keep transcript at top level for analysis_summary.html
+        # Also set in transcript_quality for results.html compatibility
         template_vars['transcript_quality']['transcript'] = template_vars['transcript']
         template_vars['transcript_quality']['has_meaningful_speech'] = True
     else:
-        # No transcript saved, mark as non-speech
+        # No transcript saved, mark as non-speech and set empty string
         template_vars['transcript_quality']['has_meaningful_speech'] = False
+        template_vars['transcript'] = ''  # Ensure field exists even if empty
 
     # Try to use full results template, fall back to summary if it fails
     try:

@@ -875,7 +875,14 @@ video_analysis_ai/
 
 ## Version History
 
-### v2.6.0 (Current)
+### v2.7.0 (Current)
+- ✅ **FIXED**: Text hooks now filtered to remove captions (cross-checks with transcript)
+- ✅ **FIXED**: Transcript now displays in saved analyses (field properly preserved)
+- ✅ **FIXED**: Video description displays in history
+- ✅ **FIXED**: Pattern learning extracts actual insights (no more invented assumptions)
+- ✅ Added debug logging for transcript and description in view_analysis
+
+### v2.6.0
 - ✅ **NEW**: Added Comment Analysis section to both results.html and analysis_summary.html
 - ✅ **NEW**: Comment insights saved to lightweight_data (permanent storage)
 - ✅ **NEW**: Display categorization, consensus patterns, emotions, timestamp mentions, AI insights
