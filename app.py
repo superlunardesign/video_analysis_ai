@@ -3161,6 +3161,69 @@ def delete_analysis(analysis_id):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route("/debug/db-check")
+@login_required
+def debug_db_check():
+    """Debug route to check what's actually saved in database."""
+    # Admin only
+    if current_user.email.lower() != 'christina@superlunardesign.com':
+        return "Admin only", 403
+
+    # Get latest analysis for this user
+    latest = Analysis.query.filter_by(user_id=current_user.id).order_by(Analysis.id.desc()).first()
+
+    if not latest:
+        return "<h1>No analyses found</h1>"
+
+    output = f"""
+    <h1>Latest Analysis (ID: {latest.id})</h1>
+    <p><strong>Video:</strong> {latest.video_title}</p>
+    <p><strong>Status:</strong> {latest.status}</p>
+    <p><strong>Created:</strong> {latest.created_at}</p>
+
+    <h2>Database Fields Saved:</h2>
+    <pre>{list(latest.analysis_data.keys()) if latest.analysis_data else 'None'}</pre>
+
+    <h2>Transcript Check:</h2>
+    """
+
+    if latest.analysis_data and 'transcript' in latest.analysis_data:
+        transcript = latest.analysis_data['transcript']
+        if transcript:
+            output += f"<p style='color: green;'>✅ Transcript saved ({len(transcript)} chars)</p>"
+            output += f"<pre style='background: #f0f0f0; padding: 10px; max-height: 300px; overflow: auto;'>{transcript[:500]}...</pre>"
+        else:
+            output += "<p style='color: red;'>❌ Transcript field exists but is EMPTY</p>"
+    else:
+        output += "<p style='color: red;'>❌ Transcript field NOT in analysis_data</p>"
+
+    output += "<h2>Video Description Check:</h2>"
+    if latest.analysis_data and 'video_description' in latest.analysis_data:
+        desc = latest.analysis_data['video_description']
+        if desc:
+            output += f"<p style='color: green;'>✅ Description saved</p><pre style='background: #f0f0f0; padding: 10px;'>{desc}</pre>"
+        else:
+            output += "<p style='color: red;'>❌ Description field exists but is EMPTY</p>"
+    else:
+        output += "<p style='color: red;'>❌ Description field NOT in analysis_data</p>"
+
+    output += f"""
+    <h2>All Saved Data Keys:</h2>
+    <ul>
+    """
+    if latest.analysis_data:
+        for key in latest.analysis_data.keys():
+            value = latest.analysis_data[key]
+            value_type = type(value).__name__
+            value_preview = str(value)[:100] if value else 'None/Empty'
+            output += f"<li><strong>{key}</strong> ({value_type}): {value_preview}</li>"
+
+    output += "</ul>"
+    output += f"<p><a href='/history'>← Back to History</a></p>"
+
+    return output
+
+
 @app.route("/analysis/<int:analysis_id>/status")
 @login_required
 def analysis_status(analysis_id):
