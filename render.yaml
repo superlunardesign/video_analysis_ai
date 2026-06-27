@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: video-analysis-ai
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+    # Increase health check timeout
+    healthCheckPath: /
+    # This might help with longer requests
+    plan: starter  # Or your current plan
+
+    # CRITICAL: Increase request timeout (requires paid plan)
+    # If on free plan, this won't work
+    autoDeploy: true
