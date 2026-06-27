@@ -646,6 +646,7 @@
     <!-- End of raw text fallback conditional -->
 
     <!-- Performance Scores -->
+    {% if scores %}
     <div class="scores-section">
       <h2>📊 Performance Breakdown</h2>
       {% if creator_note %}
@@ -653,34 +654,35 @@
         <strong>Your Context:</strong> {{ creator_note }}
       </div>
       {% endif %}
-      
+
       <div class="scores-grid">
         <div class="score-card">
-          <div class="score-value">{{ scores.hook_strength }}/10</div>
+          <div class="score-value">{{ scores.hook_strength|default('N/A') }}{% if scores.hook_strength %}/10{% endif %}</div>
           <div class="score-label">Hook Power</div>
         </div>
-        
+
         <div class="score-card">
-          <div class="score-value">{{ scores.promise_clarity }}/10</div>
+          <div class="score-value">{{ scores.promise_clarity|default('N/A') }}{% if scores.promise_clarity %}/10{% endif %}</div>
           <div class="score-label">Clear Promise</div>
         </div>
-        
+
         <div class="score-card">
-          <div class="score-value">{{ scores.retention_design }}/10</div>
+          <div class="score-value">{{ scores.retention_design|default('N/A') }}{% if scores.retention_design %}/10{% endif %}</div>
           <div class="score-label">Retention</div>
         </div>
-        
+
         <div class="score-card">
-          <div class="score-value">{{ scores.engagement_potential }}/10</div>
+          <div class="score-value">{{ scores.engagement_potential|default('N/A') }}{% if scores.engagement_potential %}/10{% endif %}</div>
           <div class="score-label">Engagement</div>
         </div>
-        
+
         <div class="score-card">
-          <div class="score-value">{{ scores.goal_alignment }}/10</div>
+          <div class="score-value">{{ scores.goal_alignment|default('N/A') }}{% if scores.goal_alignment %}/10{% endif %}</div>
           <div class="score-label">Goal Match</div>
         </div>
       </div>
     </div>
+    {% endif %}
 
     <!-- Improvements -->
     <div class="section">

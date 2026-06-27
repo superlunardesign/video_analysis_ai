@@ -1005,7 +1005,61 @@ def generate_pdf_sync(html_content, output_path=None):
 # MAIN ANALYSIS FUNCTION - COMPREHENSIVE & ADAPTIVE
 # ==============================
 
-def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown', metadata=None, audio_insights=None, analysis_depth='standard'):
+def _build_comment_section(comment_insights):
+    """Build comment analysis section for GPT prompt"""
+    if not comment_insights or not comment_insights.get('total_comments'):
+        return ""
+
+    total = comment_insights.get('total_comments', 0)
+    categorization = comment_insights.get('categorization', {})
+    consensus = comment_insights.get('consensus_patterns', [])
+    ai_insights = comment_insights.get('ai_insights', '')
+
+    section = f"""
+VIEWER COMMENT ANALYSIS ({total} comments analyzed):
+
+ENGAGEMENT TYPE BREAKDOWN:
+- Substantive comments: {categorization.get('percentages', {}).get('substantive', 0)}% (viewers articulating specific moments)
+- Emoji-only reactions: {categorization.get('percentages', {}).get('emoji_only', 0)}% (emotional but non-verbal)
+- Generic reactions: {categorization.get('percentages', {}).get('generic', 0)}%
+→ {categorization.get('insight', '')}
+
+CONSENSUS PATTERNS (what viewers collectively agreed on - ranked by total likes):
+"""
+
+    if consensus:
+        for i, pattern in enumerate(consensus[:5], 1):
+            section += f"\n{i}. {pattern['theme']} - {pattern['total_likes']} total likes across {pattern['mentions']} comments"
+            if pattern.get('examples'):
+                section += f"\n   Example: \"{pattern['examples'][0]['text']}\" ({pattern['examples'][0]['likes']} likes)"
+    else:
+        section += "\nNo strong consensus patterns detected."
+
+    section += f"""
+
+VIEWER INSIGHTS (what comments reveal):
+{ai_insights}
+
+CRITICAL ANALYSIS REQUIREMENTS FOR COMMENTS:
+1. WHY PEOPLE WATCHED: What do comments reveal drew them in? (intended hook or accidental element?)
+2. WHAT INTRIGUED THEM: What created curiosity? What kept them engaged?
+3. WHAT IRRITATED THEM: Did anything frustrate viewers? (Note: irritation can drive engagement)
+4. QUESTIONS ASKED:
+   - Unanswered curiosity gaps (video opened question but didn't close it)
+   - Content ideas for future videos
+   - Confusion that needs clarity
+
+Use these insights to identify:
+- Gap between INTENT (what video tried to do) vs REALITY (what actually engaged viewers)
+- Hidden hooks (unintentional elements that drove more engagement than main content)
+- Specific moments that resonated (timestamp mentions, quoted phrases)
+- Opportunities to replicate what worked or close gaps that frustrated viewers
+"""
+
+    return section
+
+
+def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown', metadata=None, audio_insights=None, analysis_depth='standard', comment_insights=None):
     """Comprehensive analysis that adapts to ALL video types with deep insights"""
     
     # First analyze frames to understand visual content
@@ -1122,6 +1176,8 @@ VISUAL ANALYSIS:
 - Visual narrative: {visual_content_analysis.get('visual_promise_delivery', {}).get('narrative_strength', 'unknown')}
 
 {video_type_context}
+
+{_build_comment_section(comment_insights) if comment_insights else ""}
 
 {knowledge_section}
 
@@ -2337,6 +2393,49 @@ Key patterns for video analysis:
 """
             knowledge_citations = ["Basic patterns fallback"]
 
+        # Fetch and analyze comments (optional, don't fail if unavailable)
+        comment_insights = None
+        try:
+            print("[COMMENTS] Attempting to fetch comments...")
+            from comment_fetcher import CommentFetcher
+            from comment_analyzer import CommentAnalyzer
+
+            fetcher = CommentFetcher()
+            comments = fetcher.fetch_comments(
+                video_url=form_data['tiktok_url'],
+                max_comments=100,
+                platform=form_data['platform']
+            )
+
+            if comments:
+                print(f"[COMMENTS] Analyzing {len(comments)} comments...")
+                analyzer = CommentAnalyzer()
+                comment_analysis = analyzer.analyze_comments(
+                    comments=comments,
+                    video_transcript=transcript_data.get('transcript', ''),
+                    frame_analysis=frames_summaries_text
+                )
+
+                # Extract key insights for main analysis
+                comment_insights = {
+                    'total_comments': comment_analysis.get('total_comments', 0),
+                    'categorization': comment_analysis.get('categorization', {}),
+                    'consensus_patterns': comment_analysis.get('consensus_patterns', []),
+                    'ai_insights': comment_analysis.get('ai_insights', ''),
+                    'timestamp_mentions': comment_analysis.get('timestamp_mentions', []),
+                    'emotion_analysis': comment_analysis.get('emotion_analysis', {})
+                }
+
+                print(f"[COMMENTS] Analysis complete: {comment_insights['total_comments']} comments")
+                print(f"[COMMENTS] Consensus patterns found: {len(comment_insights['consensus_patterns'])}")
+            else:
+                print("[COMMENTS] No comments fetched (API may be unavailable)")
+
+        except Exception as e:
+            print(f"[COMMENTS] Comment fetching failed (non-critical): {e}")
+            # Don't fail the whole analysis if comments fail
+            comment_insights = None
+
         # Check if user only wants extraction (no AI analysis)
         if form_data.get('analysis_depth') == 'extraction_only':
             print("[INFO] Extraction-only mode: Skipping AI analysis")
@@ -2366,7 +2465,8 @@ Key patterns for video analysis:
                     performance_level,
                     metadata=metadata,  # Pass metadata with saves
                     audio_insights=audio_analysis,  # Pass audio analysis
-                    analysis_depth=form_data.get('analysis_depth', 'standard')  # Pass analysis depth
+                    analysis_depth=form_data.get('analysis_depth', 'standard'),  # Pass analysis depth
+                    comment_insights=comment_insights  # Pass comment analysis
                 )
 
                 # Add transcript quality info, view data, and new metrics
