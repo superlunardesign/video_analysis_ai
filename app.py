@@ -1949,7 +1949,7 @@ To improve: Strengthen the opening hook, enhance audio-visual synchronization, a
     }
 
 
-def prepare_template_variables(gpt_result, transcript_data, frames_summaries_text, form_data, gallery_data_urls, frame_paths, frames_dir, knowledge_citations, knowledge_context, comment_insights=None):
+def prepare_template_variables(gpt_result, transcript_data, frames_summaries_text, form_data, gallery_data_urls, frame_paths, frames_dir, knowledge_citations, knowledge_context, comment_insights=None, metadata=None):
     """Prepare all template variables with safe defaults"""
 
     # Debug: Check what gpt_result contains
@@ -1958,6 +1958,10 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
     print(f"[TEMPLATE_PREP] Has scores: {'scores' in gpt_result}")
     print(f"[TEMPLATE_PREP] Has what_this_video_is: {'what_this_video_is' in gpt_result}")
     print(f"[TEMPLATE_PREP] Has comment_insights: {comment_insights is not None}")
+    print(f"[TEMPLATE_PREP] Has metadata: {metadata is not None}")
+
+    # Merge metadata fields if available
+    metadata = metadata or {}
 
     template_vars = {
         # Form data
@@ -2099,6 +2103,31 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
     # Add comment insights if available
     template_vars['comment_insights'] = comment_insights if comment_insights else None
 
+    # Add metadata fields (from extract_video_metadata)
+    if metadata:
+        template_vars['video_title'] = metadata.get('title', '')
+        template_vars['creator'] = metadata.get('creator', metadata.get('uploader', ''))
+        template_vars['like_count'] = metadata.get('like_count', 0)
+        template_vars['comment_count'] = metadata.get('comment_count', 0)
+        template_vars['share_count'] = metadata.get('repost_count', 0)  # TikTok calls it repost_count
+        template_vars['save_count'] = metadata.get('save_count', 0)
+        template_vars['video_description'] = metadata.get('description', '')
+        template_vars['hashtags'] = metadata.get('hashtags', [])
+        template_vars['duration'] = metadata.get('duration', 0)
+        template_vars['music_info'] = metadata.get('music', '')
+        template_vars['audio_type'] = 'original' if metadata.get('music', {}).get('is_original') else 'trending_sound'
+        template_vars['metadata'] = metadata  # Keep full metadata object for compatibility
+
+    # Extract simple hook and loop text for history display
+    exact_hook = gpt_result.get('exact_hook_breakdown', {})
+    template_vars['hook'] = ' | '.join(filter(None, [
+        exact_hook.get('visual_elements', ''),
+        exact_hook.get('text_overlays', ''),
+        exact_hook.get('audio_element', '')
+    ])) or gpt_result.get('hook', '')
+
+    template_vars['loop'] = gpt_result.get('loop_potential', {}).get('mechanism', '') or gpt_result.get('loop', '')
+
     # Debug: Check what template_vars has
     print(f"[TEMPLATE_PREP] Returning template_vars with replication_formula: {'replication_formula' in template_vars}")
     print(f"[TEMPLATE_PREP] Returning template_vars with scores: {'scores' in template_vars}")
@@ -2124,6 +2153,7 @@ def analyze_async():
 
 
 @app.route("/process", methods=["POST"])
+@login_required
 def process():
     # Track analysis ID for this request (used for updating status)
     current_analysis_id = None
@@ -2606,7 +2636,8 @@ Key patterns for video analysis:
                 frames_dir,
                 knowledge_citations,
                 knowledge_context,
-                comment_insights  # Pass comment analysis data
+                comment_insights,  # Pass comment analysis data
+                metadata  # Pass video metadata (title, creator, likes, etc.)
             )
             print("[SUCCESS] Template variables prepared")
         except Exception as e:
@@ -2763,6 +2794,7 @@ Key patterns for video analysis:
 
 
 @app.route("/download_pdf/<cache_key>", methods=["GET"])
+@login_required
 def download_pdf(cache_key):
     """
     Generate and download PDF from cached analysis results.
@@ -2816,6 +2848,7 @@ def download_pdf(cache_key):
 
 
 @app.route("/clear_cache", methods=["POST"])
+@login_required
 def clear_cache():
     """
     Clear all cached analyses to force fresh analysis on next request.
@@ -3173,55 +3206,51 @@ def debug_db_check():
     latest = Analysis.query.filter_by(user_id=current_user.id).order_by(Analysis.id.desc()).first()
 
     if not latest:
-        return "<h1>No analyses found</h1>"
+        return render_template('debug_db.html',
+                             analysis={'id': 'N/A', 'video_title': 'No analyses found', 'status': 'N/A', 'created_at': 'N/A'},
+                             data_keys='None',
+                             transcript_status={'exists': False},
+                             description_status={'exists': False},
+                             data_items=[])
 
-    output = f"""
-    <h1>Latest Analysis (ID: {latest.id})</h1>
-    <p><strong>Video:</strong> {latest.video_title}</p>
-    <p><strong>Status:</strong> {latest.status}</p>
-    <p><strong>Created:</strong> {latest.created_at}</p>
-
-    <h2>Database Fields Saved:</h2>
-    <pre>{list(latest.analysis_data.keys()) if latest.analysis_data else 'None'}</pre>
-
-    <h2>Transcript Check:</h2>
-    """
-
+    # Prepare transcript status
+    transcript_status = {'exists': False, 'has_content': False}
     if latest.analysis_data and 'transcript' in latest.analysis_data:
         transcript = latest.analysis_data['transcript']
+        transcript_status['exists'] = True
         if transcript:
-            output += f"<p style='color: green;'>✅ Transcript saved ({len(transcript)} chars)</p>"
-            output += f"<pre style='background: #f0f0f0; padding: 10px; max-height: 300px; overflow: auto;'>{transcript[:500]}...</pre>"
-        else:
-            output += "<p style='color: red;'>❌ Transcript field exists but is EMPTY</p>"
-    else:
-        output += "<p style='color: red;'>❌ Transcript field NOT in analysis_data</p>"
+            transcript_status['has_content'] = True
+            transcript_status['length'] = len(transcript)
+            transcript_status['preview'] = transcript[:500] + '...' if len(transcript) > 500 else transcript
 
-    output += "<h2>Video Description Check:</h2>"
+    # Prepare description status
+    description_status = {'exists': False, 'has_content': False}
     if latest.analysis_data and 'video_description' in latest.analysis_data:
         desc = latest.analysis_data['video_description']
+        description_status['exists'] = True
         if desc:
-            output += f"<p style='color: green;'>✅ Description saved</p><pre style='background: #f0f0f0; padding: 10px;'>{desc}</pre>"
-        else:
-            output += "<p style='color: red;'>❌ Description field exists but is EMPTY</p>"
-    else:
-        output += "<p style='color: red;'>❌ Description field NOT in analysis_data</p>"
+            description_status['has_content'] = True
+            description_status['content'] = desc
 
-    output += f"""
-    <h2>All Saved Data Keys:</h2>
-    <ul>
-    """
+    # Prepare data items list
+    data_items = []
     if latest.analysis_data:
         for key in latest.analysis_data.keys():
             value = latest.analysis_data[key]
             value_type = type(value).__name__
             value_preview = str(value)[:100] if value else 'None/Empty'
-            output += f"<li><strong>{key}</strong> ({value_type}): {value_preview}</li>"
+            data_items.append({
+                'key': key,
+                'type': value_type,
+                'preview': value_preview
+            })
 
-    output += "</ul>"
-    output += f"<p><a href='/history'>← Back to History</a></p>"
-
-    return output
+    return render_template('debug_db.html',
+                         analysis=latest,
+                         data_keys=str(list(latest.analysis_data.keys()) if latest.analysis_data else 'None'),
+                         transcript_status=transcript_status,
+                         description_status=description_status,
+                         data_items=data_items)
 
 
 @app.route("/analysis/<int:analysis_id>/status")

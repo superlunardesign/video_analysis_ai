@@ -5,62 +5,97 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
-def intelligent_frame_extraction(video_path: str, metadata: dict = None) -> dict:
+def intelligent_frame_extraction(video_path: str, output_dir: str, max_frames: int = 40) -> list:
     """
     Extract key frames based on importance, not just uniformly.
-    Always gets: first 3 seconds (hook), frames with text, scene changes, last 2 seconds (CTA).
+    Prioritizes: first 3 seconds (hook), frames with text, last 2 seconds (CTA/payoff).
+
+    Returns list of saved frame paths.
     """
     cap = cv2.VideoCapture(video_path)
     if not cap or not cap.isOpened():
         print("[ERROR] Could not open video for intelligent extraction")
-        return {}
+        return []
 
     fps = cap.get(cv2.CAP_PROP_FPS)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     duration = total_frames / fps if fps > 0 else 0
 
-    key_frames = {
-        'hook_frames': [],      # First 3 seconds
-        'text_frames': [],       # Frames with text overlays
-        'scene_changes': [],     # Major visual transitions
-        'ending_frames': []      # Last 2 seconds
-    }
+    all_frames = []  # List of (timestamp, frame, priority) tuples
 
-    # 1. ALWAYS extract first 3 seconds (critical for hooks)
+    # 1. ALWAYS extract first 3 seconds (CRITICAL for hooks) - HIGH priority
     hook_frame_count = min(int(fps * 3), total_frames)
     for i in range(0, hook_frame_count, max(1, int(fps / 5))):  # 5 frames per second
         cap.set(cv2.CAP_PROP_POS_FRAMES, i)
         ret, frame = cap.read()
         if ret:
             timestamp = i / fps
-            key_frames['hook_frames'].append((timestamp, frame))
+            all_frames.append((timestamp, frame, 'hook'))
 
-    # 2. Sample throughout video for text detection
+    # 2. Sample throughout video for text detection - MEDIUM priority
     sample_interval = max(1, int(total_frames / 30))  # Check 30 points
     for i in range(0, total_frames, sample_interval):
         cap.set(cv2.CAP_PROP_POS_FRAMES, i)
         ret, frame = cap.read()
         if ret and detect_text_regions(frame):
             timestamp = i / fps
-            key_frames['text_frames'].append((timestamp, frame))
+            # Avoid duplicates from hook section
+            if timestamp > 3.0 and timestamp < (duration - 2.0):
+                all_frames.append((timestamp, frame, 'text'))
 
-    # 3. ALWAYS extract last 2 seconds (CTA/payoff)
+    # 3. ALWAYS extract last 2 seconds (CTA/payoff) - HIGH priority
     start_frame = max(0, total_frames - int(fps * 2))
     for i in range(start_frame, total_frames, max(1, int(fps / 5))):
         cap.set(cv2.CAP_PROP_POS_FRAMES, i)
         ret, frame = cap.read()
         if ret:
             timestamp = i / fps
-            key_frames['ending_frames'].append((timestamp, frame))
+            all_frames.append((timestamp, frame, 'ending'))
 
     cap.release()
 
-    print(f"[INFO] Intelligent extraction complete:")
-    print(f"  Hook frames: {len(key_frames['hook_frames'])}")
-    print(f"  Text frames: {len(key_frames['text_frames'])}")
-    print(f"  Ending frames: {len(key_frames['ending_frames'])}")
+    # Sort by timestamp to maintain chronological order
+    all_frames.sort(key=lambda x: x[0])
 
-    return key_frames
+    # Limit to max_frames (prioritize hooks and endings)
+    if len(all_frames) > max_frames:
+        # Keep all hooks and endings, sample text frames
+        hooks = [f for f in all_frames if f[2] == 'hook']
+        endings = [f for f in all_frames if f[2] == 'ending']
+        text = [f for f in all_frames if f[2] == 'text']
+
+        # Calculate how many text frames we can keep
+        priority_count = len(hooks) + len(endings)
+        text_budget = max_frames - priority_count
+
+        if text_budget > 0 and len(text) > text_budget:
+            # Sample text frames evenly
+            step = len(text) / text_budget
+            text = [text[int(i * step)] for i in range(text_budget)]
+        elif text_budget <= 0:
+            text = []
+
+        all_frames = hooks + text + endings
+        all_frames.sort(key=lambda x: x[0])
+
+    # Save frames to disk
+    saved_paths = []
+    os.makedirs(output_dir, exist_ok=True)
+
+    for idx, (timestamp, frame, priority) in enumerate(all_frames):
+        frame_path = os.path.join(output_dir, f"frame_{idx:04d}_t{timestamp:.2f}_{priority}.jpg")
+        cv2.imwrite(frame_path, frame)
+        saved_paths.append(frame_path)
+
+    print(f"[INTELLIGENT] Extracted {len(saved_paths)} frames:")
+    hook_count = sum(1 for f in all_frames if f[2] == 'hook')
+    text_count = sum(1 for f in all_frames if f[2] == 'text')
+    ending_count = sum(1 for f in all_frames if f[2] == 'ending')
+    print(f"  Hooks (0-3s): {hook_count}")
+    print(f"  Text frames: {text_count}")
+    print(f"  Endings (last 2s): {ending_count}")
+
+    return saved_paths
 
 
 def detect_text_regions(frame: np.ndarray) -> bool:

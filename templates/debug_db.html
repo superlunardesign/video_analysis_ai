@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Database Debug{% endblock %}
+
+{% block content %}
+<div class="form-container" style="max-width: 900px; margin: 0 auto;">
+    <h1 style="color: var(--stellar-cream); margin-bottom: var(--space-lg);">Latest Analysis (ID: {{ analysis.id }})</h1>
+
+    <div class="section" style="background: rgba(255, 255, 255, 0.05); padding: var(--space-lg); border-radius: var(--radius-lg); margin-bottom: var(--space-md);">
+        <p><strong style="color: var(--solar-lime);">Video:</strong> <span style="color: var(--stellar-cream);">{{ analysis.video_title }}</span></p>
+        <p><strong style="color: var(--solar-lime);">Status:</strong> <span style="color: var(--stellar-cream);">{{ analysis.status }}</span></p>
+        <p><strong style="color: var(--solar-lime);">Created:</strong> <span style="color: var(--stellar-cream);">{{ analysis.created_at }}</span></p>
+    </div>
+
+    <div class="section" style="background: rgba(255, 255, 255, 0.05); padding: var(--space-lg); border-radius: var(--radius-lg); margin-bottom: var(--space-md);">
+        <h2 style="color: var(--celestial-lavender); margin-bottom: var(--space-md);">Database Fields Saved:</h2>
+        <pre style="background: rgba(0, 0, 0, 0.2); padding: var(--space-md); border-radius: var(--radius-sm); color: var(--stellar-cream); overflow-x: auto;">{{ data_keys }}</pre>
+    </div>
+
+    <div class="section" style="background: rgba(255, 255, 255, 0.05); padding: var(--space-lg); border-radius: var(--radius-lg); margin-bottom: var(--space-md);">
+        <h2 style="color: var(--celestial-lavender); margin-bottom: var(--space-md);">Transcript Check:</h2>
+        {% if transcript_status.exists %}
+            {% if transcript_status.has_content %}
+                <p style="color: #4caf50;">✅ Transcript saved ({{ transcript_status.length }} chars)</p>
+                <pre style="background: rgba(0, 0, 0, 0.2); padding: var(--space-md); border-radius: var(--radius-sm); color: var(--stellar-cream); max-height: 300px; overflow: auto;">{{ transcript_status.preview }}</pre>
+            {% else %}
+                <p style="color: #f44336;">❌ Transcript field exists but is EMPTY</p>
+            {% endif %}
+        {% else %}
+            <p style="color: #f44336;">❌ Transcript field NOT in analysis_data</p>
+        {% endif %}
+    </div>
+
+    <div class="section" style="background: rgba(255, 255, 255, 0.05); padding: var(--space-lg); border-radius: var(--radius-lg); margin-bottom: var(--space-md);">
+        <h2 style="color: var(--celestial-lavender); margin-bottom: var(--space-md);">Video Description Check:</h2>
+        {% if description_status.exists %}
+            {% if description_status.has_content %}
+                <p style="color: #4caf50;">✅ Description saved</p>
+                <pre style="background: rgba(0, 0, 0, 0.2); padding: var(--space-md); border-radius: var(--radius-sm); color: var(--stellar-cream);">{{ description_status.content }}</pre>
+            {% else %}
+                <p style="color: #f44336;">❌ Description field exists but is EMPTY</p>
+            {% endif %}
+        {% else %}
+            <p style="color: #f44336;">❌ Description field NOT in analysis_data</p>
+        {% endif %}
+    </div>
+
+    <div class="section" style="background: rgba(255, 255, 255, 0.05); padding: var(--space-lg); border-radius: var(--radius-lg); margin-bottom: var(--space-md);">
+        <h2 style="color: var(--celestial-lavender); margin-bottom: var(--space-md);">All Saved Data Keys:</h2>
+        <ul style="list-style: none; padding: 0;">
+            {% for item in data_items %}
+            <li style="padding: var(--space-xs) 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); color: var(--stellar-cream);">
+                <strong style="color: var(--solar-lime);">{{ item.key }}</strong>
+                <span style="color: var(--celestial-lavender);">({{ item.type }})</span>:
+                <span style="color: var(--stellar-cream);">{{ item.preview }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin-top: var(--space-lg);">
+        <a href="/history" style="color: var(--solar-lime); text-decoration: none; font-weight: 600;">← Back to History</a>
+    </p>
+</div>
+{% endblock %}

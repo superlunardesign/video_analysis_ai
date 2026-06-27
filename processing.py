@@ -337,7 +337,7 @@ def keep_text_heavy_frames(paths: List[str], min_chars: int = 0) -> List[str]:
 
 def extract_audio_and_frames(
     tiktok_url: str,
-    strategy: str = "smart",            # "smart" or "uniform"
+    strategy: str = "smart",            # "smart", "uniform", or "intelligent"
     frames_per_minute: int = 24,        # used if uniform
     cap: int = 60,                      # max frames returned
     scene_threshold: float = 0.24       # lower = more sensitive
@@ -345,6 +345,11 @@ def extract_audio_and_frames(
     """
     Download video, extract audio, pick frames by strategy, apply quality filters.
     Returns (audio_path, frames_dir, [frame_paths]).
+
+    Strategies:
+    - "smart": Scene + motion detection with quality filters (comprehensive)
+    - "uniform": Extract frames at regular intervals (fast)
+    - "intelligent": Prioritize hooks (first 3s), text frames, endings (optimized for short-form)
     """
     _ensure_dirs()
     video_path = download_video(tiktok_url)
@@ -356,6 +361,14 @@ def extract_audio_and_frames(
 
     if strategy == "uniform":
         paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute, cap)
+    elif strategy == "intelligent":
+        # INTELLIGENT: Prioritize hooks (first 3s) + text frames + endings (last 2s)
+        from analysis_optimization import intelligent_frame_extraction
+        paths = intelligent_frame_extraction(video_path, frames_dir, max_frames=cap)
+
+        if not paths:
+            print("[intelligent] extraction failed → fallback to uniform")
+            paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute=18, cap=min(cap, 20))
     else:
         # SMART: scene + motion + anchors + settle, then quality filters
         sc_times = scene_change_times(video_path, threshold=scene_threshold)
