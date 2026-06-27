@@ -471,18 +471,18 @@
       </div>
 
       {% if metadata.engagement_metrics.repost_rate > 2.0 %}
-      <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(245, 255, 160, 0.1); border-radius: 12px; border-left: 3px solid var(--solar-lime);">
-        <strong style="color: var(--solar-lime);">🔁 High Repost Rate Detected:</strong>
-        <p style="margin-top: 0.5rem; color: var(--stellar-cream);">
+      <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(106, 116, 207, 0.2); border-radius: 12px; border-left: 3px solid var(--solar-lime);">
+        <strong style="color: var(--stellar-cream);">🔁 High Repost Rate Detected:</strong>
+        <p style="margin-top: 0.5rem; color: var(--celestial-lavender);">
           {{ metadata.engagement_metrics.repost_rate }}% repost rate indicates strong shareability and viral potential. This content resonates enough that viewers want to share it with their own audience.
         </p>
       </div>
       {% endif %}
 
       {% if audio_analysis and audio_analysis.viral_sound and audio_analysis.viral_sound.is_viral %}
-      <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(245, 255, 160, 0.1); border-radius: 12px; border-left: 3px solid var(--solar-lime);">
-        <strong style="color: var(--solar-lime);">🎵 Viral Sound Detected:</strong>
-        <p style="margin-top: 0.5rem; color: var(--stellar-cream);">
+      <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(106, 116, 207, 0.2); border-radius: 12px; border-left: 3px solid var(--solar-lime);">
+        <strong style="color: var(--stellar-cream);">🎵 Viral Sound Detected:</strong>
+        <p style="margin-top: 0.5rem; color: var(--celestial-lavender);">
           "{{ audio_analysis.viral_sound.sound_name }}" by {{ audio_analysis.viral_sound.artist }}
         </p>
       </div>
@@ -542,9 +542,9 @@
         {% if audio_analysis.energy %}<div><strong>Energy:</strong> {{ "%.2f"|format(audio_analysis.energy) }}</div>{% endif %}
         {% if audio_analysis.is_music is defined %}<div><strong>Contains Music:</strong> {{ 'Yes' if audio_analysis.is_music else 'No' }}</div>{% endif %}
         {% if audio_analysis.viral_sound and audio_analysis.viral_sound.is_viral %}
-        <div style="padding: 1rem; background: rgba(245, 255, 160, 0.1); border-radius: 8px; border-left: 3px solid var(--solar-lime);">
-          <strong style="color: var(--solar-lime);">🎵 Viral Sound Detected:</strong><br>
-          "{{ audio_analysis.viral_sound.sound_name }}" by {{ audio_analysis.viral_sound.artist }}
+        <div style="padding: 1rem; background: rgba(106, 116, 207, 0.2); border-radius: 8px; border-left: 3px solid var(--solar-lime);">
+          <strong style="color: var(--stellar-cream);">🎵 Viral Sound Detected:</strong><br>
+          <span style="color: var(--celestial-lavender);">"{{ audio_analysis.viral_sound.sound_name }}" by {{ audio_analysis.viral_sound.artist }}</span>
         </div>
         {% endif %}
       </div>
@@ -714,6 +714,99 @@
       <h2>📊 Performance Prediction</h2>
       <div style="white-space: pre-line; line-height: 1.8;">{{ performance_prediction }}</div>
     </div>
+
+    <!-- Comment Analysis -->
+    {% if comment_insights and comment_insights.total_comments > 0 %}
+    <div class="section">
+      <h2>💬 Viewer Comment Analysis</h2>
+      <p style="color: var(--celestial-lavender); margin-bottom: 1rem;">
+        Analyzed {{ comment_insights.total_comments }} comments to understand what viewers ACTUALLY engaged with
+      </p>
+
+      <!-- Categorization -->
+      {% if comment_insights.categorization %}
+      <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(106, 116, 207, 0.15); border-radius: 12px;">
+        <h3 style="font-size: 1rem; color: var(--stellar-cream); margin-bottom: 0.75rem;">Comment Types</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">
+          {% for category, percentage in comment_insights.categorization.percentages.items() %}
+          <div style="text-align: center; padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+            <div style="font-size: 1.3rem; font-weight: 700; color: var(--solar-lime);">{{ percentage }}%</div>
+            <div style="font-size: 0.75rem; color: var(--celestial-lavender); text-transform: capitalize;">{{ category.replace('_', ' ') }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% if comment_insights.categorization.insight %}
+        <p style="margin-top: 0.75rem; color: var(--celestial-lavender); font-size: 0.9rem; font-style: italic;">
+          {{ comment_insights.categorization.insight }}
+        </p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Consensus Patterns (What Viewers Collectively Agreed On) -->
+      {% if comment_insights.consensus_patterns %}
+      <div style="margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1rem; color: var(--stellar-cream); margin-bottom: 0.75rem;">🔥 Consensus Patterns (Ranked by Total Likes)</h3>
+        <p style="font-size: 0.85rem; color: var(--celestial-lavender); margin-bottom: 1rem;">
+          What viewers collectively agreed on — sorted by total likes across similar comments
+        </p>
+        {% for pattern in comment_insights.consensus_patterns[:5] %}
+        <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(106, 116, 207, 0.1); border-left: 3px solid var(--solar-lime); border-radius: 0 8px 8px 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <strong style="color: var(--stellar-cream);">{{ pattern.theme }}</strong>
+            <span style="color: var(--solar-lime); font-size: 0.85rem;">{{ pattern.mentions }} mentions • {{ pattern.total_likes }} total likes</span>
+          </div>
+          {% if pattern.examples %}
+          <div style="font-size: 0.85rem; color: var(--celestial-lavender); font-style: italic;">
+            Example: "{{ pattern.examples[0].text[:100] }}{% if pattern.examples[0].text|length > 100 %}...{% endif %}" ({{ pattern.examples[0].likes }} likes)
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Top Emotions -->
+      {% if comment_insights.emotion_analysis %}
+      <div style="margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1rem; color: var(--stellar-cream); margin-bottom: 0.75rem;">😊 Emotional Reactions</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+          {% for emotion, score in comment_insights.emotion_analysis.items() %}
+          {% if score > 5 %}
+          <div style="padding: 0.5rem 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 20px; font-size: 0.85rem;">
+            <span style="color: var(--stellar-cream); text-transform: capitalize;">{{ emotion }}</span>
+            <span style="color: var(--solar-lime); margin-left: 0.5rem; font-weight: 600;">{{ score }}%</span>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Timestamp Mentions -->
+      {% if comment_insights.timestamp_mentions %}
+      <div style="margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1rem; color: var(--stellar-cream); margin-bottom: 0.75rem;">⏱️ Moments Viewers Highlighted</h3>
+        {% for mention in comment_insights.timestamp_mentions[:5] %}
+        <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: rgba(255, 255, 255, 0.03); border-radius: 8px;">
+          <div style="font-weight: 600; color: var(--solar-lime);">{{ mention.timestamp }} <span style="color: var(--celestial-lavender); font-weight: normal; font-size: 0.85rem;">({{ mention.mentions }} mentions)</span></div>
+          <div style="font-size: 0.85rem; color: var(--celestial-lavender); margin-top: 0.25rem; font-style: italic;">
+            "{{ mention.example_comments[0][:120] }}{% if mention.example_comments[0]|length > 120 %}...{% endif %}"
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- AI Insights -->
+      {% if comment_insights.ai_insights %}
+      <div style="padding: 1rem; background: rgba(106, 116, 207, 0.2); border-radius: 12px; border-left: 3px solid var(--solar-lime);">
+        <h3 style="font-size: 1rem; color: var(--stellar-cream); margin-bottom: 0.75rem;">🤖 AI Analysis of Comments</h3>
+        <div style="color: var(--celestial-lavender); line-height: 1.7; white-space: pre-line;">{{ comment_insights.ai_insights }}</div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
 
     <!-- Knowledge Patterns -->
     {% if knowledge_patterns_applied %}

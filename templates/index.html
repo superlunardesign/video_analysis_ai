@@ -945,6 +945,23 @@
                 btn.disabled = false;
             }
         }
+
+        // Auto-populate URL field from query parameter (for re-run button)
+        window.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlParam = urlParams.get('url');
+
+            if (urlParam) {
+                const tiktokUrlField = document.getElementById('tiktok_url');
+                if (tiktokUrlField) {
+                    tiktokUrlField.value = decodeURIComponent(urlParam);
+                    // Scroll to the form
+                    tiktokUrlField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Optional: focus the field
+                    setTimeout(() => tiktokUrlField.focus(), 500);
+                }
+            }
+        });
     </script>
 </body>
 </html>

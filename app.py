@@ -1897,7 +1897,7 @@ To improve: Strengthen the opening hook, enhance audio-visual synchronization, a
     }
 
 
-def prepare_template_variables(gpt_result, transcript_data, frames_summaries_text, form_data, gallery_data_urls, frame_paths, frames_dir, knowledge_citations, knowledge_context):
+def prepare_template_variables(gpt_result, transcript_data, frames_summaries_text, form_data, gallery_data_urls, frame_paths, frames_dir, knowledge_citations, knowledge_context, comment_insights=None):
     """Prepare all template variables with safe defaults"""
 
     # Debug: Check what gpt_result contains
@@ -1905,6 +1905,7 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
     print(f"[TEMPLATE_PREP] Has replication_formula: {'replication_formula' in gpt_result}")
     print(f"[TEMPLATE_PREP] Has scores: {'scores' in gpt_result}")
     print(f"[TEMPLATE_PREP] Has what_this_video_is: {'what_this_video_is' in gpt_result}")
+    print(f"[TEMPLATE_PREP] Has comment_insights: {comment_insights is not None}")
 
     template_vars = {
         # Form data
@@ -2042,6 +2043,9 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
                 scores[key] = default
     
     template_vars['scores'] = scores
+
+    # Add comment insights if available
+    template_vars['comment_insights'] = comment_insights if comment_insights else None
 
     # Debug: Check what template_vars has
     print(f"[TEMPLATE_PREP] Returning template_vars with replication_formula: {'replication_formula' in template_vars}")
@@ -2549,7 +2553,8 @@ Key patterns for video analysis:
                 frame_paths,
                 frames_dir,
                 knowledge_citations,
-                knowledge_context
+                knowledge_context,
+                comment_insights  # Pass comment analysis data
             )
             print("[SUCCESS] Template variables prepared")
         except Exception as e:
@@ -3041,11 +3046,29 @@ def view_analysis(analysis_id):
     template_vars.setdefault('goal', 'engagement')
     template_vars.setdefault('niche', 'general')
     template_vars.setdefault('scores', {})
-    template_vars.setdefault('metadata', {})
-    template_vars.setdefault('transcript_quality', {})
     template_vars.setdefault('replication_formula', {})
     template_vars.setdefault('exact_hook_breakdown', {})
     template_vars.setdefault('all_hooks_identified', {})
+
+    # CRITICAL: Set fields needed by results.html template
+    # results.html expects 'video_thumbnail' and 'metadata.url'
+    template_vars.setdefault('video_thumbnail', analysis.thumbnail_url)
+
+    # Set metadata with URL for "View Original Video" link
+    if 'metadata' not in template_vars or not template_vars['metadata']:
+        template_vars['metadata'] = {}
+    template_vars['metadata']['url'] = analysis.video_url
+
+    # Set transcript_quality with transcript text if available
+    if 'transcript_quality' not in template_vars or not template_vars['transcript_quality']:
+        template_vars['transcript_quality'] = {}
+    # If transcript exists in saved data, use it
+    if 'transcript' in template_vars and template_vars['transcript']:
+        template_vars['transcript_quality']['transcript'] = template_vars['transcript']
+        template_vars['transcript_quality']['has_meaningful_speech'] = True
+    else:
+        # No transcript saved, mark as non-speech
+        template_vars['transcript_quality']['has_meaningful_speech'] = False
 
     # Try to use full results template, fall back to summary if it fails
     try:
@@ -3190,7 +3213,7 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             return False
 
         # Create lightweight analysis data (exclude large base64 images)
-        # Include all fields needed by results.html template
+        # Include all fields needed by results.html and analysis_summary.html templates
         lightweight_data = {
             # Basic info
             'video_title': template_vars.get('video_title'),
@@ -3206,11 +3229,19 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             'comment_count': template_vars.get('comment_count'),
             'share_count': template_vars.get('share_count'),
 
-            # Content
+            # Content (IMPORTANT: Include transcript for history view)
             'video_description': template_vars.get('video_description'),
             'hashtags': template_vars.get('hashtags'),
             'audio_type': template_vars.get('audio_type'),
             'music_info': template_vars.get('music_info'),
+            'transcript': template_vars.get('transcript', ''),  # CRITICAL: Save transcript text
+
+            # Hook and Loop analysis (for analysis_summary.html)
+            'hook': template_vars.get('hook', ''),
+            'loop': template_vars.get('loop', ''),
+
+            # Comment Analysis (for displaying viewer insights)
+            'comment_insights': template_vars.get('comment_insights'),
 
             # Analysis results
             'what_this_video_is': template_vars.get('what_this_video_is'),
