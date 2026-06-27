@@ -45,12 +45,13 @@ class CommentAnalyzer:
             reverse=True
         )
 
-        # Focus on high-value comments (100+ likes get priority)
+        # Focus on high-value comments (100+ likes get priority), but always include all if few
         high_value = [c for c in sorted_comments if int(c.get('likes', 0)) >= 100]
         medium_value = [c for c in sorted_comments if 10 <= int(c.get('likes', 0)) < 100]
+        low_value = [c for c in sorted_comments if int(c.get('likes', 0)) < 10]
 
-        # Analyze top comments (prioritize high-liked ones)
-        top_comments = (high_value[:30] + medium_value[:20])[:50]
+        # Prioritize high-liked, but always fall back to all comments
+        top_comments = (high_value[:30] + medium_value[:20] + low_value[:20])[:50]
 
         # Detect consensus patterns (cluster similar comments, sum their likes)
         consensus_patterns = self._detect_consensus_patterns(sorted_comments)
