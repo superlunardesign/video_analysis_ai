@@ -314,13 +314,16 @@ class CommentAnalyzer:
     ) -> str:
         """Use GPT-4 to extract deeper insights from comments with consensus awareness"""
         try:
-            # Prepare top comments for analysis
+            num_comments = len(comments)
+
+            if num_comments == 0:
+                return "No comments available for analysis."
+
             top_comments_text = "\n".join([
                 f"[{c.get('likes', 0)} likes] {c.get('text', '')}"
                 for c in comments[:30]
             ])
 
-            # Add consensus patterns (like-weighted themes)
             consensus_text = ""
             if consensus_patterns:
                 consensus_text = "\n\nCONSENSUS PATTERNS (what viewers collectively agreed on):\n"
@@ -335,42 +338,55 @@ class CommentAnalyzer:
             if frame_analysis:
                 context += f"\n\nFrame Analysis:\n{frame_analysis[:500]}..."
 
+            if num_comments <= 5:
+                word_limit = "100 words max"
+                instructions = f"""There are only {num_comments} comments. Keep your analysis brief and proportional.
+Quote each comment exactly as written. Summarize the overall sentiment and note any questions or content opportunities."""
+            else:
+                word_limit = "300 words max"
+                instructions = """Provide analysis focusing on:
+1. What commenters said — summarize the main reactions, agreements, disagreements, and questions. Quote specific comments.
+2. Audience sentiment — are people agreeing, debating, impressed, skeptical, sharing their own experiences?
+3. What sparked the most engagement — which comments got the most likes and what does that reveal?
+4. Questions and content opportunities — what did viewers ask about or want to know more about?
+5. Key takeaway — what do these comments tell the creator about their audience's reaction?"""
+
             response = self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
                     {
                         "role": "system",
-                        "content": """You analyze video comments to understand audience reactions.
+                        "content": f"""You analyze video comments to understand audience reactions.
 
-CRITICAL RULES:
-- ONLY analyze what commenters actually SAID. Quote and reference specific comments.
-- Do NOT speculate about hooks, overlays, or visual elements unless a commenter explicitly mentions them.
-- If commenters agree with the video's message, SAY THAT. If they disagree, say that.
-- Report the SENTIMENT of the comments: are people agreeing, debating, asking questions, sharing experiences?
-- High-liked comments represent what the audience collectively values.
-- Your analysis must be grounded in the actual comment text, not the video content."""
+There are exactly {num_comments} comments provided below. That is ALL the comments.
+
+ABSOLUTE RULES — VIOLATION MEANS FAILURE:
+- You may ONLY quote text that appears VERBATIM in the COMMENTS section below. Never paraphrase a comment as if it were a direct quote.
+- Do NOT invent, fabricate, or imagine comments that are not listed below. If there are only 2 comments, your analysis covers only those 2 comments.
+- Do NOT add quotation marks around text that a commenter did not actually write.
+- If there are few comments, write a SHORT analysis. Do not pad with invented content.
+- Report the SENTIMENT of the actual comments: are people agreeing, debating, asking questions, sharing experiences?
+- Your analysis must be grounded in the actual comment text, not the video content.
+- Do NOT speculate about hooks, overlays, or visual elements unless a commenter explicitly mentions them."""
                     },
                     {
                         "role": "user",
-                        "content": f"""Analyze these video comments. Focus on what the commenters ACTUALLY SAID — quote specific comments and report their reactions.
+                        "content": f"""Analyze these {num_comments} video comments. You may ONLY reference comments from the list below — do not make up any quotes.
 
-COMMENTS:
+COMMENTS (this is the complete list — there are no other comments):
 {top_comments_text}
 {consensus_text}
 
 Video context (for reference only — analyze the COMMENTS, not the video):
 {context}
 
-Provide analysis (300 words max) focusing on:
-1. What commenters said — summarize the main reactions, agreements, disagreements, and questions. Quote specific comments.
-2. Audience sentiment — are people agreeing, debating, impressed, skeptical, sharing their own experiences?
-3. What sparked the most engagement — which comments got the most likes and what does that reveal?
-4. Questions and content opportunities — what did viewers ask about or want to know more about?
-5. Key takeaway — what do these comments tell the creator about their audience's reaction?"""
+{instructions}
+
+({word_limit})"""
                     }
                 ],
                 max_tokens=700,
-                temperature=0.4
+                temperature=0.3
             )
 
             return response.choices[0].message.content
