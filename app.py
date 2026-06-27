@@ -3000,6 +3000,9 @@ def view_analysis(analysis_id):
     if not template_vars:
         template_vars = analysis.analysis_data or {}
         print(f"[VIEW] Using lightweight DB data for analysis {analysis_id}")
+        print(f"[VIEW] DB data keys: {list(template_vars.keys()) if template_vars else 'None'}")
+        print(f"[VIEW] Has replication_formula: {'replication_formula' in template_vars}")
+        print(f"[VIEW] Has scores: {'scores' in template_vars}")
 
     # Add context from database record
     template_vars['video_url'] = analysis.video_url
@@ -3212,6 +3215,13 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
         analysis.pdf_cache_key = pdf_cache_key
         analysis.status = 'completed'
         analysis.completed_at = datetime.utcnow()
+
+        # Debug: Check what's being saved
+        print(f"[DB] Saving analysis {analysis_id}")
+        print(f"[DB] lightweight_data keys: {list(lightweight_data.keys())}")
+        print(f"[DB] Has replication_formula: {'replication_formula' in lightweight_data}")
+        print(f"[DB] Has scores: {'scores' in lightweight_data}")
+        print(f"[DB] Replication formula type: {type(lightweight_data.get('replication_formula'))}")
 
         db.session.commit()
 
