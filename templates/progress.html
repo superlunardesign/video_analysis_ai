@@ -722,8 +722,7 @@
             method: "POST",
             body: formData
         })
-        .then(res => res.text())
-        .then(html => {
+        .then(res => {
             fetchCompleted = true;
             clearInterval(pollInterval);
             clearInterval(smoothInterval);
@@ -743,19 +742,22 @@
             overallBar.textContent = '100%';
             document.getElementById('statusDetail').textContent = 'Analysis complete! Loading results...';
 
+            // Redirect to saved analysis
             setTimeout(() => {
-                document.open();
-                document.write(html);
-                document.close();
-            }, 1200);
+                window.location.href = `/analysis/${analysisId}`;
+            }, 1500);
         })
         .catch(error => {
             fetchCompleted = true;
             clearInterval(pollInterval);
             clearInterval(smoothInterval);
             console.error('Error:', error);
-            document.getElementById('statusDetail').textContent = 'An error occurred. Please try again.';
-            document.getElementById('currentFact').textContent = '';
+            if (analysisId) {
+                document.getElementById('statusDetail').textContent = 'Redirecting to results...';
+                setTimeout(() => { window.location.href = `/analysis/${analysisId}`; }, 2000);
+            } else {
+                document.getElementById('statusDetail').textContent = 'An error occurred. Please try again.';
+            }
         });
     }
 </script>
