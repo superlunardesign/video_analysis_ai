@@ -749,6 +749,9 @@
 
     <div class="center">
       <a href="/" class="back-link">← Analyze Another Video</a>
+      {% if tiktok_url or video_url %}
+      <a href="/?url={{ (tiktok_url or video_url)|urlencode }}" class="back-link" style="background-color:#764ba2; color:white;">🔄 Re-run This Analysis</a>
+      {% endif %}
 {% if pdf_cache_key %}
       <a href="/download_pdf/{{ pdf_cache_key }}" class="back-link" style="background-color:darkturquoise; color:white;">Download PDF Report ↓</a>
 {% endif %}

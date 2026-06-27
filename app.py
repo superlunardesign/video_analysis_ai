@@ -3011,6 +3011,19 @@ def view_analysis(analysis_id):
     template_vars['pdf_cache_key'] = analysis.pdf_cache_key
     template_vars['is_saved_analysis'] = True  # Flag for template to know this is saved
 
+    # Ensure all required fields have safe defaults for results.html
+    template_vars.setdefault('tiktok_url', analysis.video_url)
+    template_vars.setdefault('platform', 'tiktok')
+    template_vars.setdefault('target_duration', '30')
+    template_vars.setdefault('goal', 'engagement')
+    template_vars.setdefault('niche', 'general')
+    template_vars.setdefault('scores', {})
+    template_vars.setdefault('metadata', {})
+    template_vars.setdefault('transcript_quality', {})
+    template_vars.setdefault('replication_formula', {})
+    template_vars.setdefault('exact_hook_breakdown', {})
+    template_vars.setdefault('all_hooks_identified', {})
+
     # Try to use full results template, fall back to summary if it fails
     try:
         return render_template("results.html", **template_vars)
