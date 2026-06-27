@@ -411,15 +411,21 @@
       </p>
       {% endif %}
       <div class="meta-tags">
+        {% if platform %}
         <span class="meta-tag">{{ platform.title() }}</span>
+        {% endif %}
         {% if metadata and metadata.uploader %}
         <span class="meta-tag">👤 @{{ metadata.uploader }}</span>
         {% endif %}
         {% if metadata and metadata.track %}
         <span class="meta-tag">🎵 {{ metadata.track }}</span>
         {% endif %}
+        {% if target_duration %}
         <span class="meta-tag">{{ target_duration }}s video</span>
+        {% endif %}
+        {% if goal %}
         <span class="meta-tag">Goal: {{ goal.replace('_', ' ').title() }}</span>
+        {% endif %}
         {% if actual_view_count %}
         <span class="meta-tag">{{ actual_view_count }} views</span>
         {% endif %}

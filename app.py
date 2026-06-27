@@ -3024,21 +3024,44 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             return False
 
         # Create lightweight analysis data (exclude large base64 images)
+        # Include all fields needed by results.html template
         lightweight_data = {
+            # Basic info
             'video_title': template_vars.get('video_title'),
             'creator': template_vars.get('creator'),
-            'goal_analysis': template_vars.get('goal_analysis'),
+            'platform': template_vars.get('platform', 'tiktok'),
+            'target_duration': template_vars.get('target_duration'),
+            'goal': template_vars.get('goal'),
+            'niche': template_vars.get('niche', 'general'),
+
+            # Metrics
             'view_count': template_vars.get('view_count'),
             'like_count': template_vars.get('like_count'),
             'comment_count': template_vars.get('comment_count'),
             'share_count': template_vars.get('share_count'),
+
+            # Content
             'video_description': template_vars.get('video_description'),
             'hashtags': template_vars.get('hashtags'),
+            'audio_type': template_vars.get('audio_type'),
+            'music_info': template_vars.get('music_info'),
+
+            # Analysis results
+            'what_this_video_is': template_vars.get('what_this_video_is'),
+            'why_it_performed': template_vars.get('why_it_performed'),
+            'replication_formula': template_vars.get('replication_formula', {}),
+            'improvements': template_vars.get('improvements'),
+            'viral_mechanics': template_vars.get('viral_mechanics'),
+            'performance_prediction': template_vars.get('performance_prediction'),
+            'scores': template_vars.get('scores', {}),
+            'exact_hook_breakdown': template_vars.get('exact_hook_breakdown', {}),
+            'all_hooks_identified': template_vars.get('all_hooks_identified', {}),
+
+            # Legacy fields
+            'goal_analysis': template_vars.get('goal_analysis'),
             'overall_assessment': template_vars.get('overall_assessment'),
             'primary_strengths': template_vars.get('primary_strengths'),
             'areas_for_improvement': template_vars.get('areas_for_improvement'),
-            'audio_type': template_vars.get('audio_type'),
-            'music_info': template_vars.get('music_info'),
         }
 
         analysis.video_title = video_title
