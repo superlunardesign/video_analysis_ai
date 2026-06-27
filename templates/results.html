@@ -345,6 +345,24 @@
       </p>
       {% endif %}
 
+      {% if music_info %}
+      <p style="margin-top: 0.4rem; font-size: 0.9rem;">
+        <span style="color: var(--celestial-lavender);">
+          {% if audio_type == 'original' %}
+            &#9835; Original Sound
+          {% else %}
+            &#9835; {{ music_info }}{% if music_artist %} &mdash; {{ music_artist }}{% endif %}
+          {% endif %}
+        </span>
+        {% if metadata and metadata.video_id %}
+        <a href="https://www.tiktok.com/music/{{ music_info|urlencode }}" target="_blank"
+           style="color: var(--solar-lime); text-decoration: none; margin-left: 0.5rem; font-size: 0.85rem;">
+          View Sound <span style="font-size: 0.75rem;">&#8599;</span>
+        </a>
+        {% endif %}
+      </p>
+      {% endif %}
+
       <div class="meta-tags">
         {% if platform %}<span class="meta-tag">{{ platform.title() }}</span>{% endif %}
         {% if metadata and metadata.uploader %}<span class="meta-tag">@{{ metadata.uploader }}</span>{% endif %}

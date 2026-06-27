@@ -61,6 +61,41 @@ class Analysis(db.Model):
         return f'<Analysis {self.id}: {self.video_title[:30] if self.video_title else "Untitled"}>'
 
 
+class KnowledgePattern(db.Model):
+    """Stored knowledge patterns learned from video analyses."""
+    __tablename__ = 'knowledge_patterns'
+
+    id = db.Column(db.Integer, primary_key=True)
+    pattern_summary = db.Column(db.Text, nullable=False)
+    key_insights = db.Column(db.JSON)
+    context = db.Column(db.JSON)
+    when_to_apply = db.Column(db.JSON)
+    cautions = db.Column(db.JSON)
+    curator_notes = db.Column(db.Text)
+    video_url = db.Column(db.String(500))
+    metrics = db.Column(db.JSON)
+    submitted_by = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'pattern_summary': self.pattern_summary,
+            'key_insights': self.key_insights or [],
+            'context': self.context or {},
+            'when_to_apply': self.when_to_apply or [],
+            'cautions': self.cautions or [],
+            'curator_notes': self.curator_notes,
+            'video_url': self.video_url,
+            'metrics': self.metrics or {},
+            'submitted_by': self.submitted_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def __repr__(self):
+        return f'<KnowledgePattern {self.id}: {self.pattern_summary[:50] if self.pattern_summary else ""}>'
+
+
 def init_db(app):
     """Initialize database with app context."""
     # Get database URL from environment or use default

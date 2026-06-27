@@ -2156,8 +2156,9 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         template_vars['video_description'] = metadata.get('description', '')
         template_vars['hashtags'] = metadata.get('hashtags', [])
         template_vars['duration'] = metadata.get('duration', 0)
-        template_vars['music_info'] = metadata.get('music', '')
-        template_vars['audio_type'] = 'original' if metadata.get('music', {}).get('is_original') else 'trending_sound'
+        template_vars['music_info'] = metadata.get('track', '')
+        template_vars['music_artist'] = metadata.get('artist', '')
+        template_vars['audio_type'] = 'original' if 'original sound' in (metadata.get('track', '') or '').lower() else 'trending_sound'
         template_vars['metadata'] = metadata  # Keep full metadata object for compatibility
 
     # Extract simple hook and loop text for history display
@@ -2617,12 +2618,12 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
                 print("[INFO] Smart retrieval insufficient, loading all context...")
                 knowledge_context, knowledge_citations = retrieve_all_context(max_chars=100000)
                 print(f"[SUCCESS] Loaded {len(knowledge_context)} chars from knowledge base")
-            
+
         except Exception as e:
             print(f"[ERROR] Knowledge loading error: {e}")
             import traceback
             traceback.print_exc()
-            
+
             # Minimal fallback
             knowledge_context = """
 Key patterns for video analysis:
@@ -2634,6 +2635,28 @@ Key patterns for video analysis:
 - Audio-visual synchronization enhances retention
 """
             knowledge_citations = ["Basic patterns fallback"]
+
+        # Append curator-submitted knowledge patterns from database
+        try:
+            from models import KnowledgePattern
+            db_patterns = KnowledgePattern.query.order_by(KnowledgePattern.created_at.desc()).all()
+            if db_patterns:
+                curator_knowledge = "\n\n=== CURATOR-SUBMITTED KNOWLEDGE PATTERNS ===\n"
+                curator_knowledge += "These are verified strategies observed by expert curators:\n\n"
+                for pat in db_patterns:
+                    curator_knowledge += f"--- Pattern: {pat.pattern_summary} ---\n"
+                    if pat.key_insights:
+                        for insight in pat.key_insights:
+                            curator_knowledge += f"  - {insight}\n"
+                    if pat.when_to_apply:
+                        curator_knowledge += "  Apply when: " + "; ".join(pat.when_to_apply) + "\n"
+                    if pat.cautions:
+                        curator_knowledge += "  Cautions: " + "; ".join(pat.cautions) + "\n"
+                    curator_knowledge += "\n"
+                knowledge_context += curator_knowledge
+                print(f"[KNOWLEDGE] Appended {len(db_patterns)} curator patterns from DB ({len(curator_knowledge)} chars)")
+        except Exception as e:
+            print(f"[WARNING] Could not load curator patterns from DB: {e}")
 
         # Fetch and analyze comments (optional, don't fail if unavailable)
         update_progress(current_analysis_id, 'comments', 'Fetching and analyzing comments...', 70)
@@ -3170,13 +3193,10 @@ def submit_for_learning():
             'submission_date': datetime.now().isoformat()
         }
 
-        # Initialize context-aware pattern store
-        from success_patterns_improved import ContextAwarePatternStore
-        pattern_store = ContextAwarePatternStore()
-
-        # If pattern_data provided (from preview), use it; otherwise generate new
+        # If no pattern_data from preview, generate one now
         if not pattern_data:
-            # Generate pattern if not previewed
+            from success_patterns_improved import ContextAwarePatternStore
+            pattern_store = ContextAwarePatternStore()
             preview = pattern_store.preview_pattern(
                 analysis_text=analysis_text,
                 video_url=video_url,
@@ -3189,21 +3209,28 @@ def submit_for_learning():
             )
             pattern_data = preview['preview']
 
-        # Store pattern with context
-        pattern_store.store_pattern(
-            pattern_data=pattern_data,
+        # Save to database as KnowledgePattern
+        from models import KnowledgePattern
+        knowledge_pattern = KnowledgePattern(
+            pattern_summary=pattern_data.get('pattern_summary', ''),
+            key_insights=pattern_data.get('key_insights', []),
+            context=pattern_data.get('context', {}),
+            when_to_apply=pattern_data.get('when_to_apply', []),
+            cautions=pattern_data.get('cautions', []),
+            curator_notes=curator_notes,
             video_url=video_url,
             metrics=metrics,
-            curator_notes=curator_notes
+            submitted_by=current_user.email,
         )
+        db.session.add(knowledge_pattern)
+        db.session.commit()
 
-        print(f"[LEARNING] Context-aware pattern submitted by {current_user.email}")
+        print(f"[LEARNING] Pattern saved to DB (id={knowledge_pattern.id}) by {current_user.email}")
         print(f"  Pattern: {pattern_data.get('pattern_summary', 'N/A')}")
-        print(f"  Context: {pattern_data.get('context', {}).get('niche', 'N/A')}")
 
         return {
             "status": "success",
-            "message": "Video submitted for learning! Pattern stored with context, constraints, and applicability rules."
+            "message": f"Knowledge pattern saved! (ID: {knowledge_pattern.id}) It will be used in future analyses."
         }, 200
 
     except Exception as e:
@@ -3306,6 +3333,8 @@ def view_analysis(analysis_id):
     if 'metadata' not in template_vars or not template_vars['metadata']:
         template_vars['metadata'] = {}
     template_vars['metadata']['url'] = analysis.video_url
+    if template_vars.get('music_info'):
+        template_vars['metadata']['track'] = template_vars['music_info']
 
     # Set transcript_quality with transcript text if available
     if 'transcript_quality' not in template_vars or not template_vars['transcript_quality']:
@@ -3567,6 +3596,7 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             'hashtags': template_vars.get('hashtags'),
             'audio_type': template_vars.get('audio_type'),
             'music_info': template_vars.get('music_info'),
+            'music_artist': template_vars.get('music_artist'),
             'transcript': template_vars.get('transcript', ''),  # CRITICAL: Save transcript text
 
             # Hook and Loop analysis (for analysis_summary.html)
@@ -3659,6 +3689,7 @@ def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template
             'areas_for_improvement': template_vars.get('areas_for_improvement'),
             'audio_type': template_vars.get('audio_type'),
             'music_info': template_vars.get('music_info'),
+            'music_artist': template_vars.get('music_artist'),
             'frame_gallery': template_vars.get('frame_gallery', []),
             'frame_analyses': template_vars.get('frame_analyses', []),
         }
