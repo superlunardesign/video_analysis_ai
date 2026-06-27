@@ -340,33 +340,33 @@ class CommentAnalyzer:
                 messages=[
                     {
                         "role": "system",
-                        "content": """You are an expert at analyzing video comments to understand ACTUAL audience engagement.
+                        "content": """You analyze video comments to understand audience reactions.
 
-CRITICAL: Comments reveal what viewers ACTUALLY noticed, which may differ from video intent.
-- If comments focus on background elements more than main content → that's the real hook
-- If comments mention specific timestamps → those are retention drivers
-- High consensus (many likes on similar comments) = strong pattern
-
-Your job:
-1. Identify what ACTUALLY drove engagement (intended or unintentional)
-2. Spot gaps between intent and attention
-3. Find hidden hooks (accidental elements that worked)
-4. Provide actionable insights based on viewer behavior, not assumptions"""
+CRITICAL RULES:
+- ONLY analyze what commenters actually SAID. Quote and reference specific comments.
+- Do NOT speculate about hooks, overlays, or visual elements unless a commenter explicitly mentions them.
+- If commenters agree with the video's message, SAY THAT. If they disagree, say that.
+- Report the SENTIMENT of the comments: are people agreeing, debating, asking questions, sharing experiences?
+- High-liked comments represent what the audience collectively values.
+- Your analysis must be grounded in the actual comment text, not the video content."""
                     },
                     {
                         "role": "user",
-                        "content": f"""Analyze these video comments to understand what ACTUALLY engaged viewers:
+                        "content": f"""Analyze these video comments. Focus on what the commenters ACTUALLY SAID — quote specific comments and report their reactions.
 
+COMMENTS:
 {top_comments_text}
 {consensus_text}
+
+Video context (for reference only — analyze the COMMENTS, not the video):
 {context}
 
 Provide analysis (300 words max) focusing on:
-1. ACTUAL engagement drivers (what viewers noticed most)
-2. Intent vs Reality (did main content drive engagement, or something else?)
-3. Hidden hooks (unintentional elements that worked)
-4. Moments that kept viewers watching
-5. Actionable insights for creators"""
+1. What commenters said — summarize the main reactions, agreements, disagreements, and questions. Quote specific comments.
+2. Audience sentiment — are people agreeing, debating, impressed, skeptical, sharing their own experiences?
+3. What sparked the most engagement — which comments got the most likes and what does that reveal?
+4. Questions and content opportunities — what did viewers ask about or want to know more about?
+5. Key takeaway — what do these comments tell the creator about their audience's reaction?"""
                     }
                 ],
                 max_tokens=700,
