@@ -2762,29 +2762,48 @@ def view_analysis(analysis_id):
     template_vars['analysis_id'] = analysis.id
 
     # BACKWARDS COMPATIBILITY: Generate summary fields for older analyses
-    # that don't have these fields in their stored data
+    # Print debug info to see what's available
+    print(f"[DEBUG] Analysis {analysis_id} data keys: {list(template_vars.keys())}")
+
     if not template_vars.get('overall_assessment'):
-        # Try to extract from analysis text
-        analysis_text = template_vars.get('analysis', '')
-        if analysis_text:
-            # Use first 500 chars as overall assessment
+        # Try multiple possible field names
+        analysis_text = (
+            template_vars.get('analysis') or
+            template_vars.get('gpt_response') or
+            template_vars.get('raw_analysis_text') or
+            ''
+        )
+        if isinstance(analysis_text, str) and analysis_text:
             template_vars['overall_assessment'] = analysis_text[:500] + '...' if len(analysis_text) > 500 else analysis_text
+            print(f"[DEBUG] Set overall_assessment from analysis text: {len(analysis_text)} chars")
 
     if not template_vars.get('primary_strengths'):
         # Try to extract from strengths field
-        strengths = template_vars.get('strengths', '')
-        if strengths:
-            # Split by newlines or bullet points
-            strengths_list = [s.strip('- •\n\r') for s in strengths.split('\n') if s.strip('- •\n\r')]
-            template_vars['primary_strengths'] = strengths_list[:5]  # Top 5
+        strengths = template_vars.get('strengths', '') or ''
+        if isinstance(strengths, str) and strengths:
+            strengths_list = [s.strip('- •\n\r\t') for s in strengths.split('\n') if s.strip('- •\n\r\t')]
+            if strengths_list:
+                template_vars['primary_strengths'] = strengths_list[:5]
+                print(f"[DEBUG] Set primary_strengths: {len(strengths_list)} items")
 
     if not template_vars.get('areas_for_improvement'):
-        # Try to extract from improvement fields
-        improvements = template_vars.get('improvement_areas', '') or template_vars.get('improvement_opportunities', '')
-        if improvements:
-            # Split by newlines or bullet points
-            improvements_list = [s.strip('- •\n\r') for s in improvements.split('\n') if s.strip('- •\n\r')]
-            template_vars['areas_for_improvement'] = improvements_list[:5]  # Top 5
+        # Try to extract from multiple possible improvement fields
+        improvements = (
+            template_vars.get('improvement_areas') or
+            template_vars.get('improvement_opportunities') or
+            template_vars.get('improvements') or
+            ''
+        )
+        if isinstance(improvements, str) and improvements:
+            improvements_list = [s.strip('- •\n\r\t') for s in improvements.split('\n') if s.strip('- •\n\r\t')]
+            if improvements_list:
+                template_vars['areas_for_improvement'] = improvements_list[:5]
+                print(f"[DEBUG] Set areas_for_improvement: {len(improvements_list)} items")
+
+    # Debug: Print what we're passing to template
+    print(f"[DEBUG] Final template vars has overall_assessment: {bool(template_vars.get('overall_assessment'))}")
+    print(f"[DEBUG] Final template vars has primary_strengths: {bool(template_vars.get('primary_strengths'))}")
+    print(f"[DEBUG] Final template vars has areas_for_improvement: {bool(template_vars.get('areas_for_improvement'))}")
 
     return render_template("analysis_summary.html", **template_vars)
 

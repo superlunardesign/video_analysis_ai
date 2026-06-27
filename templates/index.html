@@ -882,10 +882,17 @@
         // Re-analyze button
         reanalyzeBtn.addEventListener('click', function() {
             existingModal.classList.remove('active');
-            // Remove the event listener temporarily and submit
-            const newForm = form.cloneNode(true);
-            form.parentNode.replaceChild(newForm, form);
-            newForm.submit();
+
+            // Add force_refresh hidden input to bypass cache
+            const forceRefreshInput = document.createElement('input');
+            forceRefreshInput.type = 'hidden';
+            forceRefreshInput.name = 'force_refresh';
+            forceRefreshInput.value = 'true';
+            form.appendChild(forceRefreshInput);
+
+            // Submit the form (without the event listener check)
+            form.removeEventListener('submit', arguments.callee);
+            form.submit();
         });
 
         // Close modal on overlay click
