@@ -89,9 +89,10 @@ class ContextAwarePatternStore:
             'preview': pattern_data,
             'will_store': {
                 'pattern_summary': pattern_data.get('pattern_summary', ''),
+                'key_insights': pattern_data.get('key_insights', []),
                 'context': pattern_data.get('context', {}),
-                'constraints': pattern_data.get('constraints', []),
-                'applicability': pattern_data.get('applicability', {}),
+                'when_to_apply': pattern_data.get('when_to_apply', []),
+                'cautions': pattern_data.get('cautions', []),
                 'metrics': metrics,
                 'curator_notes': curator_notes
             },
@@ -117,20 +118,22 @@ class ContextAwarePatternStore:
                 messages=[
                     {
                         "role": "system",
-                        "content": """You are extracting learnings to train an AI to understand video success nuances.
+                        "content": """You are synthesizing video strategy knowledge from a curator's specific observation about a video into a GENERAL, UNIVERSALLY APPLICABLE principle.
 
-CRITICAL RULES:
-1. The CURATOR NOTES are PRIMARY SOURCE OF TRUTH - extract insights DIRECTLY from them
-2. DO NOT make assumptions about "works best for" or "avoid for" unless EXPLICITLY stated in curator notes
-3. DO NOT invent constraints - only extract what's actually observed or stated
-4. Focus on extracting PRINCIPLES and INSIGHTS the curator identified
-5. This is for TRAINING the AI to notice these patterns - extract the learning, not assumptions
+YOUR JOB:
+1. Read the curator's note about what they observed in THIS specific video
+2. Read the full analysis context to understand the video
+3. SYNTHESIZE both into a generalized knowledge pattern that applies to ALL future videos, not just this one
+4. Write it as strategic knowledge — like advice from a growth strategist, not a description of one video
+5. The output should read like a chapter from a content strategy playbook
 
-The curator is teaching the AI what to notice. Extract their teaching."""
+CRITICAL: Do NOT just repeat what the curator said. GENERALIZE it.
+- Curator says "this designer's strong opinion caused pushback" → You write about how strong opinions in ANY niche drive engagement through debate
+- Curator says "the controversy drove comments" → You write about the mechanics of polarizing content and audience alignment"""
                     },
                     {
                         "role": "user",
-                        "content": f"""Extract learnings from this video to train the AI.
+                        "content": f"""Synthesize a universal content strategy principle from this curator observation + video analysis.
 
 VIDEO CONTEXT:
 - Niche: {niche}
@@ -140,46 +143,41 @@ VIDEO CONTEXT:
 - Views: {metrics.get('views', 'N/A')}
 - Engagement Rate: {metrics.get('engagement_rate', 'N/A')}
 
-CURATOR NOTES (PRIMARY SOURCE - what the curator is teaching the AI to notice):
+CURATOR'S OBSERVATION (their specific insight about this video):
 {curator_notes}
 
-ANALYSIS CONTEXT (for reference only):
-{analysis_text[:1500]}
+FULL ANALYSIS CONTEXT:
+{analysis_text[:3000]}
 
-Extract the learnings in this format. ONLY include what curator explicitly states or teaches:
+Synthesize this into GENERAL knowledge. Write it as if you're adding a principle to a content strategy guidebook that will be referenced when analyzing ANY future video.
 
+Return JSON:
 {{
-    "pattern_summary": "1-2 sentence summary of what the curator is teaching the AI",
+    "pattern_summary": "2-4 sentences. A generalized strategic principle written in universal terms — NOT about this specific video. Should read like: 'Videos that [do X] create [Y effect] because [Z psychology]. This leads to [measurable outcome].' Write it so it applies to any creator in any niche.",
     "key_insights": [
-        "Extract each principle/insight the curator stated",
-        "Use curator's language - don't paraphrase into categories",
-        "Each insight should be a learning to notice in future videos"
+        "Each insight should be a standalone general principle, not tied to this specific video",
+        "Write as universal truths about content strategy backed by the curator's observation",
+        "Example: 'Polarizing opinions drive engagement through two mechanisms: agreement (follows, saves, shares) and disagreement (comments, debate). Both increase algorithmic reach.'",
+        "3-5 insights"
     ],
     "context": {{
         "niche": "{niche}",
         "platform": "{platform}",
-        "what_happened": "What the curator observed in this specific video",
-        "why_it_matters": "The principle/lesson from curator notes"
+        "observed_in": "Brief description of the specific video this was observed in",
+        "why_it_matters": "The universal principle — why any creator should know this"
     }},
-    "when_to_notice": [
-        "ONLY include if curator states when this pattern appears",
-        "Empty array if not specified"
+    "when_to_apply": [
+        "Specific scenarios where this principle should be considered in future analyses",
+        "Example: 'When a video takes a strong stance or controversial position'",
+        "Example: 'When comment sentiment is highly polarized'"
     ],
     "cautions": [
-        "ONLY include if curator explicitly warns about something",
-        "Empty array if not mentioned"
-    ],
-    "observed_elements": [
-        "Specific things curator noted were present in video",
-        "Keep factual, not interpretive"
+        "Only include if relevant — genuine risks of applying this principle poorly",
+        "Empty array if none"
     ]
 }}
 
-CRITICAL:
-- If curator doesn't mention specific niches/scenarios → don't invent them
-- If curator doesn't state constraints → leave empty
-- Focus on extracting the TEACHING, not creating a categorization system
-- Use curator's own insights as the key_insights array"""
+IMPORTANT: The pattern_summary and key_insights must be GENERALIZED — they should never mention this specific creator, video, or niche. Write universal principles."""
                     }
                 ],
                 max_tokens=1500,

@@ -740,8 +740,18 @@
         <button onclick="previewPattern()" id="previewBtn" class="admin-btn preview">Preview Pattern</button>
 
         <div id="patternPreview" style="display: none; background: rgba(0,0,0,0.2); border: 1px solid var(--lunar-blush); border-radius: 12px; padding: 1rem; margin-top: 1rem;">
-          <h4 style="color: var(--lunar-blush); margin-bottom: 1rem;">Pattern Preview</h4>
-          <div id="previewContent"></div>
+          <h4 style="color: var(--lunar-blush); margin-bottom: 0.5rem;">Knowledge Preview</h4>
+          <p style="font-size: 0.8rem; margin-bottom: 1rem;">Edit the generated knowledge below before submitting.</p>
+
+          <label style="color: var(--solar-lime);">Knowledge Summary (what will be stored)</label>
+          <textarea id="editableSummary" rows="4" style="width: 100%; margin-bottom: 12px;"></textarea>
+
+          <label style="color: var(--solar-lime);">Key Insights</label>
+          <div id="editableInsights"></div>
+          <button onclick="addInsight()" style="background: transparent; border: 1px dashed rgba(255,255,255,0.3); color: var(--celestial-lavender); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; margin: 8px 0 12px;">+ Add Insight</button>
+
+          <div id="previewMeta" style="font-size: 0.85rem; margin-bottom: 12px;"></div>
+
           <button onclick="submitForLearning()" id="submitLearningBtn" class="admin-btn submit">Confirm & Submit for Learning</button>
         </div>
       </div>
@@ -812,25 +822,62 @@
       } catch (error) { alert('Error: ' + error.message); btn.textContent = 'Preview Pattern'; btn.disabled = false; }
     }
 
+    function escapeAttr(s) { return (s||'').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
     function displayPreview(previewData) {
       const preview = previewData.preview;
       const similar = previewData.similarity_examples || [];
-      let html = `
-        <p><strong style="color: var(--lunar-blush);">Summary:</strong> ${preview.pattern_summary || 'N/A'}</p>
-        <p><strong style="color: var(--lunar-blush);">Context:</strong> ${preview.context?.niche || 'N/A'} / ${preview.context?.platform || 'N/A'}</p>
-        <p><strong style="color: var(--lunar-blush);">Why it worked:</strong> ${preview.context?.why_it_worked_here || 'N/A'}</p>
-      `;
-      if (similar.length > 0) {
-        html += `<p style="margin-top: 1rem; color: var(--solar-lime);"><strong>Similar patterns already stored:</strong></p><ul style="padding-left: 1.5rem;">`;
-        similar.forEach(ex => { html += `<li>${ex.pattern} (${(ex.similarity * 100).toFixed(0)}% similar)</li>`; });
-        html += `</ul>`;
+
+      // Fill editable summary
+      document.getElementById('editableSummary').value = preview.pattern_summary || '';
+
+      // Fill editable insights
+      const insights = preview.key_insights || [];
+      const container = document.getElementById('editableInsights');
+      container.innerHTML = insights.map((insight, i) =>
+        `<div style="display: flex; gap: 8px; margin-bottom: 6px; align-items: start;">
+          <textarea class="insight-input" rows="2" style="flex: 1;">${escapeAttr(insight)}</textarea>
+          <button onclick="this.parentElement.remove()" style="background: transparent; border: none; color: #f44336; cursor: pointer; font-size: 1.2rem; padding: 4px;">×</button>
+        </div>`
+      ).join('');
+
+      // Show context and similar patterns
+      let metaHtml = '';
+      if (preview.when_to_apply && preview.when_to_apply.length) {
+        metaHtml += `<p style="color: var(--solar-lime);"><strong>When to apply:</strong></p><ul style="padding-left: 1.5rem; margin-bottom: 8px;">`;
+        preview.when_to_apply.forEach(w => { metaHtml += `<li>${w}</li>`; });
+        metaHtml += `</ul>`;
       }
-      document.getElementById('previewContent').innerHTML = html;
+      if (similar.length > 0) {
+        metaHtml += `<p style="color: var(--celestial-lavender);"><strong>Similar patterns already stored:</strong></p><ul style="padding-left: 1.5rem;">`;
+        similar.forEach(ex => { metaHtml += `<li>${ex.pattern} (${(ex.similarity * 100).toFixed(0)}% similar)</li>`; });
+        metaHtml += `</ul>`;
+      }
+      document.getElementById('previewMeta').innerHTML = metaHtml;
       document.getElementById('patternPreview').style.display = 'block';
+    }
+
+    function addInsight() {
+      const container = document.getElementById('editableInsights');
+      const div = document.createElement('div');
+      div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 6px; align-items: start;';
+      div.innerHTML = `<textarea class="insight-input" rows="2" style="flex: 1;" placeholder="Add a new insight..."></textarea>
+        <button onclick="this.parentElement.remove()" style="background: transparent; border: none; color: #f44336; cursor: pointer; font-size: 1.2rem; padding: 4px;">×</button>`;
+      container.appendChild(div);
     }
 
     async function submitForLearning() {
       if (!currentPatternData) { alert('Preview first'); return; }
+
+      // Read edited values from the editable fields
+      const editedSummary = document.getElementById('editableSummary').value.trim();
+      const insightEls = document.querySelectorAll('.insight-input');
+      const editedInsights = Array.from(insightEls).map(el => el.value.trim()).filter(v => v);
+
+      // Update pattern data with edits
+      currentPatternData.pattern_summary = editedSummary;
+      currentPatternData.key_insights = editedInsights;
+
       const notes = document.getElementById('learningNotes').value.trim();
       const views = parseInt(document.getElementById('videoViews').value) || 0;
       let engagement = document.getElementById('engagementRate').value.trim();

@@ -3067,9 +3067,24 @@ def preview_pattern():
             template_vars = analysis.analysis_data
             print(f"[PREVIEW] Loaded analysis from DB: {analysis.id}")
 
-        analysis_text = template_vars.get('analysis', '') or \
-                       template_vars.get('what_this_video_is', '') + '\n' + \
-                       template_vars.get('why_it_performed', '')
+        # Build rich analysis context from all available data
+        context_parts = []
+        if template_vars.get('what_this_video_is'):
+            context_parts.append(f"WHAT THIS VIDEO IS: {template_vars['what_this_video_is']}")
+        if template_vars.get('why_it_performed'):
+            context_parts.append(f"WHY IT PERFORMED: {template_vars['why_it_performed']}")
+        if template_vars.get('viral_mechanics'):
+            context_parts.append(f"VIRAL MECHANICS: {template_vars['viral_mechanics']}")
+        if template_vars.get('transcript'):
+            context_parts.append(f"TRANSCRIPT: {template_vars['transcript'][:500]}")
+        if template_vars.get('improvements'):
+            context_parts.append(f"IMPROVEMENTS: {template_vars['improvements'][:500]}")
+        comment_insights = template_vars.get('comment_insights', {})
+        if comment_insights and comment_insights.get('ai_insights'):
+            context_parts.append(f"COMMENT INSIGHTS: {comment_insights['ai_insights'][:500]}")
+        if template_vars.get('video_description'):
+            context_parts.append(f"VIDEO DESCRIPTION: {template_vars['video_description'][:300]}")
+        analysis_text = '\n\n'.join(context_parts) if context_parts else template_vars.get('analysis', '')
 
         # Get metrics
         metrics = {
