@@ -339,11 +339,11 @@ class CommentAnalyzer:
                 context += f"\n\nFrame Analysis:\n{frame_analysis[:500]}..."
 
             if num_comments <= 5:
-                word_limit = "100 words max"
+                word_limit = "Be brief — use only as many words as the comments warrant, up to 100 words"
                 instructions = f"""There are only {num_comments} comments. Keep your analysis brief and proportional.
 Quote each comment exactly as written. Summarize the overall sentiment and note any questions or content opportunities."""
             else:
-                word_limit = "300 words max"
+                word_limit = "Use only as many words as the comments warrant, up to 300 words"
                 instructions = """Provide analysis focusing on:
 1. What commenters said — summarize the main reactions, agreements, disagreements, and questions. Quote specific comments.
 2. Audience sentiment — are people agreeing, debating, impressed, skeptical, sharing their own experiences?
