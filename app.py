@@ -1899,7 +1899,13 @@ To improve: Strengthen the opening hook, enhance audio-visual synchronization, a
 
 def prepare_template_variables(gpt_result, transcript_data, frames_summaries_text, form_data, gallery_data_urls, frame_paths, frames_dir, knowledge_citations, knowledge_context):
     """Prepare all template variables with safe defaults"""
-    
+
+    # Debug: Check what gpt_result contains
+    print(f"[TEMPLATE_PREP] gpt_result keys: {list(gpt_result.keys())[:20]}")  # First 20 keys
+    print(f"[TEMPLATE_PREP] Has replication_formula: {'replication_formula' in gpt_result}")
+    print(f"[TEMPLATE_PREP] Has scores: {'scores' in gpt_result}")
+    print(f"[TEMPLATE_PREP] Has what_this_video_is: {'what_this_video_is' in gpt_result}")
+
     template_vars = {
         # Form data
         'tiktok_url': form_data.get('tiktok_url', ''),
@@ -2036,7 +2042,14 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
                 scores[key] = default
     
     template_vars['scores'] = scores
-    
+
+    # Debug: Check what template_vars has
+    print(f"[TEMPLATE_PREP] Returning template_vars with replication_formula: {'replication_formula' in template_vars}")
+    print(f"[TEMPLATE_PREP] Returning template_vars with scores: {'scores' in template_vars}")
+    if 'replication_formula' in template_vars:
+        print(f"[TEMPLATE_PREP] replication_formula type: {type(template_vars['replication_formula'])}")
+        print(f"[TEMPLATE_PREP] replication_formula value: {template_vars['replication_formula']}")
+
     return template_vars
 
 
@@ -2481,6 +2494,14 @@ Key patterns for video analysis:
                 print(f"[INFO] Content type: {gpt_result.get('content_type_detected', 'unknown')}")
                 print(f"[INFO] Audio type: {gpt_result.get('audio_type_detected', 'unknown')}")
                 print(f"[INFO] Performance level: {gpt_result.get('performance_level', 'unknown')}")
+
+                # Debug: Check gpt_result has new fields
+                print(f"[DEBUG] gpt_result has replication_formula: {'replication_formula' in gpt_result}")
+                print(f"[DEBUG] gpt_result has scores: {'scores' in gpt_result}")
+                print(f"[DEBUG] gpt_result has what_this_video_is: {'what_this_video_is' in gpt_result}")
+                if 'replication_formula' in gpt_result:
+                    print(f"[DEBUG] replication_formula type: {type(gpt_result['replication_formula'])}")
+                    print(f"[DEBUG] replication_formula keys: {list(gpt_result['replication_formula'].keys()) if isinstance(gpt_result['replication_formula'], dict) else 'not a dict'}")
 
             except Exception as e:
                 print(f"[ERROR] Analysis error: {e}")
