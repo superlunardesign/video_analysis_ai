@@ -471,7 +471,7 @@
                 </div>
                 {% if pattern.examples %}
                 <div style="font-size: 0.85rem; color: var(--celestial-lavender); font-style: italic;">
-                    Example: "{{ pattern.examples[0].text[:100] }}{% if pattern.examples[0].text|length > 100 %}...{% endif %}" ({{ pattern.examples[0].likes }} likes)
+                    Example: "{{ pattern.examples[0].text }}" ({{ pattern.examples[0].likes }} likes)
                 </div>
                 {% endif %}
             </div>
@@ -504,7 +504,7 @@
             <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-md);">
                 <div style="font-weight: 600; color: var(--solar-lime);">{{ mention.timestamp }} <span style="color: var(--celestial-lavender); font-weight: normal; font-size: 0.85rem;">({{ mention.mentions }} mentions)</span></div>
                 <div style="font-size: 0.85rem; color: var(--celestial-lavender); margin-top: 0.25rem; font-style: italic;">
-                    "{{ mention.example_comments[0][:120] }}{% if mention.example_comments[0]|length > 120 %}...{% endif %}"
+                    "{{ mention.example_comments[0] }}"
                 </div>
             </div>
             {% endfor %}

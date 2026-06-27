@@ -651,7 +651,7 @@
             <span>{{ pattern.mentions }} mentions &middot; {{ pattern.total_likes }} likes</span>
           </div>
           {% if pattern.examples %}
-          <div class="comment-example">"{{ pattern.examples[0].text[:100] }}{% if pattern.examples[0].text|length > 100 %}...{% endif %}" ({{ pattern.examples[0].likes }} likes)</div>
+          <div class="comment-example">"{{ pattern.examples[0].text }}" ({{ pattern.examples[0].likes }} likes)</div>
           {% endif %}
         </div>
         {% endfor %}
@@ -673,7 +673,7 @@
         {% for mention in comment_insights.timestamp_mentions[:5] %}
         <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
           <div style="font-weight: 600; color: var(--solar-lime);">{{ mention.timestamp }} <span style="color: var(--celestial-lavender); font-weight: normal; font-size: 0.85rem;">({{ mention.mentions }} mentions)</span></div>
-          <div class="comment-example">"{{ mention.example_comments[0][:120] }}{% if mention.example_comments[0]|length > 120 %}...{% endif %}"</div>
+          <div class="comment-example">"{{ mention.example_comments[0] }}"</div>
         </div>
         {% endfor %}
         {% endif %}
