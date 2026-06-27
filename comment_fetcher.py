@@ -20,7 +20,7 @@ class CommentFetcher:
 
     def __init__(self):
         self.youtube_api_key = os.getenv("YOUTUBE_API_KEY")
-        self.rapidapi_key = os.getenv("RAPIDAPI_KEY")  # For TikTok/IG unofficial APIs
+        self.rapidapi_key = os.getenv("RAPIDAPI_KEY")  # For TikTok API (tiktok-api15)
 
     def fetch_comments(
         self,
@@ -152,61 +152,84 @@ class CommentFetcher:
 
     def _fetch_tiktok_comments(self, video_url: str, max_comments: int) -> List[Dict]:
         """
-        Fetch TikTok comments using unofficial API.
+        Fetch TikTok comments using RapidAPI (tiktok-api15).
 
-        Option 1: Use RapidAPI's TikTok API (requires RAPIDAPI_KEY)
-        Option 2: Use alternative scraping methods
-
-        Note: TikTok doesn't provide official comment API
+        Uses: https://rapidapi.com/tiktok-api15/api/tiktok-api15
+        Requires: RAPIDAPI_KEY environment variable
         """
         if not self.rapidapi_key:
             print("[WARNING] RAPIDAPI_KEY not set. Cannot fetch TikTok comments.")
-            print("  Get API key at: https://rapidapi.com/yi-tang-tang-default/api/tiktok-scraper7")
+            print("  Get API key at: https://rapidapi.com/")
             return []
 
         try:
-            # Extract video ID from TikTok URL
-            video_id_match = re.search(r'/video/(\d+)', video_url)
-            if not video_id_match:
-                print("[ERROR] Could not extract TikTok video ID")
-                return []
+            from urllib.parse import quote
 
-            video_id = video_id_match.group(1)
+            # URL-encode the video URL for the API
+            encoded_url = quote(video_url, safe='')
 
-            # RapidAPI TikTok endpoint (example - may vary by API)
-            url = "https://tiktok-scraper7.p.rapidapi.com/video/comments"
+            # TikTok API15 endpoint
+            api_url = "https://tiktok-api15.p.rapidapi.com/index/Tiktok/getCommentListByVideo"
 
             headers = {
-                "X-RapidAPI-Key": self.rapidapi_key,
-                "X-RapidAPI-Host": "tiktok-scraper7.p.rapidapi.com"
+                "x-rapidapi-key": self.rapidapi_key,
+                "x-rapidapi-host": "tiktok-api15.p.rapidapi.com"
             }
 
-            params = {
-                "video_id": video_id,
-                "count": min(max_comments, 100)
-            }
+            # Fetch comments in batches if needed
+            all_comments = []
+            cursor = 0
+            batch_size = min(50, max_comments)  # API supports up to 50 per request
 
-            response = requests.get(url, headers=headers, params=params, timeout=15)
-            response.raise_for_status()
+            while len(all_comments) < max_comments:
+                params = {
+                    "url": video_url,  # API accepts unencoded URL
+                    "count": batch_size,
+                    "cursor": cursor
+                }
 
-            data = response.json()
+                response = requests.get(api_url, headers=headers, params=params, timeout=15)
+                response.raise_for_status()
 
-            # Parse response (structure varies by API provider)
-            comments = []
-            for comment in data.get('data', {}).get('comments', []):
-                comments.append({
-                    'text': comment.get('text', ''),
-                    'likes': comment.get('digg_count', 0),
-                    'author': comment.get('user', {}).get('nickname', 'Unknown'),
-                    'timestamp': comment.get('create_time', '')
-                })
+                data = response.json()
 
-            print(f"[SUCCESS] Fetched {len(comments)} TikTok comments")
-            return comments[:max_comments]
+                # Check if request was successful
+                if data.get('code') != 0:
+                    print(f"[ERROR] TikTok API returned code {data.get('code')}: {data.get('msg')}")
+                    break
+
+                # Parse comments
+                comments_data = data.get('data', {}).get('comments', [])
+
+                for comment in comments_data:
+                    all_comments.append({
+                        'text': comment.get('text', ''),
+                        'likes': comment.get('digg_count', 0),
+                        'replies': comment.get('reply_total', 0),
+                        'author': comment.get('user', {}).get('nickname', 'Unknown'),
+                        'timestamp': comment.get('create_time', ''),
+                        'user_verified': comment.get('user', {}).get('verified', False)
+                    })
+
+                # Check if there are more comments
+                has_more = data.get('data', {}).get('hasMore', False)
+                if not has_more or not comments_data:
+                    break
+
+                # Update cursor for next batch
+                cursor = data.get('data', {}).get('cursor', cursor + batch_size)
+
+                # Avoid fetching more than needed
+                if len(all_comments) >= max_comments:
+                    break
+
+            print(f"[SUCCESS] Fetched {len(all_comments)} TikTok comments (total available: {data.get('data', {}).get('total', 'unknown')})")
+            return all_comments[:max_comments]
 
         except Exception as e:
             print(f"[ERROR] Failed to fetch TikTok comments: {e}")
-            print("  Note: TikTok comment fetching requires RapidAPI subscription")
+            import traceback
+            traceback.print_exc()
             return []
 
     def _fetch_instagram_comments(self, video_url: str, max_comments: int) -> List[Dict]:

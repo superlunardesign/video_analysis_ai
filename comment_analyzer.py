@@ -22,7 +22,7 @@ class CommentAnalyzer:
         frame_analysis: Optional[str] = None
     ) -> Dict:
         """
-        Analyze video comments to extract engagement insights.
+        Analyze video comments to extract engagement insights with like-weighted consensus.
 
         Args:
             comments: List of comment dicts with 'text', 'likes', 'timestamp' (optional)
@@ -35,25 +35,42 @@ class CommentAnalyzer:
         if not comments:
             return {"error": "No comments provided"}
 
-        # Sort comments by engagement (likes)
+        # Categorize comments by type
+        categorized = self._categorize_comments(comments)
+
+        # Sort comments by engagement (likes) for analysis
         sorted_comments = sorted(
             comments,
             key=lambda c: int(c.get('likes', 0)),
             reverse=True
         )
 
-        # Extract top comments
-        top_comments = sorted_comments[:50]  # Focus on most-liked comments
+        # Focus on high-value comments (100+ likes get priority)
+        high_value = [c for c in sorted_comments if int(c.get('likes', 0)) >= 100]
+        medium_value = [c for c in sorted_comments if 10 <= int(c.get('likes', 0)) < 100]
+
+        # Analyze top comments (prioritize high-liked ones)
+        top_comments = (high_value[:30] + medium_value[:20])[:50]
+
+        # Detect consensus patterns (cluster similar comments, sum their likes)
+        consensus_patterns = self._detect_consensus_patterns(sorted_comments)
 
         # Analyze patterns
         analysis = {
             'total_comments': len(comments),
+            'categorization': categorized,
             'top_comments_analyzed': len(top_comments),
+            'consensus_patterns': consensus_patterns,  # NEW: Like-weighted themes
             'timestamp_mentions': self._extract_timestamp_mentions(top_comments),
             'emotion_analysis': self._analyze_emotions(top_comments),
             'key_moments': self._identify_key_moments(top_comments, video_transcript),
             'engagement_themes': self._extract_themes(top_comments),
-            'ai_insights': self._get_ai_insights(top_comments, video_transcript, frame_analysis)
+            'ai_insights': self._get_ai_insights(
+                top_comments,
+                video_transcript,
+                frame_analysis,
+                consensus_patterns  # Pass consensus to AI for better insights
+            )
         }
 
         return analysis
@@ -156,6 +173,122 @@ class CommentAnalyzer:
         key_moments.sort(key=lambda x: x['likes'], reverse=True)
         return key_moments[:10]
 
+    def _categorize_comments(self, comments: List[Dict]) -> Dict:
+        """
+        Categorize comments by type to understand engagement patterns.
+        Returns counts and percentages for each category.
+        """
+        categories = {
+            'substantive': 0,  # Context-rich comments (timestamps, quotes, specific observations)
+            'emoji_only': 0,   # Just emojis or very short reactions
+            'generic': 0,      # Generic praise/reactions without context
+            'spam': 0          # Spam, self-promotion, off-topic
+        }
+
+        emoji_pattern = r'^[\s\U0001F000-\U0001F9FF]+$'  # Just emojis
+        spam_patterns = ['follow', 'check out', 'my channel', 'subscribe', 'dm me', 'link in bio']
+
+        for comment in comments:
+            text = comment.get('text', '').strip()
+
+            if not text:
+                continue
+
+            text_lower = text.lower()
+
+            # Check for spam
+            if any(pattern in text_lower for pattern in spam_patterns):
+                categories['spam'] += 1
+            # Check for emoji-only
+            elif re.match(emoji_pattern, text) or len(text) <= 5:
+                categories['emoji_only'] += 1
+            # Check for generic (short reactions without context)
+            elif len(text) < 15 and not any(char.isdigit() or char in ['"', "'", '?'] for char in text):
+                categories['generic'] += 1
+            # Everything else is substantive
+            else:
+                categories['substantive'] += 1
+
+        total = len(comments)
+        percentages = {
+            cat: round((count / total * 100), 1) if total > 0 else 0
+            for cat, count in categories.items()
+        }
+
+        return {
+            'counts': categories,
+            'percentages': percentages,
+            'total': total,
+            'insight': self._categorization_insight(percentages)
+        }
+
+    def _categorization_insight(self, percentages: Dict) -> str:
+        """Generate insight from comment categorization"""
+        substantive = percentages.get('substantive', 0)
+        emoji_only = percentages.get('emoji_only', 0)
+
+        if substantive > 40:
+            return "High substantive engagement - viewers are articulating specific moments and reactions"
+        elif emoji_only > 30:
+            return "High emoji-only engagement suggests strong emotional response but viewers aren't verbalizing WHY - may indicate visually-driven content"
+        elif substantive < 20:
+            return "Low substantive engagement - consider adding elements that prompt specific viewer reactions"
+        else:
+            return "Balanced engagement mix"
+
+    def _detect_consensus_patterns(self, comments: List[Dict]) -> List[Dict]:
+        """
+        Detect consensus patterns by clustering similar comments and summing their likes.
+        This shows what the AUDIENCE collectively agreed on, not just individual opinions.
+        """
+        # Group comments by similarity (simple keyword clustering)
+        patterns = []
+
+        # Common engagement themes to look for
+        theme_keywords = {
+            'background_element': ['background', 'behind', 'in the back', 'spotted', 'noticed'],
+            'specific_moment': ['part when', 'moment', 'second', 'at the', ':', 'timestamp'],
+            'visual_element': ['outfit', 'hair', 'makeup', 'shirt', 'wearing', 'ring', 'nails', 'accessories'],
+            'audio': ['song', 'music', 'sound', 'audio', 'voice', 'singing'],
+            'transition': ['transition', 'edit', 'effect', 'cut', 'switch'],
+            'pet': ['cat', 'dog', 'pet', 'puppy', 'kitten'],
+            'tutorial_request': ['how', 'tutorial', 'teach', 'explain', 'show me'],
+            'end_reveal': ['end', 'ending', 'reveal', 'final', 'wait until', 'stayed for'],
+        }
+
+        # Track mentions and total likes for each theme
+        theme_data = {theme: {'count': 0, 'total_likes': 0, 'examples': []} for theme in theme_keywords}
+
+        for comment in comments:
+            text = comment.get('text', '').lower()
+            likes = int(comment.get('likes', 0))
+
+            for theme, keywords in theme_keywords.items():
+                if any(keyword in text for keyword in keywords):
+                    theme_data[theme]['count'] += 1
+                    theme_data[theme]['total_likes'] += likes
+                    if len(theme_data[theme]['examples']) < 3:
+                        theme_data[theme]['examples'].append({
+                            'text': comment.get('text', ''),
+                            'likes': likes
+                        })
+
+        # Convert to sorted list of patterns (by total likes = consensus strength)
+        for theme, data in theme_data.items():
+            if data['count'] > 0 and data['total_likes'] > 0:
+                patterns.append({
+                    'theme': theme.replace('_', ' ').title(),
+                    'mentions': data['count'],
+                    'total_likes': data['total_likes'],
+                    'consensus_strength': data['total_likes'] / max(data['count'], 1),  # Avg likes per mention
+                    'examples': data['examples']
+                })
+
+        # Sort by total likes (strongest consensus first)
+        patterns.sort(key=lambda x: x['total_likes'], reverse=True)
+
+        return patterns[:10]  # Top 10 consensus patterns
+
     def _extract_themes(self, comments: List[Dict]) -> List[str]:
         """Extract common themes using simple NLP"""
         # Combine top comments
@@ -176,15 +309,25 @@ class CommentAnalyzer:
         self,
         comments: List[Dict],
         transcript: Optional[str] = None,
-        frame_analysis: Optional[str] = None
+        frame_analysis: Optional[str] = None,
+        consensus_patterns: Optional[List[Dict]] = None
     ) -> str:
-        """Use GPT-4 to extract deeper insights from comments"""
+        """Use GPT-4 to extract deeper insights from comments with consensus awareness"""
         try:
             # Prepare top comments for analysis
             top_comments_text = "\n".join([
                 f"[{c.get('likes', 0)} likes] {c.get('text', '')}"
                 for c in comments[:30]
             ])
+
+            # Add consensus patterns (like-weighted themes)
+            consensus_text = ""
+            if consensus_patterns:
+                consensus_text = "\n\nCONSENSUS PATTERNS (what viewers collectively agreed on):\n"
+                for pattern in consensus_patterns[:5]:
+                    consensus_text += f"- {pattern['theme']}: {pattern['mentions']} mentions, {pattern['total_likes']} total likes\n"
+                    if pattern['examples']:
+                        consensus_text += f"  Example: \"{pattern['examples'][0]['text']}\" ({pattern['examples'][0]['likes']} likes)\n"
 
             context = ""
             if transcript:
@@ -197,29 +340,36 @@ class CommentAnalyzer:
                 messages=[
                     {
                         "role": "system",
-                        "content": """You are an expert at analyzing video comments to understand audience engagement.
-Identify:
-1. What specific moments, quotes, or elements viewers are reacting to
-2. What kept them watching (hooks, curiosity gaps, payoffs)
-3. What emotions drove engagement (humor, surprise, inspiration, etc.)
-4. What patterns emerge in viewer feedback
-5. Actionable insights for content creators"""
+                        "content": """You are an expert at analyzing video comments to understand ACTUAL audience engagement.
+
+CRITICAL: Comments reveal what viewers ACTUALLY noticed, which may differ from video intent.
+- If comments focus on background elements more than main content → that's the real hook
+- If comments mention specific timestamps → those are retention drivers
+- High consensus (many likes on similar comments) = strong pattern
+
+Your job:
+1. Identify what ACTUALLY drove engagement (intended or unintentional)
+2. Spot gaps between intent and attention
+3. Find hidden hooks (accidental elements that worked)
+4. Provide actionable insights based on viewer behavior, not assumptions"""
                     },
                     {
                         "role": "user",
-                        "content": f"""Analyze these top video comments to understand what resonated with viewers:
+                        "content": f"""Analyze these video comments to understand what ACTUALLY engaged viewers:
 
 {top_comments_text}
+{consensus_text}
 {context}
 
-Provide a concise analysis (300 words max) focusing on:
-- Key moments that drove engagement
-- What kept viewers watching
-- Emotional drivers
-- Actionable patterns for creators"""
+Provide analysis (300 words max) focusing on:
+1. ACTUAL engagement drivers (what viewers noticed most)
+2. Intent vs Reality (did main content drive engagement, or something else?)
+3. Hidden hooks (unintentional elements that worked)
+4. Moments that kept viewers watching
+5. Actionable insights for creators"""
                     }
                 ],
-                max_tokens=600,
+                max_tokens=700,
                 temperature=0.4
             )
 
