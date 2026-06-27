@@ -54,17 +54,22 @@ cache = AnalysisCache()
 tracker = AnalysisPerformanceTracker()
 pdf_cache = PdfCache()  # Persistent PDF cache that survives server restarts
 
-# In-memory progress tracker: {analysis_id: {stage, detail, percent, updated_at}}
+# In-memory progress tracker: {analysis_id: {stage, detail, percent, updated_at, preview}}
 analysis_progress = {}
 
-def update_progress(analysis_id, stage, detail="", percent=0):
+def update_progress(analysis_id, stage, detail="", percent=0, preview_data=None):
     """Update the in-memory progress tracker for a running analysis."""
     if analysis_id:
+        existing = analysis_progress.get(analysis_id, {})
+        existing_preview = existing.get('preview', {})
+        if preview_data:
+            existing_preview.update(preview_data)
         analysis_progress[analysis_id] = {
             'stage': stage,
             'detail': detail,
             'percent': percent,
-            'updated_at': _time.time()
+            'updated_at': _time.time(),
+            'preview': existing_preview
         }
 
 print("[INFO] Optimization components initialized: cache, tracker, pdf_cache")
@@ -2278,6 +2283,30 @@ def process():
         update_progress(current_analysis_id, 'downloading', 'Fetching video metadata...', 5)
         metadata = extract_video_metadata(form_data['tiktok_url'])
 
+        # Send metadata preview to progress tracker as soon as it's available
+        if metadata:
+            def _fmt_count(n):
+                if not n: return '0'
+                if n >= 1_000_000: return f'{n/1_000_000:.1f}M'
+                if n >= 1_000: return f'{n/1_000:.0f}K'
+                return f'{n:,}'
+
+            update_progress(current_analysis_id, 'downloading', 'Metadata loaded!', 8, preview_data={
+                'metadata': {
+                    'title': metadata.get('title', ''),
+                    'creator': metadata.get('creator', metadata.get('uploader', '')),
+                    'description': metadata.get('description', ''),
+                    'hashtags': metadata.get('hashtags', []),
+                    'views': _fmt_count(metadata.get('view_count')),
+                    'likes': _fmt_count(metadata.get('like_count')),
+                    'comments': _fmt_count(metadata.get('comment_count')),
+                    'shares': _fmt_count(metadata.get('repost_count')),
+                    'saves': _fmt_count(metadata.get('save_count')),
+                    'duration': metadata.get('duration', 0),
+                    'music': metadata.get('track', metadata.get('music', '')),
+                }
+            })
+
         # Initialize view_count and performance_level from metadata
         view_count = None
         performance_level = 'unknown'
@@ -2415,7 +2444,9 @@ def process():
             scene_threshold=scene_threshold,
         )
         print(f"[SUCCESS] Extracted {len(frame_paths)} frames")
-        update_progress(current_analysis_id, 'extracting', f'Extracted {len(frame_paths)} frames', 20)
+        update_progress(current_analysis_id, 'extracting', f'Extracted {len(frame_paths)} frames', 20, preview_data={
+            'frame_count': len(frame_paths)
+        })
 
         # 4. PARALLEL ANALYSIS of independent components (REAL speedup!)
         print("[INFO] Starting parallel analysis of audio and frames...")
@@ -2442,6 +2473,9 @@ def process():
                 basic_transcript = futures['transcription'].result(timeout=60)
                 analysis_results['transcript'] = basic_transcript
                 print(f"[PARALLEL] Transcription complete: {len(basic_transcript)} chars")
+                update_progress(current_analysis_id, 'transcribing', 'Transcript ready!', 28, preview_data={
+                    'transcript': basic_transcript[:2000] if basic_transcript else None
+                })
             except Exception as e:
                 print(f"[WARNING] Transcription failed: {e}")
                 basic_transcript = ""
@@ -2586,6 +2620,16 @@ Key patterns for video analysis:
 
                 print(f"[COMMENTS] Analysis complete: {comment_insights['total_comments']} comments")
                 print(f"[COMMENTS] Consensus patterns found: {len(comment_insights['consensus_patterns'])}")
+
+                # Send top comments preview
+                top_patterns = comment_insights.get('consensus_patterns', [])[:3]
+                update_progress(current_analysis_id, 'comments', f'Analyzed {comment_insights["total_comments"]} comments', 72, preview_data={
+                    'comments': {
+                        'total': comment_insights['total_comments'],
+                        'top_patterns': [{'theme': p.get('theme', ''), 'mentions': p.get('mentions', 0), 'example': p.get('example_comment', '')} for p in top_patterns],
+                        'emotions': comment_insights.get('emotion_analysis', {})
+                    }
+                })
             else:
                 print("[COMMENTS] No comments fetched (API may be unavailable)")
 
@@ -3340,6 +3384,8 @@ def analysis_status(analysis_id):
         result['stage'] = progress['stage']
         result['detail'] = progress['detail']
         result['percent'] = progress['percent']
+        if progress.get('preview'):
+            result['preview'] = progress['preview']
 
     return jsonify(result)
 

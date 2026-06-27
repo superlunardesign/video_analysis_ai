@@ -4,30 +4,42 @@
 
 {% block extra_styles %}
 <style>
-    .progress-container {
-        max-width: 800px;
+    .progress-page {
+        max-width: 900px;
         margin: 0 auto;
-        padding: var(--space-xl);
+        padding: var(--space-xl) var(--space-lg);
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-xl);
+    }
+
+    @media (min-width: 768px) {
+        .progress-page {
+            grid-template-columns: 340px 1fr;
+        }
     }
 
     .progress-header {
         text-align: center;
-        margin-bottom: var(--space-xl);
+        grid-column: 1 / -1;
     }
 
     .progress-header h1 {
-        font-size: 2rem;
+        font-size: 1.8rem;
         color: var(--stellar-cream);
-        margin-bottom: var(--space-sm);
+        margin-bottom: var(--space-xs);
     }
 
     .time-estimate {
         color: var(--celestial-lavender);
-        font-size: 1.1em;
+        font-size: 1em;
     }
 
-    .stage-container {
-        margin-bottom: var(--space-xl);
+    /* ── Left column: stages ── */
+    .stages-panel {
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
     }
 
     .stage {
@@ -38,25 +50,21 @@
         transition: opacity 0.5s ease;
     }
 
-    .stage.active {
-        opacity: 1;
-    }
-
-    .stage.completed {
-        opacity: 0.75;
-    }
+    .stage.active { opacity: 1; }
+    .stage.completed { opacity: 0.75; }
 
     .stage-icon {
-        width: 44px;
-        height: 44px;
-        min-width: 44px;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
         border-radius: 50%;
         background: rgba(255, 255, 255, 0.1);
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-right: var(--space-md);
-        font-size: 20px;
+        margin-right: var(--space-sm);
+        font-size: 14px;
+        font-weight: 700;
         transition: all 0.4s ease;
     }
 
@@ -73,33 +81,25 @@
 
     @keyframes pulse {
         0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 255, 160, 0.5); }
-        50% { transform: scale(1.05); box-shadow: 0 0 0 12px rgba(245, 255, 160, 0); }
+        50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(245, 255, 160, 0); }
         100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 255, 160, 0); }
     }
 
-    .stage-info {
-        flex: 1;
-    }
+    .stage-info { flex: 1; }
 
     .stage-title {
         font-weight: 600;
         color: var(--stellar-cream);
-        margin-bottom: 4px;
-        font-size: 1.05em;
-    }
-
-    .stage-description {
-        font-size: 0.85em;
-        color: var(--celestial-lavender);
-        opacity: 0.8;
+        font-size: 0.9em;
+        margin-bottom: 2px;
     }
 
     .progress-bar-container {
         background: rgba(0, 0, 0, 0.3);
         border-radius: 10px;
-        height: 6px;
+        height: 5px;
         overflow: hidden;
-        margin-top: 8px;
+        margin-top: 5px;
     }
 
     .progress-bar {
@@ -111,45 +111,207 @@
     }
 
     .overall-progress {
-        margin-top: var(--space-xl);
-        padding-top: var(--space-lg);
+        margin-top: var(--space-lg);
+        padding-top: var(--space-md);
         border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .overall-label {
         text-align: center;
         font-weight: 600;
-        margin-bottom: var(--space-sm);
+        margin-bottom: var(--space-xs);
         color: var(--stellar-cream);
+        font-size: 0.9em;
     }
 
     .overall-progress-bar {
-        height: 24px;
+        height: 20px;
         background: rgba(0, 0, 0, 0.3);
-        border-radius: 15px;
+        border-radius: 12px;
         overflow: hidden;
-        position: relative;
     }
 
     .overall-progress-fill {
         height: 100%;
         background: linear-gradient(90deg, var(--eclipse-plum), var(--lunar-blush), var(--solar-lime));
-        border-radius: 15px;
+        border-radius: 12px;
         transition: width 0.8s ease;
         width: 0%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 700;
-        font-size: 0.85em;
+        font-size: 0.8em;
         color: var(--cosmic-indigo);
-        min-width: 40px;
+        min-width: 36px;
     }
 
+    .status-detail {
+        text-align: center;
+        margin-top: var(--space-sm);
+        color: var(--solar-lime);
+        font-size: 0.85em;
+        min-height: 1.3em;
+    }
+
+    /* ── Right column: live preview ── */
+    .preview-panel {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+    }
+
+    .preview-card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: var(--radius-lg);
+        padding: var(--space-md) var(--space-lg);
+        opacity: 0;
+        transform: translateY(12px);
+        transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .preview-card.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .preview-card h3 {
+        font-size: 0.75em;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--celestial-lavender);
+        margin-bottom: var(--space-sm);
+    }
+
+    .preview-empty {
+        text-align: center;
+        padding: var(--space-xl);
+        color: var(--celestial-lavender);
+        opacity: 0.5;
+        font-size: 0.9em;
+    }
+
+    /* Video info card */
+    .video-title {
+        font-size: 1.1em;
+        font-weight: 600;
+        color: var(--stellar-cream);
+        margin-bottom: var(--space-xs);
+        line-height: 1.4;
+    }
+
+    .video-creator {
+        color: var(--solar-lime);
+        font-size: 0.9em;
+        font-weight: 600;
+    }
+
+    /* Stats grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        gap: var(--space-sm);
+    }
+
+    .stat-item {
+        text-align: center;
+        padding: var(--space-sm);
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: var(--radius-md);
+    }
+
+    .stat-value {
+        font-size: 1.2em;
+        font-weight: 700;
+        color: var(--solar-lime);
+    }
+
+    .stat-label {
+        font-size: 0.7em;
+        text-transform: uppercase;
+        color: var(--celestial-lavender);
+        letter-spacing: 0.05em;
+        margin-top: 2px;
+    }
+
+    /* Description */
+    .video-desc {
+        color: var(--stellar-cream);
+        font-size: 0.88em;
+        line-height: 1.6;
+        opacity: 0.85;
+    }
+
+    .hashtag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: var(--space-sm);
+    }
+
+    .hashtag {
+        background: rgba(106, 116, 207, 0.2);
+        color: var(--celestial-lavender);
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 0.8em;
+    }
+
+    /* Transcript preview */
+    .transcript-text {
+        color: var(--stellar-cream);
+        font-size: 0.85em;
+        line-height: 1.7;
+        max-height: 180px;
+        overflow-y: auto;
+        padding-right: var(--space-sm);
+        opacity: 0.85;
+    }
+
+    .transcript-text::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .transcript-text::-webkit-scrollbar-thumb {
+        background: rgba(183, 180, 237, 0.3);
+        border-radius: 4px;
+    }
+
+    /* Comment patterns */
+    .comment-pattern {
+        padding: var(--space-sm) 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .comment-pattern:last-child {
+        border-bottom: none;
+    }
+
+    .comment-theme {
+        font-weight: 600;
+        color: var(--solar-lime);
+        font-size: 0.85em;
+        margin-bottom: 2px;
+    }
+
+    .comment-example {
+        color: var(--stellar-cream);
+        font-size: 0.8em;
+        opacity: 0.7;
+        font-style: italic;
+    }
+
+    .comment-mentions {
+        color: var(--celestial-lavender);
+        font-size: 0.75em;
+    }
+
+    /* Fun facts */
     .fun-facts {
-        margin-top: var(--space-xl);
-        padding: var(--space-lg);
-        background: rgba(255, 255, 255, 0.05);
+        grid-column: 1 / -1;
+        padding: var(--space-md) var(--space-lg);
+        background: rgba(255, 255, 255, 0.03);
         border-radius: var(--radius-lg);
         text-align: center;
     }
@@ -157,118 +319,142 @@
     .fun-fact {
         font-style: italic;
         color: var(--celestial-lavender);
+        font-size: 0.9em;
         opacity: 0;
         animation: fadeIn 0.5s forwards;
     }
 
-    @keyframes fadeIn {
-        to { opacity: 1; }
-    }
-
-    .status-detail {
-        text-align: center;
-        margin-top: var(--space-md);
-        color: var(--solar-lime);
-        font-size: 0.9em;
-        min-height: 1.5em;
-    }
+    @keyframes fadeIn { to { opacity: 1; } }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="progress-container">
+<div class="progress-page">
     <div class="progress-header">
         <h1>Analyzing Your Video</h1>
         <div class="time-estimate">Estimated time: <span id="timeEstimate">Loading...</span></div>
     </div>
 
-    <div class="stage-container">
-        <div class="stage" id="stage-downloading" data-stage="downloading">
+    <!-- Left: Stage progress -->
+    <div class="stages-panel">
+        <div class="stage" id="stage-downloading">
             <div class="stage-icon">1</div>
             <div class="stage-info">
                 <div class="stage-title">Downloading Video</div>
-                <div class="stage-description">Fetching video and extracting metadata...</div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" id="bar-downloading"></div>
-                </div>
+                <div class="progress-bar-container"><div class="progress-bar" id="bar-downloading"></div></div>
             </div>
         </div>
 
-        <div class="stage" id="stage-extracting" data-stage="extracting">
+        <div class="stage" id="stage-extracting">
             <div class="stage-icon">2</div>
             <div class="stage-info">
                 <div class="stage-title">Extracting Frames</div>
-                <div class="stage-description">Capturing key moments for analysis...</div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" id="bar-extracting"></div>
-                </div>
+                <div class="progress-bar-container"><div class="progress-bar" id="bar-extracting"></div></div>
             </div>
         </div>
 
-        <div class="stage" id="stage-analyzing_frames" data-stage="analyzing_frames">
+        <div class="stage" id="stage-analyzing_frames">
             <div class="stage-icon">3</div>
             <div class="stage-info">
                 <div class="stage-title">Analyzing Visual Content</div>
-                <div class="stage-description" id="frameDescription">Understanding frames with AI vision...</div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" id="bar-analyzing_frames"></div>
-                </div>
+                <div class="progress-bar-container"><div class="progress-bar" id="bar-analyzing_frames"></div></div>
             </div>
         </div>
 
-        <div class="stage" id="stage-audio_context" data-stage="audio_context">
+        <div class="stage" id="stage-audio_context">
             <div class="stage-icon">4</div>
             <div class="stage-info">
                 <div class="stage-title">Processing Audio</div>
-                <div class="stage-description">Transcribing and analyzing audio elements...</div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" id="bar-audio_context"></div>
-                </div>
+                <div class="progress-bar-container"><div class="progress-bar" id="bar-audio_context"></div></div>
             </div>
         </div>
 
-        <div class="stage" id="stage-knowledge" data-stage="knowledge">
+        <div class="stage" id="stage-knowledge">
             <div class="stage-icon">5</div>
             <div class="stage-info">
-                <div class="stage-title">Searching Knowledge Base</div>
-                <div class="stage-description">Finding relevant patterns and strategies...</div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" id="bar-knowledge"></div>
-                </div>
+                <div class="stage-title">Knowledge Base</div>
+                <div class="progress-bar-container"><div class="progress-bar" id="bar-knowledge"></div></div>
             </div>
         </div>
 
-        <div class="stage" id="stage-deep_analysis" data-stage="deep_analysis">
+        <div class="stage" id="stage-deep_analysis">
             <div class="stage-icon">6</div>
             <div class="stage-info">
-                <div class="stage-title">Deep Psychological Analysis</div>
-                <div class="stage-description">Generating comprehensive insights...</div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" id="bar-deep_analysis"></div>
-                </div>
+                <div class="stage-title">Deep Analysis</div>
+                <div class="progress-bar-container"><div class="progress-bar" id="bar-deep_analysis"></div></div>
             </div>
         </div>
 
-        <div class="stage" id="stage-finalizing" data-stage="finalizing">
+        <div class="stage" id="stage-finalizing">
             <div class="stage-icon">7</div>
             <div class="stage-info">
                 <div class="stage-title">Finalizing Report</div>
-                <div class="stage-description">Preparing your personalized analysis...</div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" id="bar-finalizing"></div>
+                <div class="progress-bar-container"><div class="progress-bar" id="bar-finalizing"></div></div>
+            </div>
+        </div>
+
+        <div class="overall-progress">
+            <div class="overall-label">Overall Progress</div>
+            <div class="overall-progress-bar">
+                <div class="overall-progress-fill" id="overallProgress">0%</div>
+            </div>
+        </div>
+
+        <div class="status-detail" id="statusDetail"></div>
+    </div>
+
+    <!-- Right: Live preview cards -->
+    <div class="preview-panel">
+        <div class="preview-empty" id="previewEmpty">Results will appear here as they become available...</div>
+
+        <div class="preview-card" id="card-video-info">
+            <h3>Video Info</h3>
+            <div class="video-title" id="previewTitle"></div>
+            <div class="video-creator" id="previewCreator"></div>
+        </div>
+
+        <div class="preview-card" id="card-stats">
+            <h3>Engagement</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="statViews">-</div>
+                    <div class="stat-label">Views</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statLikes">-</div>
+                    <div class="stat-label">Likes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statComments">-</div>
+                    <div class="stat-label">Comments</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statShares">-</div>
+                    <div class="stat-label">Shares</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statSaves">-</div>
+                    <div class="stat-label">Saves</div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="overall-progress">
-        <div class="overall-label">Overall Progress</div>
-        <div class="overall-progress-bar">
-            <div class="overall-progress-fill" id="overallProgress">0%</div>
+        <div class="preview-card" id="card-description">
+            <h3>Description & Hashtags</h3>
+            <div class="video-desc" id="previewDesc"></div>
+            <div class="hashtag-list" id="previewHashtags"></div>
+        </div>
+
+        <div class="preview-card" id="card-transcript">
+            <h3>Transcript</h3>
+            <div class="transcript-text" id="previewTranscript"></div>
+        </div>
+
+        <div class="preview-card" id="card-comments">
+            <h3>Top Comment Patterns</h3>
+            <div id="previewComments"></div>
         </div>
     </div>
-
-    <div class="status-detail" id="statusDetail"></div>
 
     <div class="fun-facts">
         <div class="fun-fact" id="currentFact">Did you know? Videos with strong hooks in the first 3 seconds get 5x more watch time!</div>
@@ -286,34 +472,15 @@
     }
 
     const resultsSpeed = passedData.results_speed || 'standard';
-    let totalEstimate;
-    switch(resultsSpeed) {
-        case 'ultra_fast': totalEstimate = '30-60 seconds'; break;
-        case 'fast': totalEstimate = '1-2 minutes'; break;
-        case 'thorough': totalEstimate = '8-12 minutes'; break;
-        default: totalEstimate = '6-9 minutes';
-    }
-    document.getElementById('timeEstimate').textContent = totalEstimate;
+    const estimates = { ultra_fast: '30-60 seconds', fast: '1-2 minutes', thorough: '8-12 minutes', standard: '6-9 minutes' };
+    document.getElementById('timeEstimate').textContent = estimates[resultsSpeed] || estimates.standard;
 
-    // Stage order for mapping backend stages to UI
-    const stageOrder = [
-        'starting', 'downloading', 'extracting', 'transcribing',
-        'analyzing_frames', 'audio_context', 'knowledge', 'comments',
-        'deep_analysis', 'finalizing', 'complete'
-    ];
-
-    // Map backend stages to UI stage elements
     const stageToUI = {
-        'starting': 'downloading',
-        'downloading': 'downloading',
-        'extracting': 'extracting',
-        'transcribing': 'analyzing_frames',
-        'analyzing_frames': 'analyzing_frames',
-        'audio_context': 'audio_context',
-        'knowledge': 'knowledge',
-        'comments': 'knowledge',
-        'deep_analysis': 'deep_analysis',
-        'finalizing': 'finalizing',
+        'starting': 'downloading', 'downloading': 'downloading',
+        'extracting': 'extracting', 'transcribing': 'analyzing_frames',
+        'analyzing_frames': 'analyzing_frames', 'audio_context': 'audio_context',
+        'knowledge': 'knowledge', 'comments': 'knowledge',
+        'deep_analysis': 'deep_analysis', 'finalizing': 'finalizing',
         'complete': 'finalizing'
     };
 
@@ -325,6 +492,7 @@
     let currentServerStage = 'starting';
     let currentServerPercent = 0;
     let fetchCompleted = false;
+    let previewRendered = { metadata: false, transcript: false, comments: false };
 
     function updateUIFromProgress(stage, percent, detail) {
         const activeUI = stageToUI[stage] || 'downloading';
@@ -336,33 +504,105 @@
             if (!el || !bar) return;
 
             if (idx < activeIdx) {
-                // Completed
                 el.classList.remove('active');
                 el.classList.add('completed');
                 bar.style.width = '100%';
                 el.querySelector('.stage-icon').textContent = '✓';
             } else if (idx === activeIdx) {
-                // Active
                 el.classList.add('active');
                 el.classList.remove('completed');
-                // Estimate bar fill within this stage
                 const stagePercent = Math.min(90, ((percent - (activeIdx * 14)) / 14) * 100);
                 bar.style.width = Math.max(10, stagePercent) + '%';
             } else {
-                // Pending
                 el.classList.remove('active', 'completed');
                 bar.style.width = '0%';
             }
         });
 
-        // Overall progress
         const overallBar = document.getElementById('overallProgress');
         overallBar.style.width = percent + '%';
         overallBar.textContent = Math.floor(percent) + '%';
 
-        // Status detail
         if (detail) {
             document.getElementById('statusDetail').textContent = detail;
+        }
+    }
+
+    function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    function renderPreview(preview) {
+        if (!preview) return;
+        const empty = document.getElementById('previewEmpty');
+
+        // Metadata
+        if (preview.metadata && !previewRendered.metadata) {
+            previewRendered.metadata = true;
+            empty.style.display = 'none';
+            const m = preview.metadata;
+
+            if (m.title) {
+                document.getElementById('previewTitle').textContent = m.title;
+                document.getElementById('previewCreator').textContent = m.creator ? '@' + m.creator : '';
+                showCard('card-video-info');
+            }
+
+            if (m.views || m.likes) {
+                document.getElementById('statViews').textContent = m.views || '0';
+                document.getElementById('statLikes').textContent = m.likes || '0';
+                document.getElementById('statComments').textContent = m.comments || '0';
+                document.getElementById('statShares').textContent = m.shares || '0';
+                document.getElementById('statSaves').textContent = m.saves || '0';
+                showCard('card-stats');
+            }
+
+            if (m.description) {
+                document.getElementById('previewDesc').textContent = m.description.substring(0, 300);
+                const hashtagsEl = document.getElementById('previewHashtags');
+                if (m.hashtags && m.hashtags.length) {
+                    hashtagsEl.innerHTML = m.hashtags.slice(0, 10).map(h =>
+                        `<span class="hashtag">${escapeHtml(h.startsWith('#') ? h : '#' + h)}</span>`
+                    ).join('');
+                }
+                showCard('card-description');
+            }
+        }
+
+        // Transcript
+        if (preview.transcript && !previewRendered.transcript) {
+            previewRendered.transcript = true;
+            empty.style.display = 'none';
+            document.getElementById('previewTranscript').textContent = preview.transcript;
+            showCard('card-transcript');
+        }
+
+        // Comments
+        if (preview.comments && !previewRendered.comments) {
+            previewRendered.comments = true;
+            empty.style.display = 'none';
+            const c = preview.comments;
+            const container = document.getElementById('previewComments');
+
+            if (c.top_patterns && c.top_patterns.length) {
+                container.innerHTML = c.top_patterns.map(p =>
+                    `<div class="comment-pattern">
+                        <div class="comment-theme">${escapeHtml(p.theme)}</div>
+                        <div class="comment-mentions">${p.mentions} mentions</div>
+                        ${p.example ? `<div class="comment-example">"${escapeHtml(p.example)}"</div>` : ''}
+                    </div>`
+                ).join('');
+                showCard('card-comments');
+            }
+        }
+    }
+
+    function showCard(id) {
+        const card = document.getElementById(id);
+        if (card && !card.classList.contains('visible')) {
+            setTimeout(() => card.classList.add('visible'), 100);
         }
     }
 
@@ -380,12 +620,13 @@
                     updateUIFromProgress(data.stage, data.percent || 0, data.detail || '');
                 }
 
+                if (data.preview) {
+                    renderPreview(data.preview);
+                }
+
                 if (data.status === 'completed') {
                     clearInterval(pollInterval);
                     updateUIFromProgress('complete', 100, 'Analysis complete!');
-                    if (!fetchCompleted) {
-                        // The fetch will handle redirect
-                    }
                 } else if (data.status === 'failed') {
                     clearInterval(pollInterval);
                     document.getElementById('statusDetail').textContent = 'Analysis failed. Please try again.';
@@ -396,11 +637,10 @@
         }, 3000);
     }
 
-    // Smooth animation between polls - interpolates progress
+    // Smooth animation between polls
     let animPercent = 0;
     const smoothInterval = setInterval(() => {
         if (fetchCompleted) return;
-        // Slowly creep toward the server-reported percent
         const target = currentServerPercent;
         if (animPercent < target) {
             animPercent = Math.min(target, animPercent + 0.5);
@@ -435,7 +675,7 @@
         }, 100);
     }, 8000);
 
-    // Start actual processing via fetch (runs in parallel with polling)
+    // Start actual processing via fetch
     fetch("/process", {
         method: "POST",
         body: formData
@@ -446,7 +686,6 @@
         clearInterval(pollInterval);
         clearInterval(smoothInterval);
 
-        // Complete all stages visually
         uiStageOrder.forEach(uiStage => {
             const el = document.getElementById('stage-' + uiStage);
             const bar = document.getElementById('bar-' + uiStage);
@@ -462,7 +701,6 @@
         overallBar.textContent = '100%';
         document.getElementById('statusDetail').textContent = 'Analysis complete! Loading results...';
 
-        // Show results after brief celebration
         setTimeout(() => {
             document.open();
             document.write(html);
