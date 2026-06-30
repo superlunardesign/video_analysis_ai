@@ -1102,13 +1102,31 @@ async def generate_pdf_from_html(html_content, output_path=None):
             print("[PDF] Loading HTML content...")
             await page.set_content(html_content, wait_until='networkidle', timeout=30000)
 
-            # Wait a bit for any dynamic content to render
+            # Expand all tabs so PDF captures every section
+            await page.evaluate("""() => {
+                document.querySelectorAll('.tab-content').forEach(el => {
+                    el.classList.add('active');
+                    el.style.display = 'block';
+                });
+                // Hide UI-only elements
+                const hide = ['.tab-nav', '.results-nav', '.sticky-actions', '#adminLearningSection'];
+                hide.forEach(sel => {
+                    const el = document.querySelector(sel);
+                    if (el) el.style.display = 'none';
+                });
+                // Remove scroll limits
+                document.querySelectorAll('[style*="max-height"]').forEach(el => {
+                    el.style.maxHeight = 'none';
+                    el.style.overflow = 'visible';
+                });
+            }""")
+
             await asyncio.sleep(1)
 
             print("[PDF] Generating PDF...")
             pdf_options = {
                 'format': 'A4',
-                'print_background': False,  # Plain text on white background
+                'print_background': True,
                 'scale': 0.5,  # Shrink content to fit more on page
                 'margin': {
                     'top': '10mm',
