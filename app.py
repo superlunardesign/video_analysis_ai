@@ -14,6 +14,7 @@ from anthropic import Anthropic
 
 from processing import (
     extract_audio_and_frames,
+    extract_audio_and_frames_local,
     transcribe_audio,
     analyze_frames_batch,
     download_video,
@@ -41,6 +42,13 @@ from auth import auth_bp, init_auth
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500 MB upload limit
+
+ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v'}
+
+def _allowed_video(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_VIDEO_EXTENSIONS
+
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=600.0)
 claude_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
@@ -318,6 +326,28 @@ def parse_delimited_response(response_text, transcript=''):
     if 'KNOWLEDGE_PATTERNS_APPLIED' in sections:
         knowledge_patterns = [line.strip('- ').strip() for line in sections['KNOWLEDGE_PATTERNS_APPLIED'].split('\n') if line.strip().startswith('-')]
 
+    # Parse EDIT_SUGGESTIONS into structured dict
+    edit_suggestions = {}
+    if 'EDIT_SUGGESTIONS' in sections:
+        raw = sections['EDIT_SUGGESTIONS']
+        # Extract named sub-sections (lines starting with ALL_CAPS_WORD:)
+        current_key = None
+        current_lines = []
+        for line in raw.split('\n'):
+            header_match = re.match(r'^([A-Z_]+(?:\s+\([^)]+\))?):\s*(.*)', line)
+            if header_match:
+                if current_key:
+                    edit_suggestions[current_key.lower()] = '\n'.join(current_lines).strip()
+                current_key = header_match.group(1).strip()
+                first_val = header_match.group(2).strip()
+                current_lines = [first_val] if first_val else []
+            else:
+                if current_key:
+                    current_lines.append(line)
+        if current_key:
+            edit_suggestions[current_key.lower()] = '\n'.join(current_lines).strip()
+        edit_suggestions['raw'] = raw
+
     # Return structured data in the same format template expects
     return {
         'what_this_video_is': sections.get('WHAT_THIS_VIDEO_IS', ''),
@@ -335,6 +365,9 @@ def parse_delimited_response(response_text, transcript=''):
         # Also include as single field for compatibility
         'analysis': sections.get('WHAT_THIS_VIDEO_IS', ''),
         'performance_deep_dive': sections.get('WHY_IT_PERFORMED', ''),
+
+        # Edit suggestions (populated when edit_mode != 'none')
+        'edit_suggestions': edit_suggestions,
     }
 
 
@@ -1111,7 +1144,62 @@ Use these insights to identify:
     return section
 
 
-def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown', metadata=None, audio_insights=None, analysis_depth='standard', comment_insights=None):
+def _build_edit_suggestions_section(edit_mode, target_duration):
+    if edit_mode == 'reshoot':
+        return f"""===EDIT_SUGGESTIONS===
+CONTEXT: This is an UNPOSTED DRAFT. The creator is willing to RESHOOT the entire video.
+Do NOT suggest small tweaks — design a completely new, optimized version from scratch.
+
+Provide a full RESHOOT PLAN in this structure:
+
+NEW_HOOK (0-3s):
+[Exact words to say / exact visual to show in the opening 3 seconds. Be specific — write the actual line or describe the exact shot.]
+
+NEW_SCRIPT:
+[Full word-for-word script for the reshooted video. Include stage directions like (pause), (hold product up), (cut to B-roll of X). Format with timestamps based on the {target_duration}s target duration.]
+
+SCENE_DIRECTIONS:
+[Shot-by-shot filming notes: angles, framing, movement, lighting suggestions, what to show on screen at each moment. Concrete and actionable, not vague.]
+
+TEXT_OVERLAYS_PLAN:
+[Every text overlay to add in post, with the exact text and when it appears.]
+
+WHAT_TO_CUT_FROM_ORIGINAL:
+[Specific elements or moments from the draft that should NOT appear in the reshoot — and why.]
+
+PSYCHOLOGY_OF_REDESIGN:
+[In 2-3 sentences: the core psychological upgrade this reshoot achieves vs. the original draft.]
+"""
+    elif edit_mode == 'rearrange':
+        return f"""===EDIT_SUGGESTIONS===
+CONTEXT: This is an UNPOSTED DRAFT. The creator wants to REARRANGE existing footage only — no new filming.
+Base your cut list entirely on what you observed in the frame analysis and transcript. Do not suggest new shots.
+
+Provide a RECUT PLAN in this structure:
+
+SEGMENT_MAP:
+[List every distinct segment you can identify from the transcript and frames, with approximate timestamps.
+Format: [START-END] — brief description of what happens in this segment]
+
+RECOMMENDED_CUT_ORDER:
+[Your proposed new sequence. Reference segments by their timestamps from the map above.
+Format: 1. [original timestamp range] → reason for placing it here
+         2. [original timestamp range] → reason
+         etc.]
+
+SUGGESTED_TRIMS:
+[Any specific moments within segments to cut for pacing — be precise about what to remove and why.]
+
+NEW_OPENING (0-3s):
+[Which existing moment from the footage should become the new hook, and exactly why it works better as an opener.]
+
+WHAT_THIS_ACHIEVES:
+[In 2-3 sentences: how this recut improves the hook, retention arc, and payoff timing vs. the current order.]
+"""
+    return ""
+
+
+def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown', metadata=None, audio_insights=None, analysis_depth='standard', comment_insights=None, edit_mode='none'):
     """Comprehensive analysis that adapts to ALL video types with deep insights"""
     
     # First analyze frames to understand visual content
@@ -1496,6 +1584,8 @@ For each interval, describe:
 - [Pattern from knowledge base]: [How it applies to this video]
 - [Another pattern]: [Implementation example]
 
+""" + (_build_edit_suggestions_section(edit_mode, target_duration) if edit_mode != 'none' else "") + """
+
 ===END===
 
 CRITICAL INSTRUCTIONS:
@@ -1714,7 +1804,11 @@ ONLY suggest earlier reveals for:
             "overall_quality": "strong" if performance_level == 'viral' else "moderate" if performance_level in ['good', 'moderate'] else "needs_work",
             "video_has_speech": has_speech,
             "actual_view_count": view_count,
-            "performance_level": performance_level
+            "performance_level": performance_level,
+
+            # Edit mode suggestions
+            "edit_mode": edit_mode,
+            "edit_suggestions": parsed.get("edit_suggestions", {}),
         }
         
         return result
@@ -2067,6 +2161,10 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         # Raw text fallback support
         'is_raw_text_fallback': gpt_result.get('is_raw_text_fallback', False),
         'raw_analysis_text': gpt_result.get('raw_analysis_text', ''),
+
+        # Edit mode (uploaded draft)
+        'edit_mode': gpt_result.get('edit_mode', form_data.get('edit_mode', 'none')),
+        'edit_suggestions': gpt_result.get('edit_suggestions', {}),
     }
     
     # Ensure hooks is always a list
@@ -2145,8 +2243,26 @@ def process():
             'goal': request.form.get("goal", "follower_growth").strip(),
             'tone': request.form.get("tone", "confident, friendly").strip(),
             'audience': request.form.get("audience", "creators and small business owners").strip(),
-            'analysis_depth': request.form.get("analysis_depth", "standard").strip(),  # Get analysis depth selection
+            'analysis_depth': request.form.get("analysis_depth", "standard").strip(),
+            'edit_mode': request.form.get("edit_mode", "none").strip(),
+            'input_mode': request.form.get("input_mode", "url").strip(),
         }
+
+        # --- Handle uploaded video file ---
+        uploaded_video_path = None
+        uploaded_file = request.files.get("video_file")
+        if uploaded_file and uploaded_file.filename:
+            if not _allowed_video(uploaded_file.filename):
+                return "Error: Unsupported video format. Please upload mp4, mov, avi, mkv, webm, or m4v.", 400
+            _ensure_dirs()
+            import werkzeug.utils
+            safe_name = werkzeug.utils.secure_filename(uploaded_file.filename)
+            ext = safe_name.rsplit('.', 1)[-1].lower()
+            save_path = os.path.abspath(os.path.join("downloads", f"upload_{int(_time.time())}.{ext}"))
+            uploaded_file.save(save_path)
+            uploaded_video_path = save_path
+            form_data['tiktok_url'] = f"[uploaded:{safe_name}]"
+            print(f"[UPLOAD] Saved to {save_path}")
 
         # CHECK FOR IN-PROGRESS ANALYSIS (only for authenticated users)
         if current_user and current_user.is_authenticated:
@@ -2164,9 +2280,9 @@ def process():
             if processing_record:
                 current_analysis_id = processing_record.id
 
-        # 1. CHECK CACHE FIRST (unless force_refresh is requested)
+        # 1. CHECK CACHE FIRST (skip for uploaded videos — they have no stable URL)
         force_refresh = request.form.get('force_refresh', 'false').lower() == 'true'
-        if not force_refresh:
+        if not force_refresh and not uploaded_video_path:
             cached_result = cache.get_cached_analysis(form_data['tiktok_url'])
             if cached_result:
                 print(f"[CACHE HIT] Returning cached analysis")
@@ -2193,9 +2309,13 @@ def process():
 
                 return render_template("results.html", **cached_result)
 
-        # 2. EXTRACT METADATA AUTOMATICALLY (includes saves!)
-        print("[INFO] Auto-extracting video metadata with save counts...")
-        metadata = extract_video_metadata(form_data['tiktok_url'])
+        # 2. EXTRACT METADATA AUTOMATICALLY (skip for uploads — no public URL)
+        if uploaded_video_path:
+            print("[UPLOAD] Skipping metadata extraction for local upload")
+            metadata = {'view_count': 0, 'uploader': 'Uploaded Draft'}
+        else:
+            print("[INFO] Auto-extracting video metadata with save counts...")
+        metadata = extract_video_metadata(form_data['tiktok_url']) if not uploaded_video_path else metadata
 
         # Initialize view_count and performance_level from metadata
         view_count = None
@@ -2325,13 +2445,22 @@ def process():
 
         # 3. VIDEO EXTRACTION (sequential is more reliable than parallel for video processing)
         print("[INFO] Extracting audio and frames...")
-        audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
-            tiktok_url,
-            strategy=form_data['strategy'],
-            frames_per_minute=frames_per_minute,
-            cap=cap,
-            scene_threshold=scene_threshold,
-        )
+        if uploaded_video_path:
+            audio_path, frames_dir, frame_paths = extract_audio_and_frames_local(
+                uploaded_video_path,
+                strategy=form_data['strategy'],
+                frames_per_minute=frames_per_minute,
+                cap=cap,
+                scene_threshold=scene_threshold,
+            )
+        else:
+            audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
+                tiktok_url,
+                strategy=form_data['strategy'],
+                frames_per_minute=frames_per_minute,
+                cap=cap,
+                scene_threshold=scene_threshold,
+            )
         print(f"[SUCCESS] Extracted {len(frame_paths)} frames")
 
         # 4. PARALLEL ANALYSIS of independent components (REAL speedup!)
@@ -2462,9 +2591,13 @@ Key patterns for video analysis:
 """
             knowledge_citations = ["Basic patterns fallback"]
 
-        # Fetch and analyze comments (optional, don't fail if unavailable)
+        # Fetch and analyze comments (skip for uploaded drafts — they have no URL)
         comment_insights = None
+        if uploaded_video_path:
+            print("[UPLOAD] Skipping comment fetch for local upload")
         try:
+            if uploaded_video_path:
+                raise StopIteration  # skip to except block cleanly
             print("[COMMENTS] Attempting to fetch comments...")
             from comment_fetcher import CommentFetcher
             from comment_analyzer import CommentAnalyzer
@@ -2534,8 +2667,9 @@ Key patterns for video analysis:
                     performance_level,
                     metadata=metadata,  # Pass metadata with saves
                     audio_insights=audio_analysis,  # Pass audio analysis
-                    analysis_depth=form_data.get('analysis_depth', 'standard'),  # Pass analysis depth
-                    comment_insights=comment_insights  # Pass comment analysis
+                    analysis_depth=form_data.get('analysis_depth', 'standard'),
+                    comment_insights=comment_insights,
+                    edit_mode=form_data.get('edit_mode', 'none'),
                 )
 
                 # Add transcript quality info, view data, and new metrics

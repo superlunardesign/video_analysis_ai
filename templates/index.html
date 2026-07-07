@@ -653,18 +653,61 @@
         </header>
 
         <div class="form-container">
-            <form action="/analyze_async" method="POST">
+            <!-- Input Mode Tabs -->
+            <div style="display:flex; gap:0.5rem; margin-bottom:1.5rem; background:rgba(255,255,255,0.06); border-radius:12px; padding:0.35rem;">
+                <button type="button" id="tabUrl" onclick="setInputMode('url')" style="flex:1; padding:0.65rem 1rem; border:none; border-radius:9px; font-family:inherit; font-size:0.95rem; font-weight:600; cursor:pointer; transition:all 0.2s; background:rgba(245,255,160,0.15); color:var(--solar-lime); border:1px solid rgba(245,255,160,0.3);">
+                    🔗 Paste a URL
+                </button>
+                <button type="button" id="tabUpload" onclick="setInputMode('upload')" style="flex:1; padding:0.65rem 1rem; border:none; border-radius:9px; font-family:inherit; font-size:0.95rem; font-weight:600; cursor:pointer; transition:all 0.2s; background:transparent; color:rgba(255,255,255,0.6); border:1px solid transparent;">
+                    📤 Upload Draft Video
+                </button>
+            </div>
+            <input type="hidden" id="input_mode" name="input_mode" value="url">
+
+            <form id="mainForm" action="/analyze_async" method="POST">
                 <div class="form-grid">
-                    <!-- Essential Fields -->
-                    <div class="field-group full-width">
-                        <label for="tiktok_url">🔗 TikTok URL</label>
+                    <!-- URL Mode Input -->
+                    <div class="field-group full-width" id="urlInputGroup">
+                        <label for="tiktok_url">🔗 Video URL</label>
                         <input
                             type="text"
                             id="tiktok_url"
                             name="tiktok_url"
                             placeholder="https://www.tiktok.com/@user/video/..."
-                            required
                         >
+                    </div>
+
+                    <!-- Upload Mode Input -->
+                    <div class="field-group full-width" id="uploadInputGroup" style="display:none;">
+                        <label>📤 Upload Your Draft Video</label>
+                        <div id="dropZone" style="border:2px dashed rgba(245,255,160,0.4); border-radius:12px; padding:2.5rem 1.5rem; text-align:center; cursor:pointer; transition:border-color 0.2s; background:rgba(245,255,160,0.04);" onclick="document.getElementById('video_file').click()">
+                            <div style="font-size:2.5rem; margin-bottom:0.75rem;">🎬</div>
+                            <p style="color:var(--solar-lime); font-weight:600; margin-bottom:0.35rem;">Click to select or drag & drop</p>
+                            <p style="color:rgba(255,255,255,0.5); font-size:0.85rem;">mp4, mov, avi, mkv, webm — up to 500 MB</p>
+                            <p id="selectedFileName" style="display:none; margin-top:0.75rem; color:var(--celestial-lavender); font-size:0.9rem; font-weight:500;"></p>
+                        </div>
+                        <input type="file" id="video_file" name="video_file" accept="video/*" style="display:none;">
+
+                        <!-- Edit Mode -->
+                        <div style="margin-top:1.25rem; background:rgba(255,255,255,0.05); border-radius:12px; padding:1.25rem;">
+                            <label style="display:block; font-weight:600; margin-bottom:1rem; color:var(--celestial-lavender);">What are you open to?</label>
+                            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                                <label style="display:flex; align-items:flex-start; gap:0.75rem; cursor:pointer; padding:0.85rem 1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.12); transition:border-color 0.2s;" id="reshootLabel">
+                                    <input type="radio" name="edit_mode" value="reshoot" style="margin-top:0.2rem; accent-color:var(--solar-lime);" onchange="highlightEditMode()">
+                                    <span>
+                                        <span style="font-weight:600; color:white; display:block;">✏️ I'm willing to reshoot</span>
+                                        <span style="font-size:0.85rem; color:rgba(255,255,255,0.55);">Get a full new script + scene directions + hook redesign</span>
+                                    </span>
+                                </label>
+                                <label style="display:flex; align-items:flex-start; gap:0.75rem; cursor:pointer; padding:0.85rem 1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.12); transition:border-color 0.2s;" id="rearrangeLabel">
+                                    <input type="radio" name="edit_mode" value="rearrange" style="margin-top:0.2rem; accent-color:var(--solar-lime);" onchange="highlightEditMode()">
+                                    <span>
+                                        <span style="font-weight:600; color:white; display:block;">✂️ I only want to rearrange this recording</span>
+                                        <span style="font-size:0.85rem; color:rgba(255,255,255,0.55);">Get a cut list reordering your existing footage for better retention</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="field-group full-width">
@@ -787,7 +830,7 @@
                     <!-- Submit Button -->
                     <div class="submit-container">
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-                            <button type="submit" class="submit-btn">
+                            <button type="submit" class="submit-btn" id="submitBtn">
                                 Analyze Content
                             </button>
                             <button type="button" class="clear-cache-btn" onclick="clearCache()" title="Clear cached analyses to force fresh analysis">
@@ -797,6 +840,8 @@
                     </div>
                 </div>
             </form>
+            <!-- Hidden input_mode lives outside the form so JS can read it -->
+            <script>document.getElementById('mainForm').appendChild(document.getElementById('input_mode'));</script>
         </div>
     </div>
 
@@ -813,7 +858,124 @@
     </div>
 
     <script>
-        // Toggle for Niche Ideas Section
+        // ─── Input mode (URL vs Upload) ──────────────────────────────────────────
+        function setInputMode(mode) {
+            const urlGroup    = document.getElementById('urlInputGroup');
+            const uploadGroup = document.getElementById('uploadInputGroup');
+            const tabUrl      = document.getElementById('tabUrl');
+            const tabUpload   = document.getElementById('tabUpload');
+            const urlInput    = document.getElementById('tiktok_url');
+            const form        = document.getElementById('mainForm');
+            const modeInput   = document.getElementById('input_mode');
+            const submitBtn   = document.getElementById('submitBtn');
+
+            modeInput.value = mode;
+
+            if (mode === 'upload') {
+                urlGroup.style.display    = 'none';
+                uploadGroup.style.display = 'block';
+                urlInput.removeAttribute('required');
+                // Upload must go directly to /process (can't relay files via progress.html)
+                form.action    = '/process';
+                form.method    = 'POST';
+                form.enctype   = 'multipart/form-data';
+                submitBtn.textContent = 'Analyze Draft';
+
+                tabUpload.style.background    = 'rgba(245,255,160,0.15)';
+                tabUpload.style.color         = 'var(--solar-lime)';
+                tabUpload.style.border        = '1px solid rgba(245,255,160,0.3)';
+                tabUrl.style.background       = 'transparent';
+                tabUrl.style.color            = 'rgba(255,255,255,0.6)';
+                tabUrl.style.border           = '1px solid transparent';
+            } else {
+                urlGroup.style.display    = 'block';
+                uploadGroup.style.display = 'none';
+                urlInput.setAttribute('required', '');
+                form.action    = '/analyze_async';
+                form.method    = 'POST';
+                form.removeAttribute('enctype');
+                submitBtn.textContent = 'Analyze Content';
+
+                tabUrl.style.background    = 'rgba(245,255,160,0.15)';
+                tabUrl.style.color         = 'var(--solar-lime)';
+                tabUrl.style.border        = '1px solid rgba(245,255,160,0.3)';
+                tabUpload.style.background = 'transparent';
+                tabUpload.style.color      = 'rgba(255,255,255,0.6)';
+                tabUpload.style.border     = '1px solid transparent';
+            }
+        }
+
+        function highlightEditMode() {
+            ['reshootLabel','rearrangeLabel'].forEach(id => {
+                document.getElementById(id).style.borderColor = 'rgba(255,255,255,0.12)';
+            });
+            const checked = document.querySelector('input[name="edit_mode"]:checked');
+            if (checked) {
+                checked.closest('label').style.borderColor = 'var(--solar-lime)';
+            }
+        }
+
+        // Drag & drop on the drop zone
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('video_file');
+        const fileNameDisplay = document.getElementById('selectedFileName');
+
+        if (dropZone) {
+            dropZone.addEventListener('dragover', e => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--solar-lime)';
+                dropZone.style.background  = 'rgba(245,255,160,0.08)';
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.style.borderColor = 'rgba(245,255,160,0.4)';
+                dropZone.style.background  = 'rgba(245,255,160,0.04)';
+            });
+            dropZone.addEventListener('drop', e => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'rgba(245,255,160,0.4)';
+                dropZone.style.background  = 'rgba(245,255,160,0.04)';
+                const dt = e.dataTransfer;
+                if (dt.files && dt.files[0]) {
+                    fileInput.files = dt.files;
+                    showFileName(dt.files[0].name);
+                }
+            });
+        }
+
+        if (fileInput) {
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files[0]) showFileName(fileInput.files[0].name);
+            });
+        }
+
+        function showFileName(name) {
+            fileNameDisplay.textContent = '✓ ' + name;
+            fileNameDisplay.style.display = 'block';
+            dropZone.style.borderColor = 'var(--solar-lime)';
+        }
+
+        // Validate upload form before submit
+        document.getElementById('mainForm').addEventListener('submit', function(e) {
+            const mode = document.getElementById('input_mode').value;
+            if (mode === 'upload') {
+                if (!fileInput.files || !fileInput.files[0]) {
+                    e.preventDefault();
+                    alert('Please select a video file to upload.');
+                    return;
+                }
+                const editMode = document.querySelector('input[name="edit_mode"]:checked');
+                if (!editMode) {
+                    e.preventDefault();
+                    alert('Please choose whether you\'re willing to reshoot or only rearrange.');
+                    return;
+                }
+                // Skip existing-analysis check for uploads (no URL to check)
+                return;
+            }
+            // URL mode — existing submit logic continues below
+        }, true); // capture phase so it runs before the check-existing listener
+
+        // ─── Toggle for Niche Ideas Section ──────────────────────────────────────
         const nicheToggle = document.getElementById('nicheIdeasToggle');
         const nicheSection = document.getElementById('nicheIdeasSection');
 
@@ -833,8 +995,8 @@
             accordion.classList.toggle('active');
         });
 
-        // Check for existing analysis on form submit
-        const form = document.querySelector('form');
+        // Check for existing analysis on form submit (URL mode only)
+        const form = document.getElementById('mainForm');
         const urlInput = document.getElementById('tiktok_url');
         const existingModal = document.getElementById('existingModal');
         const viewExistingBtn = document.getElementById('viewExistingBtn');
@@ -843,8 +1005,9 @@
         const isAuthenticated = {{ 'true' if current_user.is_authenticated else 'false' }};
 
         form.addEventListener('submit', async function(e) {
-            // Only check for logged-in users
+            // Only check for logged-in users, and only in URL mode
             if (!isAuthenticated) return;
+            if (document.getElementById('input_mode').value === 'upload') return;
 
             const url = urlInput.value.trim();
             if (!url) return;

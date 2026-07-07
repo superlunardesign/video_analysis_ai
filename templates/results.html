@@ -435,6 +435,105 @@
       </div>
     </div>
 
+    <!-- Edit Suggestions (uploaded draft mode) -->
+    {% if edit_mode and edit_mode != 'none' and edit_suggestions %}
+    <div class="section" style="background: linear-gradient(135deg, rgba(245,255,160,0.08), rgba(106,116,206,0.12)); border-left: 4px solid var(--solar-lime); margin-bottom: 2rem;">
+      <h2 style="color: var(--solar-lime); margin-bottom: 0.5rem;">
+        {% if edit_mode == 'reshoot' %}✏️ Reshoot Plan{% else %}✂️ Recut Plan{% endif %}
+      </h2>
+      <p style="color: var(--celestial-lavender); font-size: 0.9rem; margin-bottom: 1.5rem;">
+        {% if edit_mode == 'reshoot' %}
+          Based on your draft, here's how to shoot a new version that performs significantly better.
+        {% else %}
+          Here's how to recut your existing footage into a stronger video — no reshooting needed.
+        {% endif %}
+      </p>
+
+      {% if edit_mode == 'reshoot' %}
+
+        {% if edit_suggestions.get('new_hook (0-3s)') or edit_suggestions.get('new_hook') %}
+        <div style="background: rgba(245,255,160,0.1); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem;">
+          <h3 style="color: var(--solar-lime); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">New Hook (0–3s)</h3>
+          <p style="color: white; white-space: pre-wrap;">{{ edit_suggestions.get('new_hook (0-3s)') or edit_suggestions.get('new_hook') }}</p>
+        </div>
+        {% endif %}
+
+        {% if edit_suggestions.get('new_script') %}
+        <div style="background: rgba(255,255,255,0.04); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem;">
+          <h3 style="color: var(--celestial-lavender); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Full Script</h3>
+          <p style="color: white; white-space: pre-wrap; font-family: monospace; font-size: 0.95rem; line-height: 1.7;">{{ edit_suggestions.get('new_script') }}</p>
+        </div>
+        {% endif %}
+
+        {% if edit_suggestions.get('scene_directions') %}
+        <div style="background: rgba(255,255,255,0.04); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem;">
+          <h3 style="color: var(--celestial-lavender); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Scene Directions</h3>
+          <p style="color: white; white-space: pre-wrap;">{{ edit_suggestions.get('scene_directions') }}</p>
+        </div>
+        {% endif %}
+
+        {% if edit_suggestions.get('text_overlays_plan') %}
+        <div style="background: rgba(255,255,255,0.04); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem;">
+          <h3 style="color: var(--celestial-lavender); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Text Overlays to Add</h3>
+          <p style="color: white; white-space: pre-wrap;">{{ edit_suggestions.get('text_overlays_plan') }}</p>
+        </div>
+        {% endif %}
+
+        {% if edit_suggestions.get('what_to_cut_from_original') %}
+        <div style="background: rgba(255, 80, 80, 0.08); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem;">
+          <h3 style="color: #ff8080; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">What to Drop from the Draft</h3>
+          <p style="color: white; white-space: pre-wrap;">{{ edit_suggestions.get('what_to_cut_from_original') }}</p>
+        </div>
+        {% endif %}
+
+        {% if edit_suggestions.get('psychology_of_redesign') %}
+        <div style="background: rgba(106,116,206,0.15); border-radius: 10px; padding: 1.25rem;">
+          <h3 style="color: var(--lunar-blush); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Why This Redesign Works</h3>
+          <p style="color: white; white-space: pre-wrap;">{{ edit_suggestions.get('psychology_of_redesign') }}</p>
+        </div>
+        {% endif %}
+
+      {% else %}{# rearrange mode #}
+
+        {% if edit_suggestions.get('segment_map') %}
+        <div style="background: rgba(255,255,255,0.04); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem;">
+          <h3 style="color: var(--celestial-lavender); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Segments Identified</h3>
+          <p style="color: white; white-space: pre-wrap; font-family: monospace; font-size: 0.9rem; line-height: 1.7;">{{ edit_suggestions.get('segment_map') }}</p>
+        </div>
+        {% endif %}
+
+        {% if edit_suggestions.get('recommended_cut_order') %}
+        <div style="background: rgba(245,255,160,0.1); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem;">
+          <h3 style="color: var(--solar-lime); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Recommended Cut Order</h3>
+          <p style="color: white; white-space: pre-wrap; font-family: monospace; font-size: 0.9rem; line-height: 1.7;">{{ edit_suggestions.get('recommended_cut_order') }}</p>
+        </div>
+        {% endif %}
+
+        {% if edit_suggestions.get('suggested_trims') %}
+        <div style="background: rgba(255,255,255,0.04); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem;">
+          <h3 style="color: var(--celestial-lavender); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Suggested Trims</h3>
+          <p style="color: white; white-space: pre-wrap;">{{ edit_suggestions.get('suggested_trims') }}</p>
+        </div>
+        {% endif %}
+
+        {% if edit_suggestions.get('new_opening (0-3s)') or edit_suggestions.get('new_opening') %}
+        <div style="background: rgba(245,255,160,0.1); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem;">
+          <h3 style="color: var(--solar-lime); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">New Opening (0–3s)</h3>
+          <p style="color: white; white-space: pre-wrap;">{{ edit_suggestions.get('new_opening (0-3s)') or edit_suggestions.get('new_opening') }}</p>
+        </div>
+        {% endif %}
+
+        {% if edit_suggestions.get('what_this_achieves') %}
+        <div style="background: rgba(106,116,206,0.15); border-radius: 10px; padding: 1.25rem;">
+          <h3 style="color: var(--lunar-blush); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">What This Recut Achieves</h3>
+          <p style="color: white; white-space: pre-wrap;">{{ edit_suggestions.get('what_this_achieves') }}</p>
+        </div>
+        {% endif %}
+
+      {% endif %}
+    </div>
+    {% endif %}
+
     <!-- Auto-Detected Metrics -->
     {% if metadata and metadata.view_count %}
     <div class="section" style="background: linear-gradient(135deg, rgba(111, 116, 206, 0.1), rgba(183, 180, 237, 0.1)); border-left: 4px solid var(--lunar-blush);">
