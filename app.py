@@ -2812,6 +2812,16 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
                 scene_threshold=scene_threshold,
             )
         print(f"[SUCCESS] Extracted {len(frame_paths)} frames")
+
+        # Validate audio file
+        if audio_path and os.path.exists(audio_path):
+            audio_size = os.path.getsize(audio_path)
+            print(f"[AUDIO] Audio file: {audio_path} ({audio_size} bytes)")
+            if audio_size < 1024:
+                print(f"[WARNING] Audio file suspiciously small ({audio_size} bytes)")
+        else:
+            print(f"[WARNING] Audio file missing or not extracted: {audio_path}")
+
         update_progress(current_analysis_id, 'extracting', f'Extracted {len(frame_paths)} frames', 20, preview_data={
             'frame_count': len(frame_paths)
         })
@@ -2841,11 +2851,17 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
                 basic_transcript = futures['transcription'].result(timeout=60)
                 analysis_results['transcript'] = basic_transcript
                 print(f"[PARALLEL] Transcription complete: {len(basic_transcript)} chars")
+                if basic_transcript:
+                    print(f"[PARALLEL] Transcript preview: {basic_transcript[:200]}")
+                else:
+                    print(f"[WARNING] Transcription returned empty string")
                 update_progress(current_analysis_id, 'transcribing', 'Transcript ready!', 28, preview_data={
                     'transcript': basic_transcript[:2000] if basic_transcript else None
                 })
             except Exception as e:
-                print(f"[WARNING] Transcription failed: {e}")
+                print(f"[WARNING] Transcription failed: {type(e).__name__}: {e}")
+                import traceback
+                traceback.print_exc()
                 basic_transcript = ""
 
             # Now start frame analysis with transcript context
@@ -2899,6 +2915,9 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
             transcript_data = enhanced_transcribe_audio_with_context(audio_path, frames_summaries_text, metadata=metadata)
             print(f"[INFO] Audio interpretation: {transcript_data.get('audio_context', {}).get('audio_description', 'unknown')}")
             print(f"[INFO] Transcript quality: {transcript_data.get('quality', 'unknown')}")
+            print(f"[INFO] Has meaningful speech: {transcript_data.get('audio_context', {}).get('has_meaningful_speech', 'N/A')}")
+            print(f"[INFO] Transcript length: {len(transcript_data.get('transcript', ''))}")
+            print(f"[INFO] Transcript is_reliable: {transcript_data.get('is_reliable', 'N/A')}")
             if transcript_data.get('is_song_lyrics'):
                 print(f"[INFO] Song lyrics detected — track: {transcript_data.get('track_name', 'unknown')}")
             elif transcript_data.get('audio_context', {}).get('likely_sound_source'):
