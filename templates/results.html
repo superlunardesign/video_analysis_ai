@@ -368,7 +368,11 @@
       </div>
       {% endif %}
 
-      {% if metadata and metadata.url %}
+      {% if is_upload %}
+      <p style="margin-top: 0.5rem;">
+        <span style="display: inline-block; padding: 0.3rem 0.8rem; background: rgba(106,116,207,0.25); border-radius: 6px; font-size: 0.85rem; color: var(--celestial-lavender);">&#128228; Uploaded Video — Pre-Publish Analysis</span>
+      </p>
+      {% elif metadata and metadata.url %}
       <p style="margin-top: 0.5rem;">
         <a href="{{ metadata.url }}" target="_blank" style="color: var(--solar-lime); text-decoration: none; font-size: 0.95rem;">
           View Original Video <span style="font-size: 0.8rem;">&#8599;</span>

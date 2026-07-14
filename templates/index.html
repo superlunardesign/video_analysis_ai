@@ -655,10 +655,16 @@
         </header>
 
         <div class="form-container">
-            <form action="/analyze_async" method="POST">
-                <!-- SIMPLIFIED DEFAULT VIEW -->
-                <div class="field-group" style="margin-bottom: 2rem;">
-                    <label for="tiktok_url" style="font-size: 1rem; margin-bottom: 0.5rem;">Paste TikTok URL</label>
+            <form id="analysisForm" action="/analyze_async" method="POST">
+                <!-- INPUT MODE TOGGLE -->
+                <div style="display: flex; gap: 0; margin-bottom: 1.5rem; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15);">
+                    <button type="button" id="modeUrl" onclick="switchInputMode('url')" style="flex: 1; padding: 0.8rem; background: var(--solar-lime); color: #0a0a0a; border: none; font-weight: 700; cursor: pointer; font-size: 0.9rem;">Paste URL</button>
+                    <button type="button" id="modeUpload" onclick="switchInputMode('upload')" style="flex: 1; padding: 0.8rem; background: rgba(255,255,255,0.08); color: var(--stellar-cream); border: none; font-weight: 700; cursor: pointer; font-size: 0.9rem;">Upload Video</button>
+                </div>
+
+                <!-- URL INPUT (default) -->
+                <div id="urlInputSection" class="field-group" style="margin-bottom: 2rem;">
+                    <label for="tiktok_url" style="font-size: 1rem; margin-bottom: 0.5rem;">Paste Video URL</label>
                     <input
                         type="text"
                         id="tiktok_url"
@@ -667,6 +673,19 @@
                         required
                         style="font-size: 1.1rem; padding: 1.2rem;"
                     >
+                </div>
+
+                <!-- FILE UPLOAD (hidden by default) -->
+                <div id="uploadInputSection" style="display: none; margin-bottom: 2rem;">
+                    <label style="font-size: 1rem; margin-bottom: 0.5rem; display: block;">Upload Video File</label>
+                    <div id="uploadDropzone" style="border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">&#128228;</div>
+                        <div style="font-size: 0.95rem; color: var(--stellar-cream);">Drop video here or click to browse</div>
+                        <div style="font-size: 0.8rem; color: var(--celestial-lavender); margin-top: 0.4rem;">MP4, MOV, AVI, WebM - Max 200MB</div>
+                        <div id="uploadFileName" style="display: none; margin-top: 0.75rem; padding: 0.5rem 1rem; background: rgba(106,116,207,0.2); border-radius: 8px; font-size: 0.9rem; color: var(--solar-lime);"></div>
+                    </div>
+                    <input type="file" id="videoFileInput" name="video_file" accept=".mp4,.mov,.avi,.webm,.mkv" style="display: none;">
+                    <p style="font-size: 0.8rem; color: var(--celestial-lavender); margin-top: 0.5rem;">Analyze drafts before publishing — get feedback on hooks, pacing, and retention structure.</p>
                 </div>
 
                 <div style="text-align: center; margin-bottom: 2rem;">
@@ -828,8 +847,77 @@
             accordion.classList.toggle('active');
         });
 
+        // Upload mode toggle
+        let inputMode = 'url';
+        const form = document.getElementById('analysisForm');
+
+        function switchInputMode(mode) {
+            inputMode = mode;
+            const urlSection = document.getElementById('urlInputSection');
+            const uploadSection = document.getElementById('uploadInputSection');
+            const modeUrlBtn = document.getElementById('modeUrl');
+            const modeUploadBtn = document.getElementById('modeUpload');
+            const urlInput = document.getElementById('tiktok_url');
+
+            if (mode === 'upload') {
+                urlSection.style.display = 'none';
+                uploadSection.style.display = 'block';
+                urlInput.removeAttribute('required');
+                modeUploadBtn.style.background = 'var(--solar-lime)';
+                modeUploadBtn.style.color = '#0a0a0a';
+                modeUrlBtn.style.background = 'rgba(255,255,255,0.08)';
+                modeUrlBtn.style.color = 'var(--stellar-cream)';
+                form.action = '/analyze_upload';
+                form.enctype = 'multipart/form-data';
+            } else {
+                urlSection.style.display = 'block';
+                uploadSection.style.display = 'none';
+                urlInput.setAttribute('required', '');
+                modeUrlBtn.style.background = 'var(--solar-lime)';
+                modeUrlBtn.style.color = '#0a0a0a';
+                modeUploadBtn.style.background = 'rgba(255,255,255,0.08)';
+                modeUploadBtn.style.color = 'var(--stellar-cream)';
+                form.action = '/analyze_async';
+                form.removeAttribute('enctype');
+            }
+        }
+
+        // File upload dropzone
+        const dropzone = document.getElementById('uploadDropzone');
+        const fileInput = document.getElementById('videoFileInput');
+        const fileNameDisplay = document.getElementById('uploadFileName');
+
+        if (dropzone) {
+            dropzone.addEventListener('click', () => fileInput.click());
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.style.borderColor = 'var(--solar-lime)';
+            });
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.style.borderColor = 'rgba(255,255,255,0.2)';
+            });
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.style.borderColor = 'rgba(255,255,255,0.2)';
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    showSelectedFile(e.dataTransfer.files[0]);
+                }
+            });
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    showSelectedFile(fileInput.files[0]);
+                }
+            });
+        }
+
+        function showSelectedFile(file) {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+            fileNameDisplay.textContent = `${file.name} (${sizeMB} MB)`;
+            fileNameDisplay.style.display = 'block';
+        }
+
         // Check for existing analysis on form submit
-        const form = document.querySelector('form');
         const urlInput = document.getElementById('tiktok_url');
         const existingModal = document.getElementById('existingModal');
         const viewExistingBtn = document.getElementById('viewExistingBtn');
@@ -838,13 +926,22 @@
         const isAuthenticated = {{ 'true' if current_user.is_authenticated else 'false' }};
 
         form.addEventListener('submit', async function(e) {
-            // Only check for logged-in users
+            // Upload mode: validate file selected
+            if (inputMode === 'upload') {
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    e.preventDefault();
+                    alert('Please select a video file to upload.');
+                    return;
+                }
+                return; // Let form submit naturally with multipart to /analyze_upload
+            }
+
+            // URL mode: check for existing analysis
             if (!isAuthenticated) return;
 
             const url = urlInput.value.trim();
             if (!url) return;
 
-            // Prevent form submission while we check
             e.preventDefault();
 
             try {
@@ -859,17 +956,14 @@
                 const data = await response.json();
 
                 if (data.exists) {
-                    // Show modal
                     existingDate.textContent = data.created_at;
                     viewExistingBtn.href = `/analysis/${data.analysis_id}`;
                     existingModal.classList.add('active');
                 } else {
-                    // No existing analysis, submit form
                     form.submit();
                 }
             } catch (error) {
                 console.error('Error checking existing:', error);
-                // On error, just submit the form
                 form.submit();
             }
         });

@@ -391,6 +391,54 @@ def extract_audio_and_frames(
     return audio_path, frames_dir, paths
 
 
+def extract_audio_and_frames_from_file(
+    video_path: str,
+    strategy: str = "smart",
+    frames_per_minute: int = 24,
+    cap: int = 60,
+    scene_threshold: float = 0.24
+) -> Tuple[str, str, List[str]]:
+    """
+    Same as extract_audio_and_frames but takes a local file path instead of a URL.
+    Skips the download step.
+    """
+    _ensure_dirs()
+    audio_path = extract_audio(video_path)
+    dur = probe_duration(video_path)
+
+    frames_dir = os.path.join("frames", f"set_{int(time.time())}")
+    os.makedirs(frames_dir, exist_ok=True)
+
+    if strategy == "uniform":
+        paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute, cap)
+    elif strategy == "intelligent":
+        from analysis_optimization import intelligent_frame_extraction
+        paths = intelligent_frame_extraction(video_path, frames_dir, max_frames=cap)
+
+        if not paths:
+            print("[intelligent] extraction failed → fallback to uniform")
+            paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute=18, cap=min(cap, 20))
+    else:
+        sc_times = scene_change_times(video_path, threshold=scene_threshold)
+        mo_times = motion_event_times(video_path, window_sec=0.30, mag_thresh=12.0)
+
+        merged = sorted(set(sc_times + mo_times))
+        ts_list = build_sampling_times(dur, merged, max_frames=cap)
+        print(f"[smart] timestamps after merge+anchors: {len(ts_list)}")
+
+        paths = extract_frames_at_times(video_path, frames_dir, ts_list)
+        paths = [p for p in paths if not is_blurry(p)]
+        paths = dedupe_frames_by_phash(paths, dist=4)
+        paths = keep_text_heavy_frames(paths, min_chars=0)
+        paths = sorted(paths)[:cap]
+
+        if not paths:
+            print("[smart] empty after filters → fallback to uniform")
+            paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute=18, cap=min(cap, 20))
+
+    return audio_path, frames_dir, paths
+
+
 # ------------------------------------------------------------------------------
 # Transcription (OpenAI with retry; local Whisper fallback)
 # ------------------------------------------------------------------------------

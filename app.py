@@ -15,6 +15,7 @@ from anthropic import Anthropic
 
 from processing import (
     extract_audio_and_frames,
+    extract_audio_and_frames_from_file,
     transcribe_audio,
     analyze_frames_batch,
     download_video,
@@ -42,6 +43,10 @@ from auth import auth_bp, init_auth
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 200MB max upload
+UPLOAD_DIR = os.path.abspath('uploads')
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+ALLOWED_VIDEO_EXTENSIONS = {'.mp4', '.mov', '.avi', '.webm', '.mkv'}
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=600.0)
 claude_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
@@ -1417,7 +1422,9 @@ This video has VERBAL CONTENT. Analyze:
 """
 
     # Build the performance message separately to avoid f-string issues
-    if performance_level == 'viral':
+    if performance_level == 'draft':
+        performance_message = "This is an UNPUBLISHED DRAFT video. Analyze its structure, hooks, retention design, and give specific pre-publish improvement suggestions."
+    elif performance_level == 'viral':
         performance_message = f"This video went VIRAL with {view_count} - analyze WHY it succeeded."
     else:
         performance_message = f"This video got {view_count if view_count else 'certain performance'} - analyze what's working and what needs to improve to achieve higher success in relation to the chosen goal."
@@ -1458,7 +1465,7 @@ VISUAL ANALYSIS:
 {_build_format_match_section(format_match_context) if format_match_context else ""}
 
 COMPREHENSIVE ANALYSIS INSTRUCTIONS:
-{f"Since this went VIRAL, identify the EXACT psychological triggers and viral mechanics." if performance_level == 'viral' else "Identify opportunities for this specific video that can help improve based on or inspired by proven patterns. Give 2-3 ideas and examples. Instead of saying something like 'enhance visual storytelling' explain to them how they might do that thing and provide strong examples"}
+{f"Since this went VIRAL, identify the EXACT psychological triggers and viral mechanics." if performance_level == 'viral' else f"This is an UNPUBLISHED DRAFT — focus on pre-publish improvements: hook strength, retention structure, pacing, visual flow, and what to change BEFORE posting. Be specific and actionable." if performance_level == 'draft' else "Identify opportunities for this specific video that can help improve based on or inspired by proven patterns. Give 2-3 ideas and examples. Instead of saying something like 'enhance visual storytelling' explain to them how they might do that thing and provide strong examples"}
 
 
 #### View Count Context Matters
@@ -2486,16 +2493,98 @@ def process():
     return jsonify({'started': True, 'analysis_id': current_analysis_id})
 
 
+@app.route("/analyze_upload", methods=["POST"])
+@login_required
+def analyze_upload():
+    """Handle video file upload and redirect to progress page."""
+    from werkzeug.utils import secure_filename
+
+    file = request.files.get('video_file')
+    if not file or file.filename == '':
+        return "No file selected", 400
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_VIDEO_EXTENSIONS:
+        return f"Unsupported file type: {ext}. Allowed: {', '.join(ALLOWED_VIDEO_EXTENSIONS)}", 400
+
+    safe_name = secure_filename(f"upload_{int(_time.time())}_{file.filename}")
+    upload_path = os.path.join(UPLOAD_DIR, safe_name)
+    file.save(upload_path)
+    print(f"[UPLOAD] Saved file: {upload_path} ({os.path.getsize(upload_path)} bytes)")
+
+    form_data = {
+        'tiktok_url': '',
+        'uploaded_file': upload_path,
+        'uploaded_filename': file.filename,
+        'view_count': request.form.get("view_count", "").strip(),
+        'creator_note': request.form.get("creator_note", "").strip(),
+        'strategy': request.form.get("strategy", "smart").strip(),
+        'frames_per_minute': request.form.get("frames_per_minute", "24"),
+        'cap': request.form.get("cap", "40"),
+        'scene_threshold': request.form.get("scene_threshold", "0.24"),
+        'platform': request.form.get("platform", "tiktok").strip(),
+        'target_duration': request.form.get("target_duration", "30").strip(),
+        'goal': request.form.get("goal", "follower_growth").strip(),
+        'tone': request.form.get("tone", "confident, friendly").strip(),
+        'audience': request.form.get("audience", "creators and small business owners").strip(),
+        'analysis_depth': request.form.get("analysis_depth", "standard").strip(),
+        'force_refresh': False,
+        'results_speed': request.form.get('results_speed', 'standard').strip(),
+        'is_upload': True,
+    }
+
+    processing_record = create_processing_analysis(current_user.id, f"upload://{file.filename}")
+    analysis_id = processing_record.id if processing_record else None
+
+    return render_template("progress.html", form_data=form_data, analysis_id=analysis_id, video_url=f"upload://{file.filename}")
+
+
+@app.route("/process_upload", methods=["POST"])
+@login_required
+def process_upload():
+    """Kick off analysis for an uploaded video file."""
+    form_data = request.get_json() or {}
+
+    user_id = current_user.id
+
+    current_analysis_id = None
+    processing_analysis = get_user_processing_analysis(user_id)
+    if processing_analysis:
+        age_minutes = (_time.time() - processing_analysis.created_at.timestamp()) / 60 if processing_analysis.created_at else 999
+        if age_minutes < 15:
+            current_analysis_id = processing_analysis.id
+        else:
+            fail_analysis(processing_analysis.id, "Expired: processing took too long")
+            analysis_progress.pop(processing_analysis.id, None)
+
+    if not current_analysis_id:
+        processing_record = create_processing_analysis(user_id, form_data.get('uploaded_filename', 'upload'))
+        if processing_record:
+            current_analysis_id = processing_record.id
+
+    update_progress(current_analysis_id, 'starting', 'Initializing upload analysis...', 0)
+
+    thread = threading.Thread(
+        target=_run_analysis_background,
+        args=(form_data, user_id, current_analysis_id),
+        daemon=True
+    )
+    thread.start()
+
+    return jsonify({'started': True, 'analysis_id': current_analysis_id})
+
+
 def _run_analysis_background(form_data, user_id, current_analysis_id):
     """Run the full analysis pipeline in a background thread."""
     ctx = app.app_context()
     ctx.push()
+    is_upload = form_data.get('is_upload', False)
     try:
         start_time = _time.time()
 
-        # 1. CHECK CACHE FIRST
+        # 1. CHECK CACHE FIRST (skip for uploads)
         force_refresh = form_data.get('force_refresh', False)
-        if not force_refresh:
+        if not force_refresh and not is_upload:
             cached_result = cache.get_cached_analysis(form_data['tiktok_url'])
             if cached_result:
                 print(f"[CACHE HIT] Returning cached analysis")
@@ -2529,9 +2618,15 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
                 return
 
         # 2. EXTRACT METADATA AUTOMATICALLY (includes saves!)
-        print("[INFO] Auto-extracting video metadata with save counts...")
-        update_progress(current_analysis_id, 'downloading', 'Fetching video metadata...', 5)
-        metadata = extract_video_metadata(form_data['tiktok_url'])
+        metadata = None
+        if is_upload:
+            print(f"[UPLOAD] Analyzing uploaded file: {form_data.get('uploaded_filename', 'unknown')}")
+            update_progress(current_analysis_id, 'downloading', 'Preparing uploaded video...', 5)
+            metadata = {}
+        else:
+            print("[INFO] Auto-extracting video metadata with save counts...")
+            update_progress(current_analysis_id, 'downloading', 'Fetching video metadata...', 5)
+            metadata = extract_video_metadata(form_data['tiktok_url'])
 
         # Send metadata preview to progress tracker as soon as it's available
         if metadata:
@@ -2560,6 +2655,9 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
         # Initialize view_count and performance_level from metadata
         view_count = None
         performance_level = 'unknown'
+        if is_upload:
+            performance_level = 'draft'
+            print("[UPLOAD] Performance level set to 'draft' (pre-publish analysis)")
 
         if metadata.get('view_count') and metadata['view_count'] > 0:
             # Use auto-detected metadata
@@ -2677,28 +2775,42 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
             scene_threshold = 0.35
             print("[SPEED] Standard mode: 40 frames")
 
-        tiktok_url = form_data['tiktok_url']
-        if not tiktok_url:
+        tiktok_url = form_data.get('tiktok_url', '')
+        uploaded_file = form_data.get('uploaded_file', '')
+
+        if not tiktok_url and not uploaded_file:
             if current_analysis_id:
-                fail_analysis(current_analysis_id, "TikTok URL is required")
+                fail_analysis(current_analysis_id, "Video URL or file upload is required")
                 analysis_progress.pop(current_analysis_id, None)
             return
 
-        print(f"[INFO] Processing: {tiktok_url}")
+        video_label = form_data.get('uploaded_filename', tiktok_url) or 'uploaded video'
+        print(f"[INFO] Processing: {video_label}")
         print(f"[INFO] Creator note: {form_data['creator_note']}")
         print(f"[INFO] Strategy: {form_data['strategy']}, Goal: {form_data['goal']}")
         print(f"[INFO] Results Speed: {results_speed} (cap={cap}, threshold={scene_threshold})")
 
-        # 3. VIDEO EXTRACTION (sequential is more reliable than parallel for video processing)
-        print("[INFO] Extracting audio and frames...")
-        update_progress(current_analysis_id, 'extracting', 'Downloading video and extracting frames...', 10)
-        audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
-            tiktok_url,
-            strategy=form_data['strategy'],
-            frames_per_minute=frames_per_minute,
-            cap=cap,
-            scene_threshold=scene_threshold,
-        )
+        # 3. VIDEO EXTRACTION
+        if is_upload:
+            print(f"[UPLOAD] Extracting audio and frames from uploaded file...")
+            update_progress(current_analysis_id, 'extracting', 'Extracting frames from uploaded video...', 10)
+            audio_path, frames_dir, frame_paths = extract_audio_and_frames_from_file(
+                uploaded_file,
+                strategy=form_data['strategy'],
+                frames_per_minute=frames_per_minute,
+                cap=cap,
+                scene_threshold=scene_threshold,
+            )
+        else:
+            print("[INFO] Extracting audio and frames...")
+            update_progress(current_analysis_id, 'extracting', 'Downloading video and extracting frames...', 10)
+            audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
+                tiktok_url,
+                strategy=form_data['strategy'],
+                frames_per_minute=frames_per_minute,
+                cap=cap,
+                scene_threshold=scene_threshold,
+            )
         print(f"[SUCCESS] Extracted {len(frame_paths)} frames")
         update_progress(current_analysis_id, 'extracting', f'Extracted {len(frame_paths)} frames', 20, preview_data={
             'frame_count': len(frame_paths)
@@ -2864,10 +2976,15 @@ Key patterns for video analysis:
         except Exception as e:
             print(f"[WARNING] Could not load curator patterns from DB: {e}")
 
-        # Fetch and analyze comments (optional, don't fail if unavailable)
+        # Fetch and analyze comments (optional, skip for uploads)
         update_progress(current_analysis_id, 'comments', 'Fetching and analyzing comments...', 70)
         comment_insights = None
+        if is_upload:
+            print("[COMMENTS] Skipping comment fetch for uploaded video (no URL)")
+            update_progress(current_analysis_id, 'comments', 'No comments for uploaded video', 72)
         try:
+            if is_upload:
+                raise Exception("skip")
             print("[COMMENTS] Attempting to fetch comments...")
             from comment_fetcher import CommentFetcher
             from comment_analyzer import CommentAnalyzer
@@ -3120,6 +3237,11 @@ Key patterns for video analysis:
                 comment_insights,  # Pass comment analysis data
                 metadata  # Pass video metadata (title, creator, likes, etc.)
             )
+            if is_upload:
+                template_vars['is_upload'] = True
+                template_vars['uploaded_filename'] = form_data.get('uploaded_filename', 'Uploaded Video')
+                if not template_vars.get('video_title'):
+                    template_vars['video_title'] = form_data.get('uploaded_filename', 'Uploaded Video')
             print("[SUCCESS] Template variables prepared")
         except Exception as e:
             print(f"[ERROR] Template preparation error: {e}")
@@ -3129,18 +3251,20 @@ Key patterns for video analysis:
             return
 
         # 5. TRACK PERFORMANCE for continuous improvement
-        try:
-            tracker.record_prediction(form_data['tiktok_url'], metadata, gpt_result)
-            print("[TRACKER] Performance data recorded")
-        except Exception as e:
-            print(f"[WARNING] Failed to track performance: {e}")
+        if not is_upload:
+            try:
+                tracker.record_prediction(form_data['tiktok_url'], metadata, gpt_result)
+                print("[TRACKER] Performance data recorded")
+            except Exception as e:
+                print(f"[WARNING] Failed to track performance: {e}")
 
-        # 6. CACHE RESULTS for 24-hour reuse
-        try:
-            cache.save_analysis(form_data['tiktok_url'], 'full', template_vars)
-            print("[CACHE] Analysis cached for future requests")
-        except Exception as e:
-            print(f"[WARNING] Failed to cache results: {e}")
+        # 6. CACHE RESULTS for 24-hour reuse (skip for uploads)
+        if not is_upload:
+            try:
+                cache.save_analysis(form_data['tiktok_url'], 'full', template_vars)
+                print("[CACHE] Analysis cached for future requests")
+            except Exception as e:
+                print(f"[WARNING] Failed to cache results: {e}")
 
         elapsed = _time.time() - start_time
         print(f"[SUCCESS] Analysis completed in {elapsed:.1f}s")
@@ -3148,12 +3272,13 @@ Key patterns for video analysis:
         # 7. STORE DATA FOR PDF GENERATION
         try:
             # Generate unique cache key for PDF
+            url_or_file = form_data.get('tiktok_url') or form_data.get('uploaded_filename', 'upload')
             cache_key = hashlib.md5(
-                f"{form_data['tiktok_url']}{_time.time()}".encode()
+                f"{url_or_file}{_time.time()}".encode()
             ).hexdigest()[:16]
 
             # Get video title for PDF filename
-            video_title = metadata.get('title', 'analysis') if metadata else 'analysis'
+            video_title = metadata.get('title', 'analysis') if metadata else form_data.get('uploaded_filename', 'analysis')
 
             # Store in pdf_cache
             pdf_cache[cache_key] = {
@@ -3190,9 +3315,10 @@ Key patterns for video analysis:
                     )
                 else:
                     # Legacy: Create new analysis record
+                    video_url_for_db = form_data.get('tiktok_url') or f"upload://{form_data.get('uploaded_filename', 'video')}"
                     save_analysis_to_db(
                         user_id=user_id,
-                        video_url=form_data['tiktok_url'],
+                        video_url=video_url_for_db,
                         video_title=video_title,
                         thumbnail_url=thumbnail_url,
                         template_vars=template_vars,
@@ -3204,6 +3330,15 @@ Key patterns for video analysis:
 
         update_progress(current_analysis_id, 'complete', 'Analysis complete!', 100)
         print("[INFO] Analysis complete, results saved to DB")
+
+        # Clean up uploaded file
+        if is_upload and uploaded_file and os.path.exists(uploaded_file):
+            try:
+                os.remove(uploaded_file)
+                print(f"[UPLOAD] Cleaned up uploaded file: {uploaded_file}")
+            except Exception as e:
+                print(f"[WARNING] Failed to clean up uploaded file: {e}")
+
         # Clean up progress entry after a short delay
         _time.sleep(10)
         analysis_progress.pop(current_analysis_id, None)
@@ -3924,6 +4059,9 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             # Format fingerprint for cross-video comparison
             'format_fingerprint': template_vars.get('format_fingerprint', {}),
             'format_match': template_vars.get('format_match'),
+
+            # Upload flag
+            'is_upload': template_vars.get('is_upload', False),
 
             # Legacy fields
             'goal_analysis': template_vars.get('goal_analysis'),

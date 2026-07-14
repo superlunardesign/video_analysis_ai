@@ -730,10 +730,18 @@
 
     // Start processing in background (returns immediately, polling tracks progress)
     if (isNewAnalysis && formData) {
-        fetch("/process", {
-            method: "POST",
-            body: formData
-        })
+        const isUpload = passedData && passedData.is_upload;
+        const processUrl = isUpload ? '/process_upload' : '/process';
+        const fetchOpts = { method: 'POST' };
+
+        if (isUpload) {
+            fetchOpts.headers = { 'Content-Type': 'application/json' };
+            fetchOpts.body = JSON.stringify(passedData);
+        } else {
+            fetchOpts.body = formData;
+        }
+
+        fetch(processUrl, fetchOpts)
         .then(res => res.json())
         .then(data => {
             console.log('Analysis started:', data);
