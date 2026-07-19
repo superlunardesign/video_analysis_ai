@@ -2841,27 +2841,34 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
             futures = {}
 
             # Submit independent tasks that use different APIs/services
-            update_progress(current_analysis_id, 'transcribing', 'Transcribing audio...', 25)
-            futures['transcription'] = executor.submit(transcribe_audio, audio_path)
-            futures['audio_analysis'] = executor.submit(enhanced_audio_analysis, audio_path)
+            if audio_path and os.path.exists(audio_path):
+                update_progress(current_analysis_id, 'transcribing', 'Transcribing audio...', 25)
+                futures['transcription'] = executor.submit(transcribe_audio, audio_path)
+                futures['audio_analysis'] = executor.submit(enhanced_audio_analysis, audio_path)
+            else:
+                print("[INFO] No audio available — skipping transcription, analyzing frames only")
+                update_progress(current_analysis_id, 'transcribing', 'No audio stream detected — analyzing visuals...', 25)
             # Frame analysis needs to wait for transcription for context, so we'll do it after
 
             # Wait for transcription first (needed for frame analysis context)
-            try:
-                basic_transcript = futures['transcription'].result(timeout=60)
-                analysis_results['transcript'] = basic_transcript
-                print(f"[PARALLEL] Transcription complete: {len(basic_transcript)} chars")
-                if basic_transcript:
-                    print(f"[PARALLEL] Transcript preview: {basic_transcript[:200]}")
-                else:
-                    print(f"[WARNING] Transcription returned empty string")
-                update_progress(current_analysis_id, 'transcribing', 'Transcript ready!', 28, preview_data={
-                    'transcript': basic_transcript[:2000] if basic_transcript else None
-                })
-            except Exception as e:
-                print(f"[WARNING] Transcription failed: {type(e).__name__}: {e}")
-                import traceback
-                traceback.print_exc()
+            if 'transcription' in futures:
+                try:
+                    basic_transcript = futures['transcription'].result(timeout=60)
+                    analysis_results['transcript'] = basic_transcript
+                    print(f"[PARALLEL] Transcription complete: {len(basic_transcript)} chars")
+                    if basic_transcript:
+                        print(f"[PARALLEL] Transcript preview: {basic_transcript[:200]}")
+                    else:
+                        print(f"[WARNING] Transcription returned empty string")
+                    update_progress(current_analysis_id, 'transcribing', 'Transcript ready!', 28, preview_data={
+                        'transcript': basic_transcript[:2000] if basic_transcript else None
+                    })
+                except Exception as e:
+                    print(f"[WARNING] Transcription failed: {type(e).__name__}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    basic_transcript = ""
+            else:
                 basic_transcript = ""
 
             # Now start frame analysis with transcript context
@@ -2912,7 +2919,23 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
 
         # Enhanced audio transcription WITH visual context
         try:
-            transcript_data = enhanced_transcribe_audio_with_context(audio_path, frames_summaries_text, metadata=metadata)
+            if not audio_path or not os.path.exists(audio_path):
+                print("[INFO] No audio file — using visual-only analysis")
+                transcript_data = {
+                    'transcript': '',
+                    'quality': 'no_audio',
+                    'quality_reason': 'No audio stream in video',
+                    'is_reliable': False,
+                    'audio_context': {
+                        'has_meaningful_speech': False,
+                        'transcript_quality': 'no_audio_stream',
+                        'likely_sound_source': None,
+                        'audio_description': 'no audio stream',
+                        'type': 'visual_only',
+                    }
+                }
+            else:
+                transcript_data = enhanced_transcribe_audio_with_context(audio_path, frames_summaries_text, metadata=metadata)
             print(f"[INFO] Audio interpretation: {transcript_data.get('audio_context', {}).get('audio_description', 'unknown')}")
             print(f"[INFO] Transcript quality: {transcript_data.get('quality', 'unknown')}")
             print(f"[INFO] Has meaningful speech: {transcript_data.get('audio_context', {}).get('has_meaningful_speech', 'N/A')}")

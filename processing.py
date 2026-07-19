@@ -116,14 +116,26 @@ def probe_duration(video_path: str) -> float:
 def extract_audio(video_path: str) -> str:
     _ensure_dirs()
     audio_path = os.path.abspath(os.path.join("audio", f"aud_{int(time.time())}.mp3"))
-    (
-        ffmpeg
-        .input(video_path)
-        .output(audio_path, format="mp3", acodec="mp3", ar=44100, ac=2)
-        .overwrite_output()
-        .run(quiet=True)
-    )
-    return audio_path
+    try:
+        out, err = (
+            ffmpeg
+            .input(video_path)
+            .output(audio_path, format="mp3", acodec="mp3", ar=44100, ac=2)
+            .overwrite_output()
+            .run(capture_stdout=True, capture_stderr=True)
+        )
+        if os.path.exists(audio_path) and os.path.getsize(audio_path) > 0:
+            print(f"[AUDIO] Extracted audio: {os.path.getsize(audio_path)} bytes")
+            return audio_path
+        else:
+            print(f"[AUDIO] Audio file empty or missing after extraction")
+            return None
+    except Exception as e:
+        stderr_text = getattr(e, 'stderr', b'').decode('utf-8', errors='replace') if hasattr(e, 'stderr') else str(e)
+        print(f"[AUDIO ERROR] Audio extraction failed: {stderr_text[:500]}")
+        if 'does not contain any stream' in stderr_text or 'no audio' in stderr_text.lower():
+            print("[AUDIO] Video has no audio stream")
+        return None
 
 
 # ------------------------------------------------------------------------------
