@@ -65,12 +65,8 @@ def download_video(tiktok_url: str) -> str:
 
     ydl_opts = {
         "outtmpl": out_tmpl,
-        "format": "mp4/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+        "format": "mp4/bestvideo+bestaudio/best",
         "merge_output_format": "mp4",
-        "postprocessors": [{
-            "key": "FFmpegVideoConvertor",
-            "preferedformat": "mp4",
-        }],
         "quiet": True,
         "retries": 5,
         "noprogress": True,
@@ -336,14 +332,48 @@ def extract_frames_at_times(video_path: str, out_dir: str, timestamps: List[floa
     paths = []
     for i, ts in enumerate(timestamps, start=1):
         out_path = os.path.join(out_dir, f"ts_{i:04d}.jpg")
-        (
-            ffmpeg
-            .input(video_path, ss=float(ts))  # input-side seek
-            .output(out_path, vframes=1, vf="scale=480:-1", vsync="vfr")
-            .overwrite_output()
-            .run(quiet=True)
-        )
-        paths.append(out_path)
+        try:
+            (
+                ffmpeg
+                .input(video_path, ss=float(ts))  # input-side seek
+                .output(out_path, vframes=1, vf="scale=480:-1", vsync="vfr")
+                .overwrite_output()
+                .run(quiet=True)
+            )
+            if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+                paths.append(out_path)
+        except Exception as e:
+            if i == 1:
+                print(f"[FRAMES] ffmpeg frame extraction failed at ts={ts}: {e}")
+    if not paths:
+        print(f"[FRAMES] ffmpeg failed for all {len(timestamps)} timestamps, trying cv2 fallback...")
+        paths = _extract_frames_cv2(video_path, out_dir, timestamps)
+    return paths
+
+
+def _extract_frames_cv2(video_path: str, out_dir: str, timestamps: List[float]) -> List[str]:
+    """Fallback frame extractor using OpenCV when ffmpeg can't read the container."""
+    cap = cv2.VideoCapture(video_path)
+    if not cap or not cap.isOpened():
+        print("[FRAMES] cv2 also cannot open the video file")
+        return []
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    paths = []
+    for i, ts in enumerate(timestamps, start=1):
+        frame_num = int(ts * fps)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
+        ret, frame = cap.read()
+        if ret and frame is not None:
+            out_path = os.path.join(out_dir, f"ts_{i:04d}.jpg")
+            h, w = frame.shape[:2]
+            if w > 480:
+                scale = 480 / w
+                frame = cv2.resize(frame, (480, int(h * scale)))
+            cv2.imwrite(out_path, frame)
+            if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+                paths.append(out_path)
+    cap.release()
+    print(f"[FRAMES] cv2 fallback extracted {len(paths)} frames")
     return paths
 
 

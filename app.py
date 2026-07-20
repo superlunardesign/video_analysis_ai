@@ -830,32 +830,30 @@ def enhanced_extract_audio_and_frames(tiktok_url, strategy, frames_per_minute, c
     """Enhanced extraction with validation and fallback"""
     try:
         print(f"[INFO] Starting enhanced extraction for {tiktok_url}")
-        
+
         # First attempt with requested strategy
         audio_path, frames_dir, frame_paths = extract_audio_and_frames(
             tiktok_url, strategy, frames_per_minute, cap, scene_threshold
         )
-        
+
         # If smart strategy yields too few frames, fall back to uniform
         if strategy == 'smart' and len(frame_paths) < 5:
             print(f"[WARNING] Smart extraction only got {len(frame_paths)} frames, falling back to uniform")
-            
+
             try:
-                # Re-extract with uniform strategy
                 audio_path, frames_dir, frame_paths = extract_audio_and_frames(
-                    tiktok_url, 
+                    tiktok_url,
                     strategy='uniform',
-                    frames_per_minute=30,  # Every 2 seconds
+                    frames_per_minute=30,
                     cap=60,
                     scene_threshold=scene_threshold
                 )
-                    
+
             except Exception as e:
                 print(f"[ERROR] Fallback extraction failed: {e}")
-                # Continue with whatever frames we have
                 if len(frame_paths) == 0:
                     raise ValueError("No frames could be extracted")
-        
+
         # Validate audio
         if not audio_path or not os.path.exists(audio_path):
             print("[WARNING] Audio extraction failed, continuing without audio")
@@ -864,7 +862,7 @@ def enhanced_extract_audio_and_frames(tiktok_url, strategy, frames_per_minute, c
             audio_size = os.path.getsize(audio_path)
             if audio_size < 1024:
                 print(f"[WARNING] Audio file too small ({audio_size} bytes)")
-        
+
         # Validate frames
         valid_frames = []
         for fp in frame_paths:
@@ -872,16 +870,18 @@ def enhanced_extract_audio_and_frames(tiktok_url, strategy, frames_per_minute, c
                 valid_frames.append(fp)
             else:
                 print(f"[WARNING] Frame file invalid: {fp}")
-        
+
         if len(valid_frames) == 0:
             raise ValueError("No valid frame files found")
-        
-        print(f"[SUCCESS] Extraction complete: audio + {len(valid_frames)} frames")
+
+        print(f"[SUCCESS] Extraction complete: audio={'yes' if audio_path else 'no'} + {len(valid_frames)} frames")
         return audio_path, frames_dir, valid_frames
-        
+
     except Exception as e:
         print(f"[ERROR] Enhanced extraction failed: {e}")
-        raise e
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 def enhanced_transcribe_audio_with_context(audio_path, frames_summaries_text, metadata=None):
