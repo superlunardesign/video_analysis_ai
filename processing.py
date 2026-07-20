@@ -65,7 +65,12 @@ def download_video(tiktok_url: str) -> str:
 
     ydl_opts = {
         "outtmpl": out_tmpl,
-        "format": "mp4/bestvideo+bestaudio/best",
+        "format": "mp4/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+        "merge_output_format": "mp4",
+        "postprocessors": [{
+            "key": "FFmpegVideoConvertor",
+            "preferedformat": "mp4",
+        }],
         "quiet": True,
         "retries": 5,
         "noprogress": True,
@@ -100,17 +105,78 @@ def download_video(tiktok_url: str) -> str:
 
     mp4s = sorted(Path("downloads").glob(f"vid_{stamp}*.mp4"))
     if mp4s:
-        return str(mp4s[-1])
-    # fallback: accept any container if mp4 not produced
-    candidates = sorted(Path("downloads").glob(f"vid_{stamp}*.*"))
-    if not candidates:
-        raise FileNotFoundError("Video download failed.")
-    return str(candidates[-1])
+        video_path = str(mp4s[-1])
+    else:
+        candidates = sorted(Path("downloads").glob(f"vid_{stamp}*.*"))
+        if not candidates:
+            raise FileNotFoundError("Video download failed.")
+        video_path = str(candidates[-1])
+
+    file_size = os.path.getsize(video_path)
+    print(f"[DOWNLOAD] Video saved: {video_path} ({file_size:,} bytes, ext: {os.path.splitext(video_path)[1]})")
+    if file_size < 10000:
+        print(f"[WARNING] Downloaded file suspiciously small ({file_size} bytes) — may be corrupted")
+
+    # Validate the file is readable by ffprobe; if not, try re-muxing
+    try:
+        ffmpeg.probe(video_path)
+    except Exception as e:
+        print(f"[DOWNLOAD] ffprobe can't read downloaded file, attempting re-mux to mp4...")
+        remuxed_path = video_path.rsplit('.', 1)[0] + '_fixed.mp4'
+        try:
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", video_path, "-c", "copy", remuxed_path],
+                capture_output=True, timeout=30
+            )
+            if os.path.exists(remuxed_path) and os.path.getsize(remuxed_path) > 1000:
+                ffmpeg.probe(remuxed_path)
+                print(f"[DOWNLOAD] Re-mux successful: {remuxed_path}")
+                os.remove(video_path)
+                video_path = remuxed_path
+            else:
+                raise Exception("Re-mux produced empty file")
+        except Exception as e2:
+            print(f"[DOWNLOAD] Re-mux also failed: {e2}, trying full re-encode...")
+            reencoded_path = video_path.rsplit('.', 1)[0] + '_reenc.mp4'
+            try:
+                subprocess.run(
+                    ["ffmpeg", "-y", "-i", video_path, "-c:v", "libx264", "-preset", "fast",
+                     "-c:a", "aac", "-movflags", "+faststart", reencoded_path],
+                    capture_output=True, timeout=120
+                )
+                if os.path.exists(reencoded_path) and os.path.getsize(reencoded_path) > 1000:
+                    ffmpeg.probe(reencoded_path)
+                    print(f"[DOWNLOAD] Re-encode successful: {reencoded_path}")
+                    os.remove(video_path)
+                    video_path = reencoded_path
+                else:
+                    raise Exception("Re-encode produced empty file")
+            except Exception as e3:
+                print(f"[DOWNLOAD ERROR] All repair attempts failed: {e3}")
+
+    return video_path
 
 
 def probe_duration(video_path: str) -> float:
-    info = ffmpeg.probe(video_path)
-    return float(info["format"]["duration"])
+    try:
+        info = ffmpeg.probe(video_path)
+        return float(info["format"]["duration"])
+    except Exception as e:
+        print(f"[WARNING] ffprobe failed for {video_path}: {e}")
+        # Try getting duration via mediainfo-style fallback
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                 "-of", "default=noprint_wrappers=1:nokey=1", video_path],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.stdout.strip():
+                return float(result.stdout.strip())
+        except Exception:
+            pass
+        print(f"[WARNING] Could not determine video duration, defaulting to 30s")
+        return 30.0
 
 
 def extract_audio(video_path: str) -> str:
