@@ -307,33 +307,38 @@
     body { padding-bottom: 70px; }
 
     @media print {
-      /* Show ALL tab content for PDF export */
+      /* Show ALL tab content */
       .tab-content { display: block !important; }
-      .tab-nav { display: none !important; }
-      .results-nav { display: none !important; }
-      .sticky-actions { display: none !important; }
-      #adminLearningSection { display: none !important; }
 
-      /* Remove scroll containers so all content is visible */
+      /* Hide UI elements */
+      .tab-nav, .results-nav, .sticky-actions, #adminLearningSection,
+      .download-btn-container, .btn-download-pdf, .action-bar { display: none !important; }
+
+      /* Remove scroll limits */
       [style*="max-height"] { max-height: none !important; overflow: visible !important; }
       [style*="overflow-y"] { overflow: visible !important; }
 
-      /* Reset dark backgrounds for print readability */
-      body { background: white !important; color: #1a1a1a !important; padding-bottom: 0 !important; }
-      .section { background: #f8f8f8 !important; border: 1px solid #ddd !important; color: #1a1a1a !important; }
-      h1, h2, h3, strong { color: #1a1a1a !important; }
+      /* Print-friendly colors */
+      body { background: white !important; color: #1a1a1a !important; padding: 0 !important; margin: 0 !important; }
+      .section { background: #fafafa !important; border: 1px solid #ddd !important; color: #1a1a1a !important;
+                 padding: 16px !important; margin-bottom: 12px !important; border-radius: 6px !important; }
+      h1, h2, h3, strong { color: #111 !important; }
+      h1 { font-size: 1.5rem !important; }
+      h2 { font-size: 1.15rem !important; margin-top: 0.5rem !important; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
       p, div, span, pre, li { color: #333 !important; }
+      pre { white-space: pre-wrap !important; word-break: break-word !important; }
       .metric-card { background: #f0f0f0 !important; border: 1px solid #ccc !important; }
       .metric-value { color: #2d5016 !important; }
       .comment-pattern { background: #f0f0f0 !important; border-color: #ccc !important; }
 
-      /* Ensure frames print and don't break across pages */
-      .frame-gallery { grid-template-columns: repeat(3, 1fr) !important; }
-      .frame-item { break-inside: avoid; }
-      .frame-item img { max-width: 100%; height: auto; }
+      /* Frame gallery — 4 per row, sized to fit */
+      .frame-gallery { grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; }
+      .frame-item { break-inside: avoid; border: 1px solid #ccc !important; border-radius: 4px !important; }
+      .frame-item img { max-width: 100% !important; height: auto !important; loading: eager !important; }
 
-      /* Section page breaks */
-      .tab-content { page-break-before: auto; }
+      /* Page break control */
+      .tab-content { page-break-before: always; }
+      .tab-content:first-of-type { page-break-before: auto; }
       .section { break-inside: avoid; }
     }
   </style>

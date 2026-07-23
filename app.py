@@ -1101,29 +1101,55 @@ async def generate_pdf_from_html(html_content, output_path=None):
 
             page = await browser.new_page()
 
-            # Set viewport for consistent rendering
-            await page.set_viewport_size({'width': 1200, 'height': 1600})
+            await page.set_viewport_size({'width': 1100, 'height': 1600})
 
             print("[PDF] Loading HTML content...")
             await page.set_content(html_content, wait_until='networkidle', timeout=30000)
 
-            # Expand all tabs so PDF captures every section
+            # Prepare page for PDF: expand tabs, hide UI, force-load images
             await page.evaluate("""() => {
+                // Show all tab content
                 document.querySelectorAll('.tab-content').forEach(el => {
                     el.classList.add('active');
                     el.style.display = 'block';
                 });
+
                 // Hide UI-only elements
-                const hide = ['.tab-nav', '.results-nav', '.sticky-actions', '#adminLearningSection'];
-                hide.forEach(sel => {
-                    const el = document.querySelector(sel);
-                    if (el) el.style.display = 'none';
+                ['.tab-nav', '.results-nav', '.sticky-actions', '#adminLearningSection',
+                 '.download-btn-container', '.btn-download-pdf', '.action-bar'
+                ].forEach(sel => {
+                    document.querySelectorAll(sel).forEach(el => el.style.display = 'none');
                 });
+
                 // Remove scroll limits
                 document.querySelectorAll('[style*="max-height"]').forEach(el => {
                     el.style.maxHeight = 'none';
                     el.style.overflow = 'visible';
                 });
+                document.querySelectorAll('[style*="overflow-y"]').forEach(el => {
+                    el.style.overflow = 'visible';
+                });
+
+                // Force-load all lazy images (critical for frames)
+                document.querySelectorAll('img[loading="lazy"]').forEach(img => {
+                    img.removeAttribute('loading');
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                    }
+                });
+            }""")
+
+            # Wait for images to decode
+            await page.evaluate("""() => {
+                return Promise.all(
+                    Array.from(document.images)
+                        .filter(img => !img.complete)
+                        .map(img => new Promise(resolve => {
+                            img.onload = resolve;
+                            img.onerror = resolve;
+                            setTimeout(resolve, 3000);
+                        }))
+                );
             }""")
 
             await asyncio.sleep(1)
@@ -1132,12 +1158,12 @@ async def generate_pdf_from_html(html_content, output_path=None):
             pdf_options = {
                 'format': 'A4',
                 'print_background': True,
-                'scale': 0.5,  # Shrink content to fit more on page
+                'scale': 0.72,
                 'margin': {
-                    'top': '10mm',
-                    'right': '10mm',
-                    'bottom': '10mm',
-                    'left': '10mm'
+                    'top': '12mm',
+                    'right': '12mm',
+                    'bottom': '12mm',
+                    'left': '12mm'
                 }
             }
 
@@ -3453,7 +3479,8 @@ def download_pdf(cache_key):
         template_vars = cached_data['template_vars']
         video_title = cached_data.get('video_title', 'analysis')
 
-        print(f"[PDF] Rendering HTML template for: {video_title}")
+        frame_count = len(template_vars.get('frame_gallery', []))
+        print(f"[PDF] Rendering HTML template for: {video_title} ({frame_count} frames)")
 
         # Render the HTML template with all the data
         html_content = render_template("results.html", **template_vars)
