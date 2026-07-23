@@ -662,31 +662,54 @@
 
       {% if replication_formula %}
       <div class="section">
-        <h2>New Video Script</h2>
+        <h2>Replication Formula</h2>
         <div class="formula-box">
           <h3>{{ replication_formula.formula_name }}</h3>
-          <p><strong style="color: var(--stellar-cream);">Structure:</strong> {{ replication_formula.structure }}</p>
+
+          {% if replication_formula.auto_question %}
+          <p style="margin-top: 0.75rem;"><strong style="color: var(--stellar-cream);">Auto-Question:</strong> {{ replication_formula.auto_question }}</p>
+          {% endif %}
+
+          {% if replication_formula.invariant %}
+          <p style="margin-top: 0.75rem;"><strong style="color: var(--stellar-cream);">Invariant:</strong> {{ replication_formula.invariant }}</p>
+          {% endif %}
+
+          {% if replication_formula.free_to_vary %}
+          <p style="margin-top: 0.75rem;"><strong style="color: var(--stellar-cream);">Free to Vary:</strong> {{ replication_formula.free_to_vary }}</p>
+          {% endif %}
+
+          {% if replication_formula.ceiling_lever %}
+          <p style="margin-top: 0.75rem;"><strong style="color: var(--stellar-cream);">Ceiling Lever:</strong> {{ replication_formula.ceiling_lever }}</p>
+          {% endif %}
+
+          {% if replication_formula.structure %}
+          <p style="margin-top: 0.75rem;"><strong style="color: var(--stellar-cream);">Structure:</strong> {{ replication_formula.structure }}</p>
+          {% endif %}
+
+          <p style="margin-top: 1rem;"><strong style="color: var(--stellar-cream);">Why It Works:</strong></p>
+          <p>{{ replication_formula.why_it_works }}</p>
+
+          {% if replication_formula.execution_notes %}
+          <p style="margin-top: 1rem;"><strong style="color: var(--stellar-cream);">Execution Notes:</strong></p>
+          <p>{{ replication_formula.execution_notes }}</p>
+          {% endif %}
 
           {% if replication_formula.script %}
-          <h3 style="margin-top: 1.5rem;">Ready-to-Film Script</h3>
+          <h3 style="margin-top: 1.5rem;">Sample Execution</h3>
           <div style="white-space: pre-wrap; line-height: 1.8; margin: 1rem 0; padding: 1rem; background: rgba(0,0,0,0.15); border-radius: 8px;">
             {{ replication_formula.script | markdown_bold('#F0EAE0') | safe }}
           </div>
-          {% elif replication_formula.scenarios_for_same_niche %}
-          <h3 style="margin-top: 1.5rem;">Scenarios for Your Niche</h3>
-          <div style="white-space: pre-wrap; line-height: 1.8; margin: 1rem 0; padding: 1rem; background: rgba(0,0,0,0.15); border-radius: 8px;">
-            {% for scenario in replication_formula.scenarios_for_same_niche %}
-            {{ scenario | markdown_bold('#F0EAE0') | safe }}
+          {% endif %}
 
-            {% endfor %}
+          {% if replication_formula.text_template %}
+          <h3 style="margin-top: 1.5rem;">Text Template</h3>
+          <div style="white-space: pre-wrap; line-height: 1.8; margin: 1rem 0; padding: 1rem; background: rgba(0,0,0,0.15); border-radius: 8px;">
+            {{ replication_formula.text_template | markdown_bold('#F0EAE0') | safe }}
           </div>
           {% endif %}
 
-          <p style="margin-top: 1.5rem;"><strong style="color: var(--stellar-cream);">Why It Works:</strong></p>
-          <p>{{ replication_formula.why_it_works }}</p>
-
           {% if replication_formula.visual_requirements %}
-          <p style="margin-top: 1.5rem;"><strong style="color: var(--stellar-cream);">Visual Requirements:</strong></p>
+          <p style="margin-top: 1rem;"><strong style="color: var(--stellar-cream);">Visual Requirements:</strong></p>
           <p>{{ replication_formula.visual_requirements }}</p>
           {% endif %}
         </div>

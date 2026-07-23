@@ -270,11 +270,13 @@ def parse_delimited_response(response_text, transcript=''):
         lines = content.split('\n')
 
         # Top-level keys that signal a new field (everything else is continuation)
-        top_level_keys = {'formula_name', 'structure', 'new_video_script',
-                          'why_it_works', 'visual_requirements',
-                          'scenarios_for_same_niche', 'text_template'}
+        top_level_keys = {'formula_name', 'auto_question', 'invariant', 'free_to_vary',
+                          'ceiling_lever', 'why_it_works', 'execution_notes',
+                          'sample_execution', 'text_template', 'visual_requirements',
+                          'structure', 'new_video_script', 'scenarios_for_same_niche'}
         # Keys whose values are multi-line blocks (colons inside should not start new keys)
-        block_keys = {'new_video_script', 'scenarios_for_same_niche', 'text_template'}
+        block_keys = {'sample_execution', 'text_template', 'new_video_script',
+                      'scenarios_for_same_niche', 'execution_notes'}
 
         current_key = None
         current_value = []
@@ -323,8 +325,11 @@ def parse_delimited_response(response_text, transcript=''):
             else:
                 replication[current_key] = value_text
 
-        # Normalize: set unified 'script' key from new_video_script
-        if 'new_video_script' in replication:
+        # Normalize: set unified 'script' key
+        if 'sample_execution' in replication:
+            replication['script'] = replication['sample_execution']
+            replication['script_type'] = 'sample'
+        elif 'new_video_script' in replication:
             replication['script'] = replication['new_video_script']
             replication['script_type'] = 'new'
         elif 'text_template' in replication:
@@ -1678,49 +1683,73 @@ hook_score: [1-10]
 hook_reasoning: [Score reasoning]
 
 ===REPLICATION_FORMULA===
-formula_name: The [Name] Formula
-structure: 0-Xs: [what to do], X-Ys: [next step], Y-Zs: [final step]
+Extract the TRANSFERABLE pattern, not a transcription of this video.
 
-new_video_script:
-CRITICAL RULE: Do NOT describe or transcribe the video you just analyzed. You must write an ENTIRELY NEW, ORIGINAL video script for a DIFFERENT topic in the same niche. Use the analyzed video's FORMAT and FORMULA as inspiration, but the CONTENT and TOPIC must be completely different.
+CRITICAL DISTINCTION:
+- The INVARIANT is the small set of things that must be true or it isn't this format. It is
+  usually 1-2 sentences and contains NO timings, NO specific topic, NO specific count.
+- Everything else — length, number of examples, register, topic, pacing, CTA — is FREE TO VARY.
+- A common failure is describing this specific video's timings and calling that the formula.
+  If your "formula" could not describe a 10-second version and a 60-second version of the same
+  idea, you have written a transcription, not a formula. Rewrite it.
 
-Think of it this way: if the analyzed video was "things designers do that I won't", your new script should be something totally different like "how I onboard new branding clients" or "why cheap logos cost you more" — a FRESH idea, NOT a rehash.
+formula_name: [Name the STRUCTURE, not this video's topic. "Before & After (multi-reveal)"
+not "The Portfolio Rescue Formula." If it matches a known format from the knowledge base,
+use that name.]
 
-Write a complete ready-to-film script for this new video idea{f", optimized for {goal.replace('_', ' ')}" if goal else ""}:
+auto_question: [The question this frame opens in the viewer's head for free, the moment they
+see it. What does their brain automatically start wondering?]
 
-**Video Concept:** [1-2 sentence pitch — must be a DIFFERENT topic than the analyzed video]
+invariant: [What must be true for this to be this format. 1-2 sentences. No timings, no topic.
+Example of the right level: "A hook implies multiple dramatic transformations, then the
+transformations are shown, then it ends."]
 
-**Target Duration:** {target_duration}s
+free_to_vary: [What can change without breaking the format — length, how many examples,
+humor vs. serious, what's being transformed, whether there's speech, how it ends.]
 
-**Script:**
+ceiling_lever: [The single biggest factor that raises or lowers this format's reach ceiling,
+and which direction to push it. For transformation formats this is usually how dramatic the
+implied change is. For comparison formats it is usually how broadly relatable the pairing is.
+Be specific about what "more dramatic" or "broader" would mean here.]
 
-**[0:00-0:03] HOOK**
-- On screen text: "[exact NEW text overlay — not from the analyzed video]"
-- Visual: [what to show/do]
-- Audio: [voiceover or sound]
-- Why: [brief note on psychology]
+why_it_works: [Psychological explanation of the invariant — why does this frame hold attention?
+Explain the mechanism, not "it matches the formula."]
 
-**[0:03-0:08] SETUP**
-- On screen text: "[text overlay]"
-- Visual: [what to show/do]
-- Audio: [voiceover or sound]
+execution_notes: [What makes or breaks THIS format specifically when executed. Do NOT list
+universal advice like "good pacing" or "strong delivery" — those apply to every video. Only
+things that are specific to this structure.]
 
-[Continue with timestamped sections through the full {target_duration}s. Include pattern interrupts, re-hooks, and curiosity gaps. End with a strong CTA.]
+sample_execution:
+IMPORTANT: This is ONE way to run the formula at {target_duration}s — an illustration, not the
+formula itself. State that explicitly in the first line. A different length would redistribute
+these beats entirely.
 
-**[Final seconds] CTA**
-- On screen text: "[CTA text]"
-- Visual: [what to show]
-- Audio: [what to say]
+**Concept:** [One line: what this specific execution is about]
 
-why_it_works: This formula works because [psychological explanation in educational, explanatory terms, referring to specific moments, scenes, and promises that make it work]
+**0-Xs:** [beat] — [why this beat is here]
+**X-Ys:** [beat] — [why]
+[continue through the full {target_duration}s]
 
-visual_requirements: [2-3 specific visual ideas that could help capture attention and increase retention, with explanations of why they work]
+text_template:
+**Added Text:** "[TEXT OVERLAY]"
+**0-3s:** "[Hook text]"
+[continue with timestamped overlays matching the sample execution above]
+
+visual_requirements: [2-3 specific visual ideas that serve THIS format's mechanism, with why
+each one works.]
 
 ===IMPROVEMENTS===
 REMEMBER: NEVER suggest revealing payoff earlier than 75% through video. Focus on hook strength, visual variety, tension building, and engagement hooks instead.
 {"Improvement 1: [Detailed specific actionable change with exact word-for-word script suggestions, pattern interrupts, and retention tactics. Explain why this would work psychologically]. Improvement 2: [Another detailed improvement with scripts and explanations]. Improvement 3: [Third improvement]. This could push views to [realistic projection with detailed reasoning]." if analysis_depth == 'deep' else "1. [Most important improvement in 1 sentence]. 2. [Second improvement in 1 sentence]. 3. [Third improvement in 1 sentence]. Potential: [projected views with brief reason]."}
 
 ===VIRAL_MECHANICS===
+SCOPE RULE: Suggestions here must work WITHIN this video's format. A change that requires a
+different structure is a different video, not an improvement to this one.
+
+If you have a strong idea that would require changing formats, put it under a clearly separated
+heading "SEPARATE VIDEO CONCEPT:" at the end and label it as a new idea, not an improvement.
+Do not present format-breaking ideas as fixes to this video.
+
 CRITICAL: NEVER suggest "front-loading the reveal" or "satisfying curiosity faster" - this destroys retention. Suggest adding tension, stakes, visual variety, engagement hooks BEFORE the payoff instead.
 {'"This went viral because: [List 3-5 specific viral triggers with detailed psychological explanations, referring to exact moments and mechanics]" if performance_level == "viral" else "To go viral, this video needs: [List 3-5 specific viral triggers to add/strengthen with explanations - focus on hook power, tension building, visual pattern breaks, NOT moving the payoff earlier]"' if analysis_depth == 'deep' else '"Viral because: [2 main reasons]" if performance_level == "viral" else "To go viral: [2 key additions needed - NOT earlier payoff]"'}
 
@@ -1754,7 +1783,18 @@ For each interval, describe:
 - How it builds toward payoff
 
 ===PERFORMANCE_PREDICTION===
-{'"This succeeded because: [Detailed analysis of why this hit ' + str(view_count) + ' - break down each success factor]. Future potential: [What it could achieve with tweaks]." if performance_level == "viral" else "With the improvements above, this could achieve: [Specific view target with detailed reasoning about what would drive that growth]."' if analysis_depth == 'deep' else '"Success factors: [2 key reasons]. Potential: [projected views with 1 sentence why]." if performance_level == "viral" else "Could reach: [view target] if [1-2 key improvements made]."'}
+This section does NOT introduce new suggestions. Every change referenced here must already
+appear in ===IMPROVEMENTS===. If you find yourself introducing a new idea here, move it to
+IMPROVEMENTS instead.
+
+Explain the expected effect of the improvements already listed, PER GOAL:
+- Views/reach: [effect and why]
+- Follows/growth: [effect and why]
+- Inquiries/sales: [effect and why]
+- Comments/engagement: [effect and why]
+
+State which goal the changes serve most, and name any tradeoff (e.g. added sales mechanics may
+reduce raw reach). Be honest when a change helps one goal and does nothing for another.
 
 ===KNOWLEDGE_PATTERNS_APPLIED===
 - [Pattern from knowledge base]: [How it applies to this video]
@@ -1847,6 +1887,11 @@ ONLY suggest earlier reveals for:
 - All hooks sections should focus on FIRST 3 SECONDS only
 - You can use quotes, line breaks, and write naturally within each section
 - End with ===END=== marker
+
+CONSISTENCY CHECK: Before finalizing, verify your IMPROVEMENTS do not contradict claims made
+earlier in your own analysis. If WHY_IT_PERFORMED credits an element, IMPROVEMENTS cannot say
+that element is missing. If the video already does something well, say so instead of
+manufacturing a fix — fewer real improvements beat three invented ones.
 """
 
     # Store raw response for fallback
