@@ -22,4 +22,4 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
 
 COPY . /app
 
-CMD sh -c 'gunicorn -w 2 -k gthread -t 180 -b 0.0.0.0:${PORT:-8080} app:app'
+CMD sh -c 'python ingest_knowledge.py && gunicorn -w 2 -k gthread -t 180 -b 0.0.0.0:${PORT:-8080} app:app'
