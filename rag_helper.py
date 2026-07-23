@@ -36,38 +36,54 @@ def get_baseline_knowledge(meta, max_chars: int = 30000) -> Tuple[str, List[dict
     ALWAYS include viral/retention essentials for ALL videos
     These are the foundation of ANY successful video
     """
-    # ESSENTIAL for ALL videos - hooks, virality, retention
     universal_essentials = [
-        "master.txt",
-        "x8u4vlfmj1n62gdem7rbpyq52jcg.pdf",
+        # Superlunar knowledge base — load in this exact order.
+        "00_operating_instructions.txt",   # calibration, two layers, payoff-last, honesty
+        "01_spine_and_layers.txt",         # hook/promise/tension/delivery, structure, execution, goals
+        "02_mechanisms.txt",               # promise + tension taxonomies, glossary
+        "03_formula_library.txt",          # six formats + reusable template
+        "04_modes_and_metrics.txt",        # five modes, metrics, workflow, worked examples
+
+        # Supporting material
         "video_retention.txt",
         "architecture_of_retention.txt",
         "hook_mechanisms.txt",
-        "thisvsthat.txt",
         "failuretofix.txt",
         "50_Hook_Examples.pdf",
-        "HookWritingGuide_Download.pdf", 
+        "HookWritingGuide_Download.pdf",
         "Trial Reels Guide.pdf",
+        "x8u4vlfmj1n62gdem7rbpyq52jcg.pdf",
     ]
-    
+
     baseline_chunks = []
     baseline_citations = []
     total_chars = 0
-    
-    # GUARANTEE these documents are loaded first
+
+    CORE_FILES = {
+        "00_operating_instructions.txt",
+        "01_spine_and_layers.txt",
+        "02_mechanisms.txt",
+        "03_formula_library.txt",
+        "04_modes_and_metrics.txt",
+    }
+    truncated = []
+    missing = []
+
     for target_file in universal_essentials:
-        # Get all chunks from this essential file
         file_chunks = []
         for idx, m in meta.items():
             if m["file"] == target_file:
                 file_chunks.append((m["chunk_id"], m["text"]))
-        
-        # Sort by chunk_id to maintain document flow
+
+        if not file_chunks:
+            missing.append(target_file)
+            continue
+
         file_chunks.sort(key=lambda x: x[0])
-        
-        # Add all chunks from this essential file
+
         for chunk_id, text in file_chunks:
             if total_chars + len(text) > max_chars:
+                truncated.append(target_file)
                 break
             baseline_chunks.append(f"[Essential: {target_file}]\n{text}")
             baseline_citations.append({
@@ -76,7 +92,15 @@ def get_baseline_knowledge(meta, max_chars: int = 30000) -> Tuple[str, List[dict
                 "chunk_id": chunk_id
             })
             total_chars += len(text)
-    
+
+    if missing:
+        print(f"[BASELINE][MISSING] Not in index (run ingest_knowledge.py): {', '.join(missing)}")
+    if truncated:
+        print(f"[BASELINE][TRUNCATED] Hit {max_chars} cap, cut short: {', '.join(set(truncated))}")
+        core_cut = CORE_FILES & set(truncated)
+        if core_cut:
+            print(f"[BASELINE][CRITICAL] Core knowledge truncated: {', '.join(core_cut)} — raise max_chars.")
+
     print(f"[BASELINE] Loaded {len(baseline_chunks)} essential chunks ({total_chars} chars)")
     essential_files = list(set(c["file"] for c in baseline_citations))
     print(f"[BASELINE] Files: {', '.join(essential_files)}")
@@ -208,22 +232,22 @@ def get_specific_knowledge(meta, mat, transcript, frames, creator_note, goal, ma
     print(f"[SPECIFIC] Loaded {len(specific_chunks)} goal/context chunks ({total_chars} chars)")
     return "\n\n".join(specific_chunks), specific_citations
 
-def retrieve_smart_context(transcript: str, frames: str, creator_note: str, goal: str, max_chars: int = 75000) -> Tuple[str, List[dict]]:
+def retrieve_smart_context(transcript: str, frames: str, creator_note: str, goal: str, max_chars: int = 95000) -> Tuple[str, List[dict]]:
     """
-    ALWAYS: Hooks + Virality + Retention (30K)
-    PLUS: Goal-specific knowledge (45K)
+    ALWAYS: Core knowledge base (55K)
+    PLUS: Goal-specific knowledge (35K)
     """
     mat, meta = _load_matrix_and_meta()
     if mat is None or meta is None:
         print("[WARNING] No embeddings found, trying fallback to all context")
         return retrieve_all_context(max_chars)
     
-    # Step 1: ALWAYS get hooks, virality, retention (30K chars)
-    baseline_text, baseline_cits = get_baseline_knowledge(meta, 30000)
-    
-    # Step 2: Add goal-specific knowledge (45K chars)
+    # Step 1: ALWAYS get the full core knowledge base (55K chars)
+    baseline_text, baseline_cits = get_baseline_knowledge(meta, 55000)
+
+    # Step 2: Add goal-specific knowledge (35K chars)
     specific_text, specific_cits = get_specific_knowledge(
-        meta, mat, transcript, frames, creator_note, goal, 45000
+        meta, mat, transcript, frames, creator_note, goal, 35000
     )
     
     # Determine section label based on goal

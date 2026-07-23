@@ -1,0 +1,174 @@
+# SUPERLUNAR VIDEO KNOWLEDGE BASE — MODES, METRICS & WORKFLOW
+# File 5 of 5. Load order matters: 00 before 01 before 02, etc.
+# This file is part of a single connected framework; sections reference each other by § number.
+
+# PART 7 — THE FIVE MODES
+
+## §6.1 ASSESS
+
+Score **per goal**, across **both layers**. Never a single verdict.
+
+1. Classify: content type, spine elements, auto-question, skeleton (or "none"), promise/tension mechanisms, dual-engagement, payoff placement.
+2. Note performance context (or absence) and estimate the realistic reach ceiling via relatability breadth (§3.1).
+3. Score each goal served, 1–10, one-sentence mechanism reason; add Authority/brand as a qualitative note.
+4. Assess execution (§3): gap, pacing, tension quality, delivery, sound, **payoff timing**, message match.
+5. If a target goal is missed, point to OPTIMIZE (§6.4), and separate *observed* from *format range* (§0.6).
+
+```
+CLASSIFICATION: [type] · Skeleton: [name/none] · Auto-question: [...] · Promise: [...] · Tension: [...]
+DUAL ENGAGEMENT: [both / visual-only / audio-only] · PAYOFF: [end / leaked early]
+PERFORMANCE CONTEXT: [data / none] · REACH CEILING (breadth): [broad/niche → rough ceiling]
+
+PER-GOAL:  Views X/10 — [reason] · Growth X/10 — [reason] · Sales X/10 — [reason] · Authority: [note]
+EXECUTION: gap / pacing / tension / delivery / sound / payoff-timing / message-match — [what's strong, what leaks]
+BOTTOM LINE: [succeeds at ___, misses ___ — per §0.5]
+ADAPT: [if a goal is missed → OPTIMIZE pointer; note observed vs. format range]
+```
+
+## §6.2 CRITIQUE
+
+1. **Drop-off prediction (required):** ≥1 timestamp + mechanism (§1.6). No timing in the transcript → estimate from position/word-count and say so, or ask for a timed version. **Check specifically for front-loaded delivery (§1.4)** — a payoff that resolves before the end is a top suspect.
+2. **Structural check:** missing spine element? weak/absent promise mechanism? unheld tension? Surface **accidental anomalies** (§4.1).
+3. **Execution check (§3):** where most fixes live — weak gap, slow pacing, flat delivery, **payoff leaked early**, message mismatch.
+4. **Fixes prioritized** first/second/third by leverage.
+
+```
+PREDICTED DROP-OFF: [timestamp] — [mechanism]   [+ secondary]
+PAYOFF PLACEMENT: [end ✓ / leaked at (timestamp) — resequence]
+STRUCTURE: [spine intact? skeleton? mechanisms working?]
+UNINTENDED LOOPS: [accidental anomalies possibly aiding retention]
+EXECUTION: [gap / pacing / tension / delivery / sound / payoff-timing issues]
+FIX FIRST / SECOND / THIRD: [by leverage]
+```
+
+**The front-loaded-delivery fix (most common):** take the answer, move it to the end, convert the middle from *explaining* the answer into *withholding* it — remove wrong answers, raise stakes, deepen the gap (§1.4).
+
+## §6.3 CREATE
+
+1. Confirm goal(s) (§0.3) + niche.
+2. **Design the payoff first, build backward to the hook last** (§1.4) — you can't withhold toward an undecided ending.
+3. Choose a spine and (optionally) a seed skeleton, or build fresh from §1/§4.
+4. Pick promise + tension mechanisms; consider planting an accidental anomaly (§4.1).
+5. Weave in goal-elements (§3); name any Views↔Sales tradeoff; set relatability breadth to the goal (broad for Views, righter-and-narrower for niche Sales).
+6. Write the hook across modalities (§2.1), aiming for interrupt *and* gap in one beat.
+7. **Verify payoff-last** before delivering the script: if the core loop resolves before the final beat, resequence.
+
+Hooks ship in labeled sets of 5+ per platform, mechanism-tagged, brackets filled specifically.
+
+## §6.4 OPTIMIZE
+
+Take a working structure and **layer in a missing goal** without breaking the spine (or the payoff-last rule).
+
+- *Add Sales to a Views video:* authority line + problem→solution bridge + offer/CTA + lead-capture — **at the end, quick** (§1.4).
+- *Add Growth:* ongoing-value promise, series framing, an open loop baiting part 2.
+- *Add engagement:* tribal trigger, an implicit question the comments answer, a share/tag line.
+
+Preserve what made the original work; separate observed from format range (§0.6); state the reach tradeoff if a Sales layer will cost views; label additions **proven** or **untested**.
+
+## §6.5 VET (external formula docs)
+
+For any outside "formula"/breakdown (often AI-generated, often over-confident), extract the real structure and strip the fabrication.
+
+**Keep:** genuine structural insight (the invariant, the auto-question, reveal-structure variants, real failure modes), sub-type→goal mappings, anything mapping cleanly onto the spine/taxonomies.
+**Strip / flag:** fabricated performance numbers ("Humor VS 500K–5M," "2–3x boost"); virality guarantees ("virtually guarantees," "exponentially better"); any claim that *structure predicts view count*; over-generalization ("works for every niche/audience — the Swiss Army knife"); **payoff-timing errors baked into templates** (e.g. "payoff at 7–15s, then bonus/CTA" risks front-loaded delivery on longer videos — §1.4).
+**Reframe:** move any "common mistakes" that are really *execution* quality into the execution layer (§3); relabel single-video results as *observed*, not *format ceiling* (§0.6).
+
+Output: what's structurally real and worth absorbing, what's fabricated and rejected, and the cleaned-up version mapped to this knowledge base.
+
+---
+
+---
+
+# PART 8 — METRICS
+
+## §7.1 What to read
+
+**Primary:** completion/view-through · engagement velocity (comments/shares/saves in hour 1) · profile-click rate · follow conversion.
+**Secondary:** re-watch · share-to-view · comment quality.
+
+## §7.2 Bands (directional — vary by length, niche, account size, and goal)
+
+| Band | Rough signals |
+|---|---|
+| High | 70%+ completion (short clips clear this easily; long ones rarely) · 3%+ comment-to-view · strong shares + profile CTR |
+| Medium | 40–70% completion · 1–3% comments · some shares/saves |
+| Low | <40% completion · <1% comments · few shares |
+
+Adjust for length (70% on 12s is routine; on 90s exceptional), account baseline (prefer the account's own median over absolute numbers), and **goal** — the 650K/160-follow case is High on Views and Low on Growth *at the same time* (§0.5). Factor **relatability breadth** (§3.1) into the realistic ceiling before judging a raw number.
+
+## §7.3 Optimization by read
+
+- **Low completion →** hook + gap first; **check for front-loaded delivery (§1.4)**; then pacing, then payoff timing.
+- **Good completion, low follows →** add Growth layer (§6.4).
+- **Good views, no sales →** add Sales layer (§6.4); accept a possible reach tradeoff.
+- **High performer →** replicate the skeleton across topics, build a series, document it (§5.10), adapt cross-platform.
+
+---
+
+---
+
+# PART 9 — WORKFLOW CHECKLISTS
+
+**Pre-production:** goal(s) chosen (§0.3) · skeleton chosen or spine designed fresh · **payoff designed first** (§1.4) · promise + tension mechanisms picked · dual-engagement planned (§2.2) · relatability breadth set to the goal (§3.1) · accidental anomaly considered.
+
+**Production:** hook interrupts *and* opens the gap in ~0.5s across the right modalities · promise clear/implied early · tension actually gripping (execution) · ≥1 loop open at all times · **delivery at the very end, cut immediately** · only quick CTAs after the payoff · goal-elements woven in.
+
+**Post-production:** ASSESS (per goal) + CRITIQUE (drop-off + **payoff placement** + execution) · check message match · surface unintended loops · label untested suggestions.
+
+**Post-publish:** read metrics per goal in 24h · mine comments for the gaps people are asking about · if a skeleton recurs and performs, promote it (§5.10) / add to the board (§0.9).
+
+---
+
+---
+
+# APPENDIX C — Worked Examples
+
+### C.1 ASSESS (per-goal nuance)
+> "Score my stitch — 650K views, 160 follows, no sales. I wanted leads."
+```
+CLASSIFICATION: Correction · Skeleton: Piggyback Authority · Auto-question: "is that claim true?"
+Promise: correction + observational anxiety · Tension: contextual delay
+DUAL ENGAGEMENT: audio-led · PAYOFF: end ✓
+PERFORMANCE: 650K / 160 follows (0.025%) / 0 sales · REACH CEILING: borrowed (broad) — high
+
+PER-GOAL:
+  Views 9/10 — stitch inherited the original's audience; correction gave a clean completion payoff.
+  Growth 2/10 — nothing promised ongoing value; read as a one-off fact-checker.
+  Sales 0/10 — no offer, positioning, or CTA; never built to convert.
+  Authority: strong — content made you look expert; image extended even with no leads.
+EXECUTION: gap + delay strong (that's the 650K). Build is fine — the miss is structural: no Sales layer.
+BOTTOM LINE: success at Views + authority, miss at Sales — not a failure. Did its job; wasn't built for your goal.
+ADAPT → OPTIMIZE for Sales: same skeleton + authority line + bridge ("the read I do for clients") +
+  CTA ("comment BRAND for my teardown guide"). Expect a small reach tradeoff. (Observed ≠ this format's Sales ceiling.)
+```
+
+### C.2 CRITIQUE (front-loaded delivery — the signature catch)
+> "Why is completion low? Script: 'You don't need to post more — you need sales psychology. Here's how it works… [90s explainer] …link in bio.'"
+```
+PREDICTED DROP-OFF: ~beat 2 — "you need sales psychology" IS the answer. The core loop closes at the top,
+  so the viewer has the payoff and leaves (often to go Google it). The 90s explainer plays to an empty room.
+PAYOFF PLACEMENT: leaked at ~0:05 — resequence to the end.
+STRUCTURE: spine collapses because Delivery is where Tension should be. No open loop remains after beat 2.
+EXECUTION: not a delivery-energy problem — a sequencing problem.
+FIX FIRST:  Move the answer to the final beat. Rebuild the middle as withholding: hook "how I got my first
+  sale from social media" → remove the wrong answer ("you don't need to post more — gurus sold you visibility→
+  virality→sales") → raise stakes ("virality doesn't guarantee sales; it can hurt it") → THEN deliver
+  ("what I teach my clients: sales psychology content"). Same payload, loop closes last.
+FIX SECOND: Keep the CTA to a quick end tag, not a second explainer.
+FIX THIRD:  Add a visual channel so it holds with sound off (§2.2).
+```
+
+### C.3 VET (external doc)
+> [pasted "VS Format" breakdown]
+```
+KEEP (structurally real): the VS auto-question; sub-types → goals (Humor→Views, Educational→Sales,
+  Lifestyle→Growth, Transformation→Views, Controversial→debate); the three reveal structures
+  (partial-withhold / instant-both / split-screen); real failure modes (unclear comparison, poor visual
+  distinction, weak stakes, no resolution).
+STRIP/FLAG: invented ranges ("Humor 500K–5M," "2–3x boost"); "virtually guarantees," "exponentially better";
+  the claim that structure predicts 10K vs 10M; "Swiss Army knife / every niche & audience" over-generalization;
+  the "payoff at 7–15s, then bonus" timing (front-loaded-delivery risk on longer cuts — §1.4).
+REFRAME: its "common mistakes" are mostly execution (§3), not VS-specific; its example view counts are
+  illustrative, not benchmarks — treat as observed, never as format ceilings (§0.6).
+ABSORBED INTO: §5.1, upgrading the observed→range split and the sub-type loading map.
+```
