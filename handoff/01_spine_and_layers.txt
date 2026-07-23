@@ -1,0 +1,161 @@
+# SUPERLUNAR VIDEO KNOWLEDGE BASE — THE SPINE, STRUCTURE & EXECUTION
+# File 2 of 5. Load order matters: 00 before 01 before 02, etc.
+# This file is part of a single connected framework; sections reference each other by § number.
+
+# PART 1 — THE SPINE
+
+## §1 The Universal Retention Structure
+
+Every video watched to the end runs the same four-part spine. Goal-independent — the substrate under Views, Growth, and Sales content alike.
+
+**Hook → Promise → Tension → Delivery**
+
+| Element | Function |
+|---|---|
+| **Hook** | Breaks the scroll, captures attention. The best hooks *also* open the gap / make the promise in the same beat. |
+| **Promise** | Opens a specific question in the viewer's mind — stated or implied. |
+| **Tension** | Holds that question open. The pull that keeps them watching (Zeigarnik: an open loop the mind wants closed). |
+| **Delivery** | Closes the loop. The answer / finished product / payoff. **Goes at or near the very end** (§1.4). |
+
+### 1.1 Promise = the question the setup opens in the viewer
+
+The **Promise** is what the creator builds; the **curiosity gap** is its effect — the unanswered question it creates in the viewer. Same beat, two vantage points. Analyze *structure* → speak in Promises. Predict *behavior* → speak in gaps. Don't grade them as two steps.
+
+### 1.2 The strongest formats auto-generate the question
+
+Some setups force the question *for free* — the viewer's brain supplies it without the creator scripting tension. The instant you imply **"this vs ___"** and delay the "that," the brain auto-generates: *what's the difference? what's it compared against? which is better? do I relate? have I experienced one or both?* You didn't build that tension; the frame did.
+
+This is why loose formats (VS, Before/After, Prohibition) are so powerful and so portable: **the frame manufactures the gap**, so they work at 5 seconds or 60, humor or education, any niche. Contrast a plain talking-head, where you must *manually* construct and sustain the gap.
+
+**Teaching consequence:** when analyzing or building, identify the **auto-question** a frame opens. That question — not the surface content — is the engine. The auto-question also usually spans goals at once (e.g. VS: "which is better?" = authority/Sales; "do I relate?" = identity/Growth; "what's the difference?" = curiosity/Views); which one you *answer in the delivery* is how you load the goal.
+
+### 1.3 Promises are frequently implied, not stated
+
+A promise can be delivered wordlessly (mechanisms in §4.1). Same spine, different promise modes:
+- **Watermelon outline, red marker, marker-on-paper sound.** Hook = brain-scratch sound + bright color. Promise = *implied* ("you'll see this finished"). Tension = the satisfying coloring. Delivery = the finished piece.
+- **Artist starts zoomed in.** Promise = *withheld* ("you'll finally see what this is"). The gap is the withholding.
+- **"bet I go to bed looking like a founding father."** Promise = *stated* stakes + transformation. Tension = the process. Delivery = the final look, at the very end, then immediate cut.
+
+### 1.4 Payoff-Last — deliver at the end, never in the middle (critical)
+
+**The delivery goes at or near the very end. Never resolve the core loop mid-video.** Once the viewer has the payoff, the reason to stay is gone — and if the payoff is *actionable* (a concept to go search, a thing to go do), delivering it early doesn't just release them, it *pushes them off-platform*. Everything before the delivery is tension: setup, stakes, removing wrong answers, deepening the gap. The delivery is last. Add nothing after it that reopens a reason to leave.
+
+**Worked example — same payload, opposite retention:**
+
+*Front-loaded (wrong):* "You don't need to post more → you need sales psychology → [explains sales psychology] → CTA." The answer ("sales psychology") lands in beat two. The loop closes immediately; the viewer now has the concept and leaves to go Google it. Everything after plays to an empty room. The payoff *caused* the drop-off.
+
+*Payoff-last (right):*
+- **Hook (text):** "how I got my first sale from social media" → opens: *how did she?*
+- **Remove the wrong answer (deepens the gap):** "you don't need to post more — you only think that because gurus told you visibility → virality → eventually sales."
+- **Raise stakes mid-tension (new sub-loop):** "but virality doesn't guarantee sales — I'd argue it *hurts* it."
+- **Delivery, final beat:** "if you want your first sale, you need exactly what I teach my clients — sales psychology content."
+
+Same information. The difference is *where the answer lands*. Front-loaded = beat two = exit. Payoff-last = final beat = full watch-through with nothing after to drop off from.
+
+**Quick-CTA exception:** a fast end CTA ("link in bio," "follow for part 2," "comment X") riding out the completion is fine — not a hard rule against anything after the payoff. The danger is *substantive* content after the payoff, or a payoff dumped early. A 1–2s CTA is fine; a 20s explainer after you've already answered is death.
+
+**Why "design payoff first, build backward" (§6.3):** you can't withhold toward an ending you haven't chosen. Front-loaded scripts read like someone writing forward and delivering the point the moment they think of it. Payoff-last reads like someone who knew the last line and engineered the middle to delay it.
+
+### 1.5 Loops don't all have to close — open loops are a tool
+
+The primary loop usually resolves, but secondary or accidental loops can stay open **and boost retention/engagement**: an unclosed loop drives **profile visits** ("part 2 somewhere?"), floods **comments** (asking/guessing/complaining = engagement), or baits a **follow**. Real case: a heatless-curls video delivered its *primary* promise (final look, at the end) while an *accidental* loop — unexplained blue acne patches — never closed; viewers stayed to find out and the comments filled with the question. That *helped*.
+
+**Grading consequence:** payoff quality is not "did every loop close." It's "are the open loops intentional and doing work?" Primary resolves + useful secondary dangles = good technique. Primary abandoned with no benefit = flaw.
+
+### 1.6 Diagnostic use of the spine
+
+- Left in the first second → **Hook** didn't interrupt (or interrupted without promising).
+- Watched the hook, then left → **Promise** weak; gap too small to care.
+- Left mid-video → **Tension** not holding; nothing pulling forward. *Or the delivery leaked early (§1.4).*
+- Watched almost to the end, left before payoff → **Delivery** mistimed, or the loop closed too soon.
+
+---
+
+---
+
+# PART 2 — STRUCTURAL LAYER
+
+## §2 What to identify
+
+1. **Spine present?** Name Hook, Promise, Tension, Delivery. A missing element predicts a specific drop-off (§1.6).
+2. **Auto-question?** What question does the frame open in the viewer (§1.2)? Is it auto-generated by the frame or manually built?
+3. **Which skeleton?** A §5 formula, a board formula, or none. "None" is fine — reason from the spine.
+4. **Promise mechanism(s)** (§4.1) — often stacked.
+5. **Tension mechanism(s)** (§4.2).
+6. **Dual engagement?** (§2.2)
+7. **Goal layer** — which goal-elements are woven in (§3)?
+8. **Payoff placement** — end, or leaked early (§1.4)?
+
+### 2.1 Hook modalities
+
+Four channels, alone or combined: **Text** (on-screen words), **Visual** (image, color, motion, composition), **Verbal** (spoken words), **Audio** (non-verbal sound — a sound effect, a catchy nonsense phrase, a trending sound). A 20M-view "girl dog vs / boy dog" runs almost entirely on text + audio + visual gag with no teaching at all.
+
+**Grading distinction:** a hook that only interrupts scores lower than one that interrupts *and* opens the gap in the same beat. Note which.
+
+### 2.2 Dual engagement
+
+Most retentive content loads two channels at once: **visual = satisfaction, audio = value.**
+
+| Visual satisfaction | Audio value |
+|---|---|
+| Process (makeup, coloring, cleaning, organizing) | Controversial take |
+| Transformation (before/after) | Education |
+| Rhythmic / meditative motion | Storytelling |
+| Precision work | Problem → solution |
+
+Both firing = **cognitive lock** (leaving interrupts several rewards at once). **Test:** (1) holds with sound off? (2) holds as audio-only? Fail both = single-channel = weaker. A single strong channel can still work (pure ambient satisfaction, or pure storytelling), but two is stronger.
+
+---
+
+---
+
+# PART 3 — EXECUTION LAYER
+
+## §3 Universal execution quality (applies to every video, every format)
+
+A correct structure only fires if it's well-built. **These are universal — they are not properties of any one formula, so formula entries never restate them:**
+
+- **Gap strength** — large enough to care about, small enough to believe (§4.3). Too small = "don't care." Too large = "don't buy it."
+- **Pacing** — momentum holds; no dead zones or slow builds that leak tension.
+- **Tension quality** — the tension is actually *tense*, not a limp middle.
+- **Delivery energy** — confidence, tone, volume, charisma. A great skeleton delivered quietly and slowly dies.
+- **Sound** — trending / original / natural audio supports mood and rhythm.
+- **Payoff timing** — resolves at the end, not the middle (§1.4). This is the single most common execution failure, including in AI-written scripts.
+- **Message match** — hook, promise, and delivery actually connect; no bait-and-switch.
+
+**Core teaching:** the assistant must be able to say "right skeleton, wrong execution." Someone can run any formula perfectly on paper and make a dead video — quiet delivery, slow pacing, a weak gap, a payoff that leaked early. Execution is where most content fails.
+
+### 3.1 Relatability breadth — the ceiling lever
+
+Not part of the spine, but the biggest single predictor of a format's *reach ceiling*: **how many people instantly relate to / understand / enjoy the setup.** The broader the reference point, the higher the ceiling. "Girl dog vs boy dog" — nearly everyone has the reference (20M ceiling). "Amateur vs seasoned Wix designer" — a niche (100K-ish ceiling). *Same spine, same auto-question; breadth sets how wide it fires.* Then execution decides how much of that ceiling you actually capture.
+
+Use it two ways: in ASSESS, factor breadth into the realistic reach ceiling before judging a view count. In CREATE/OPTIMIZE for Views, widen the reference point (broaden the topic, pick a more universal pairing) to raise the ceiling — without diluting the goal for niche Sales content, where a smaller, righter audience matters more than raw reach.
+
+---
+
+---
+
+# PART 4 — THE GOAL LAYER
+
+## §4-pre The additive model
+
+Goals don't change the spine. Views, Growth, and Sales content all run Hook → Promise → Tension → Delivery. What changes is the **formulas, snippets, CTAs, and implied CTAs woven through it.** Because these are *additive*, one video can carry all three.
+
+There's usually a **primary** goal — the one the *delivery itself* serves — with others woven in as captions, on-screen CTAs, positioning lines, open loops. Real case: "things I refuse to do as a designer" was primarily **Sales** (directly cited by inbound leads) while also driving Views (swear-word hook, controversy) and Growth (follow CTA).
+
+### Goal-element menu
+
+| Goal | Woven-in elements |
+|---|---|
+| **Views** | Controversy, tribal triggers, borrowed virality (stitch/trend), share-bait ("send this to…"), strong pattern-interrupt hooks, quotable lines, broad relatability (§3.1) |
+| **Growth** | Ongoing-value promise ("follow for more…"), series framing ("part 1 of…"), open loops baiting part 2, consistent themes, insider-access language |
+| **Sales** | Authority positioning, problem→solution bridge, client results, offer/CTA, freebie lead-capture, "this is what I do for clients," authority-through-withholding (§4.4) |
+
+### Known tension between goals
+
+- **Views ↔ Sales.** A hook tuned for maximum shareability pulls a broad audience that isn't your buyer, and heavy sales mechanics suppress reach. The 650K/0-sales stitch is the cautionary case. Flag this tradeoff rather than pretend all three are free.
+- **All three together** is achievable (This vs. That, Them vs. Me) usually only when the *delivery* carries genuine expertise-tied value, so the reach audience is also the right audience.
+
+When asked for all three: build for the primary, weave the others, name the tradeoff.
+
+---

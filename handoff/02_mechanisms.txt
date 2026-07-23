@@ -1,0 +1,84 @@
+# SUPERLUNAR VIDEO KNOWLEDGE BASE — MECHANISM TAXONOMIES
+# File 3 of 5. Load order matters: 00 before 01 before 02, etc.
+# This file is part of a single connected framework; sections reference each other by § number.
+
+# PART 5 — MECHANISM TAXONOMIES
+
+Finite *ways* a promise or tension works. Content is infinite; mechanisms are enumerable. Both lists are **open seed sets** (§0.8) — discover and name new ones.
+
+## §4.1 Promise mechanisms
+
+An implied promise is **any element that makes a viewer form an unanswered question they want resolved.** To find promises anywhere, scan every element — face, hands, wardrobe, objects, background, sound, text, framing — and ask: *could this make someone wonder something?* If yes, name the question it opens.
+
+| Mechanism | The auto-question | Seen in |
+|---|---|---|
+| **Comparison (VS)** | "What's the difference? Which is better? Do I relate?" | X vs Y; "X vs ___" (withheld) |
+| **Transformation** | "What's the finished state?" | Before/after, makeover |
+| **Completion / reveal** | "I want to see this finished." | Coloring-in, building |
+| **Withheld identity** | "What even is this?" | Zoomed-in start, obscured subject |
+| **Correction / contradiction** | "Wait — is what I believe wrong?" | Stitch-correction, myth-bust, "actually…" |
+| **Prohibition / reactance** | "Why shouldn't I? Now I want to see it." | "Whatever you do, DON'T…" then does it |
+| **Stated stakes / juicy tea** | "There's something worth hearing here." | Swear-word open, "the sh*t designers do" |
+| **Data / gotcha** | "Why is she showing this? Something's coming." | Pointing at real metrics, "wait for it" |
+| **Accidental anomaly** | "What is that / why is that there?" | Unexplained on-screen detail |
+
+Promises **stack** — one video runs several at once (the founding-father clip = stated stakes + transformation + accidental anomaly).
+
+**Accidental anomalies — hunt for them.** The creator doesn't control every open loop; any on-screen element attention catches on becomes a promise. In CRITIQUE, surface them ("things on screen you didn't mention that viewers may be staying for"). In CREATE/OPTIMIZE, weaponize them (deliberately plant an unexplained detail).
+
+## §4.2 Tension mechanisms
+
+What holds the gap open between Promise and Delivery. Open set:
+
+| Mechanism | How it holds |
+|---|---|
+| **Satisfying process** | Visual/audio satisfaction is pleasant; leaving interrupts it |
+| **Storytelling** | A narrative loop; we want the end |
+| **Progressive contradiction** | Show things getting *worse* so the brain screams "why is this failing?" — the reversal hits harder |
+| **Withheld reveal** | The answer is visibly coming, not yet given |
+| **Comparison anticipation** | Side 1 shown; side 2 pending |
+| **Contextual delay** | Build related context 10–15s before payoff |
+| **Wrong-answer removal** | Clear away what it *isn't* to deepen "then what is it?" (the sales-psychology script) |
+
+Tension *presence* is structural; tension *quality* is execution (§3).
+
+## §4.3 Curiosity gap sizing
+
+Large enough to care, small enough to believe. Too large ("one trick makes you rich") = not believable. Too small ("a tip about email") = nobody cares. Correct ("the email mistake costing you clients") = believable *and* concerning.
+
+## §4.4 Psychological drivers (reference lens)
+
+- **Reactance** — being told "don't" makes us want to (Prohibition/Defiance).
+- **Zeigarnik effect** — open loops nag until closed (all tension).
+- **Observational anxiety** — "am I the only one noticing?" (correction hooks).
+- **Tribal identity** — in-group/out-group defense drives comments ("what color is your Target?", designers arguing).
+- **Cognitive completion** — resolving a contradiction feels rewarding; viewers feel smart.
+- **Borrowed virality** — stitch/trend inherits an audience (high reach, low loyalty).
+- **Authority through withholding** — explain *what* + *why*, hide *how*, so the viewer still needs you (Sales bridge).
+- **Parasocial trust** — consistency + behind-the-scenes access = insider feeling (Growth).
+- **Binary simplification / completion compulsion** — two options force involuntary comparison and "must see both" (VS engine).
+
+---
+
+---
+
+# APPENDIX A — Glossary
+
+| Term | Definition |
+|---|---|
+| **Spine** | Hook → Promise → Tension → Delivery. §1 |
+| **Auto-question** | The question a frame opens in the viewer for free; the engine of loose formats. §1.2 |
+| **Promise vs. curiosity gap** | Same beat: what the creator builds vs. its effect in the viewer. §1.1 |
+| **Payoff-last** | Deliver the answer at/near the end; never resolve the core loop mid-video. §1.4 |
+| **Front-loaded delivery** | The failure of answering the hook early, releasing the viewer (often off-platform). §1.4, §6.2 |
+| **Open loop** | An unclosed promise; can boost profile visits, comments, follows. Not a flaw if intentional. §1.5 |
+| **Accidental anomaly** | An unplanned on-screen detail that becomes a retention loop. §4.1 |
+| **Structure vs. execution** | *What* a video does vs. *how well* it's built. Both graded. §0.7, §2–3 |
+| **Dual engagement / cognitive lock** | Visual carries satisfaction, audio carries value; both firing = hard to leave. §2.2 |
+| **Loose vs. tight format** | Wide goal range vs. a mechanic that commits the goal. §5.0 |
+| **Observed vs. format range** | One video's result vs. what the container can do when loaded well. §0.6 |
+| **Relatability breadth** | How many people instantly relate; the main reach-ceiling lever. §3.1 |
+| **Goal layer** | Additive Views/Growth/Sales elements woven into the spine. §4 |
+| **Borrowed virality** | Reach inherited from a stitch/trend; high views, low loyalty. §4.4 |
+| **Authority through withholding** | Explain what + why, hide how, so the viewer still needs you. §4.4 |
+| **Promotion rule** | A new skeleton is added only after it recurs across unrelated videos. §5.10 |
