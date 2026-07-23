@@ -188,8 +188,18 @@ class CommentFetcher:
                     "cursor": cursor
                 }
 
-                response = requests.get(api_url, headers=headers, params=params, timeout=15)
-                response.raise_for_status()
+                for attempt in range(3):
+                    try:
+                        response = requests.get(api_url, headers=headers, params=params, timeout=30)
+                        response.raise_for_status()
+                        break
+                    except requests.exceptions.ReadTimeout:
+                        if attempt < 2:
+                            print(f"[COMMENTS] TikTok API timeout (attempt {attempt + 1}/3), retrying...")
+                            import time as _time
+                            _time.sleep(2 * (attempt + 1))
+                        else:
+                            raise
 
                 data = response.json()
 
