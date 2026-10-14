@@ -343,6 +343,9 @@
                 {% if current_user.is_authenticated %}
                     <a href="/" class="nav-link">Analyze</a>
                     <a href="/history" class="nav-link">History</a>
+                    {% if current_user.email.lower() == 'christina@superlunardesign.com' %}
+                    <a href="/admin/patterns" class="nav-link">Patterns</a>
+                    {% endif %}
                     <span class="user-email">{{ current_user.email }}</span>
                     <a href="/logout" class="nav-link btn-outline">Logout</a>
                 {% else %}

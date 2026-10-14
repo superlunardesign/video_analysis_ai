@@ -190,14 +190,32 @@ def extract_audio(video_path: str) -> str:
             print(f"[AUDIO] Extracted audio: {os.path.getsize(audio_path)} bytes")
             return audio_path
         else:
-            print(f"[AUDIO] Audio file empty or missing after extraction")
-            return None
+            print(f"[AUDIO] Audio file empty or missing after extraction, trying subprocess fallback...")
     except Exception as e:
         stderr_text = getattr(e, 'stderr', b'').decode('utf-8', errors='replace') if hasattr(e, 'stderr') else str(e)
-        print(f"[AUDIO ERROR] Audio extraction failed: {stderr_text[:500]}")
-        if 'does not contain any stream' in stderr_text or 'no audio' in stderr_text.lower():
-            print("[AUDIO] Video has no audio stream")
-        return None
+        print(f"[AUDIO] ffmpeg-python extraction failed: {stderr_text[:300]}")
+
+    # Subprocess fallback: try extracting with different approach
+    try:
+        audio_path_fb = os.path.abspath(os.path.join("audio", f"aud_{int(time.time())}_fb.mp3"))
+        result = subprocess.run(
+            ["ffmpeg", "-y", "-i", video_path, "-vn", "-acodec", "libmp3lame",
+             "-ar", "44100", "-ac", "2", "-q:a", "4", audio_path_fb],
+            capture_output=True, text=True, timeout=30
+        )
+        if os.path.exists(audio_path_fb) and os.path.getsize(audio_path_fb) > 0:
+            print(f"[AUDIO] Subprocess fallback succeeded: {os.path.getsize(audio_path_fb)} bytes")
+            return audio_path_fb
+        else:
+            print(f"[AUDIO] Subprocess fallback also produced no output")
+            if result.stderr and 'does not contain any stream' in result.stderr:
+                print("[AUDIO] Video genuinely has no audio stream")
+            elif result.stderr:
+                print(f"[AUDIO] stderr: {result.stderr[-300:]}")
+    except Exception as e2:
+        print(f"[AUDIO] Subprocess fallback failed: {e2}")
+
+    return None
 
 
 # ------------------------------------------------------------------------------
@@ -418,7 +436,9 @@ def _hamming(a: int, b: int) -> int:
     return (a ^ b).bit_count()
 
 
-def dedupe_frames_by_phash(paths: List[str], dist: int = 4) -> List[str]:
+def dedupe_frames_by_phash(paths: List[str], dist: int = 2) -> List[str]:
+    """Remove near-identical frames. dist=2 keeps frames that differ even slightly
+    (e.g. different on-screen text or overlays on same background)."""
     kept, hashes = [], []
     for p in paths:
         try:
@@ -448,7 +468,7 @@ def extract_audio_and_frames(
     strategy: str = "smart",            # "smart", "uniform", or "intelligent"
     frames_per_minute: int = 24,        # used if uniform
     cap: int = 60,                      # max frames returned
-    scene_threshold: float = 0.24       # lower = more sensitive
+    scene_threshold: float = 0.18       # lower = more sensitive to on-screen content changes
 ) -> Tuple[str, str, List[str]]:
     """
     Download video, extract audio, pick frames by strategy, apply quality filters.
@@ -480,7 +500,7 @@ def extract_audio_and_frames(
     else:
         # SMART: scene + motion + anchors + settle, then quality filters
         sc_times = scene_change_times(video_path, threshold=scene_threshold)
-        mo_times = motion_event_times(video_path, window_sec=0.30, mag_thresh=12.0)
+        mo_times = motion_event_times(video_path, window_sec=0.30, mag_thresh=10.0)
 
         merged = sorted(set(sc_times + mo_times))
         ts_list = build_sampling_times(dur, merged, max_frames=cap)
@@ -488,7 +508,7 @@ def extract_audio_and_frames(
 
         paths = extract_frames_at_times(video_path, frames_dir, ts_list)
         paths = [p for p in paths if not is_blurry(p)]
-        paths = dedupe_frames_by_phash(paths, dist=4)
+        paths = dedupe_frames_by_phash(paths, dist=2)
         paths = keep_text_heavy_frames(paths, min_chars=0)
         paths = sorted(paths)[:cap]
 
@@ -504,7 +524,7 @@ def extract_audio_and_frames_from_file(
     strategy: str = "smart",
     frames_per_minute: int = 24,
     cap: int = 60,
-    scene_threshold: float = 0.24
+    scene_threshold: float = 0.18
 ) -> Tuple[str, str, List[str]]:
     """
     Same as extract_audio_and_frames but takes a local file path instead of a URL.
@@ -528,7 +548,7 @@ def extract_audio_and_frames_from_file(
             paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute=18, cap=min(cap, 20))
     else:
         sc_times = scene_change_times(video_path, threshold=scene_threshold)
-        mo_times = motion_event_times(video_path, window_sec=0.30, mag_thresh=12.0)
+        mo_times = motion_event_times(video_path, window_sec=0.30, mag_thresh=10.0)
 
         merged = sorted(set(sc_times + mo_times))
         ts_list = build_sampling_times(dur, merged, max_frames=cap)
@@ -536,7 +556,7 @@ def extract_audio_and_frames_from_file(
 
         paths = extract_frames_at_times(video_path, frames_dir, ts_list)
         paths = [p for p in paths if not is_blurry(p)]
-        paths = dedupe_frames_by_phash(paths, dist=4)
+        paths = dedupe_frames_by_phash(paths, dist=2)
         paths = keep_text_heavy_frames(paths, min_chars=0)
         paths = sorted(paths)[:cap]
 

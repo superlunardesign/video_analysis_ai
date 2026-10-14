@@ -1399,12 +1399,12 @@ def run_main_analysis(transcript_text, frames_summaries_text, creator_note, plat
     knowledge_section = ""
     if knowledge_context and len(knowledge_context.strip()) > 100:
         knowledge_section = f"""
-KNOWLEDGE BASE PATTERNS (Apply these insights deeply):
+KNOWLEDGE BASE CONTEXT:
 {knowledge_context}
 
 DEEP ANALYSIS REQUIREMENTS:
 1. EXPLAIN THE PSYCHOLOGY: Why does this video keep people watching until the end. explain it plainly but in an explanatory manner. how did the hook or hooks work to grab attention? what curiosity gap was created and what were the questions the viewer's mind that kept them watching? when was the curiosity gap closed and did the video end there or continue to create a new hook, promise, payoff. Also explain this in a way something similar to "the hook(s): [hooks here] made people pay attention because → the promise/curiosity gap created the question of [insert question or questions created by curioisty gap]. What they expect to see/hear/understand. → Tension is built by [explain what builds tension that keeps people wanting to stay to close the gap] → Gap is closed when results/ending/answer is shown" if it didn't follow the formulas explain why. what elements work or don't work?
-2. REFERENCE PROVEN PATTERNS: Connect to specific patterns from the knowledge base
+2. REFERENCE PATTERNS ONLY WHEN RELEVANT: If a knowledge base pattern genuinely matches what this video does, cite it. If none fit, say so — do not stretch a pattern to fit. Analyze the video on its own merits first.
 3. BE SPECIFIC: Analyze EXACTLY what happens in THIS video, not generic observations
 4. DISTINGUISH CONTENT TYPES: Clearly differentiate and identify what's spoken vs what's shown vs what's written. if text on screen correlates with script then it may be captions, sometimes though people do not add captions and add text on screen that matches what they said. 
 5. PERFORMANCE REASONING: Explain WHY this got {view_count if view_count else 'its current'} views
@@ -3072,15 +3072,17 @@ Key patterns for video analysis:
             from models import KnowledgePattern
             db_patterns = KnowledgePattern.query.order_by(KnowledgePattern.created_at.desc()).all()
             if db_patterns:
-                curator_knowledge = "\n\n=== CURATOR-SUBMITTED KNOWLEDGE PATTERNS ===\n"
-                curator_knowledge += "These are verified strategies observed by expert curators:\n\n"
+                curator_knowledge = "\n\n=== CURATOR-OBSERVED PATTERNS (reference only) ===\n"
+                curator_knowledge += "These patterns were observed in specific successful videos. "
+                curator_knowledge += "Only cite a pattern if it genuinely fits THIS video. "
+                curator_knowledge += "Most videos will match zero or one of these — do NOT force-apply them.\n\n"
                 for pat in db_patterns:
                     curator_knowledge += f"--- Pattern: {pat.pattern_summary} ---\n"
                     if pat.key_insights:
                         for insight in pat.key_insights:
                             curator_knowledge += f"  - {insight}\n"
                     if pat.when_to_apply:
-                        curator_knowledge += "  Apply when: " + "; ".join(pat.when_to_apply) + "\n"
+                        curator_knowledge += "  Relevant when: " + "; ".join(pat.when_to_apply) + "\n"
                     if pat.cautions:
                         curator_knowledge += "  Cautions: " + "; ".join(pat.cautions) + "\n"
                     curator_knowledge += "\n"
@@ -3694,6 +3696,33 @@ def preview_pattern():
         import traceback
         traceback.print_exc()
         return {"status": "error", "message": str(e)}, 500
+
+
+@app.route("/admin/patterns")
+@login_required
+def admin_patterns():
+    """View and manage saved knowledge patterns (admin only)."""
+    if not current_user.is_authenticated or current_user.email.lower() != 'christina@superlunardesign.com':
+        return "Access denied", 403
+    from models import KnowledgePattern
+    patterns = KnowledgePattern.query.order_by(KnowledgePattern.created_at.desc()).all()
+    return render_template("patterns.html", patterns=patterns)
+
+
+@app.route("/admin/patterns/<int:pattern_id>", methods=["DELETE"])
+@login_required
+def delete_pattern(pattern_id):
+    """Delete a saved knowledge pattern (admin only)."""
+    if not current_user.is_authenticated or current_user.email.lower() != 'christina@superlunardesign.com':
+        return {"status": "error", "message": "Access denied"}, 403
+    from models import KnowledgePattern
+    pattern = KnowledgePattern.query.get(pattern_id)
+    if not pattern:
+        return {"status": "error", "message": "Pattern not found"}, 404
+    db.session.delete(pattern)
+    db.session.commit()
+    print(f"[LEARNING] Pattern #{pattern_id} deleted by {current_user.email}")
+    return {"status": "success", "message": f"Pattern #{pattern_id} deleted"}, 200
 
 
 @app.route("/submit_for_learning", methods=["POST"])

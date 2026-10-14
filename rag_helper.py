@@ -31,7 +31,7 @@ def _embed_query(q: str) -> np.ndarray:
     v = v / (np.linalg.norm(v) + 1e-12)
     return v
 
-def get_baseline_knowledge(meta, max_chars: int = 30000) -> Tuple[str, List[dict]]:
+def get_baseline_knowledge(meta, max_chars: int = 60000) -> Tuple[str, List[dict]]:
     """
     ALWAYS include viral/retention essentials for ALL videos
     These are the foundation of ANY successful video
@@ -234,20 +234,20 @@ def get_specific_knowledge(meta, mat, transcript, frames, creator_note, goal, ma
 
 def retrieve_smart_context(transcript: str, frames: str, creator_note: str, goal: str, max_chars: int = 95000) -> Tuple[str, List[dict]]:
     """
-    ALWAYS: Core knowledge base (55K)
-    PLUS: Goal-specific knowledge (35K)
+    ALWAYS: Core knowledge base (60K)
+    PLUS: Goal-specific knowledge (30K)
     """
     mat, meta = _load_matrix_and_meta()
     if mat is None or meta is None:
         print("[WARNING] No embeddings found, trying fallback to all context")
         return retrieve_all_context(max_chars)
     
-    # Step 1: ALWAYS get the full core knowledge base (55K chars)
-    baseline_text, baseline_cits = get_baseline_knowledge(meta, 55000)
+    # Step 1: ALWAYS get the full core knowledge base (60K chars)
+    baseline_text, baseline_cits = get_baseline_knowledge(meta, 60000)
 
-    # Step 2: Add goal-specific knowledge (35K chars)
+    # Step 2: Add goal-specific knowledge (30K chars)
     specific_text, specific_cits = get_specific_knowledge(
-        meta, mat, transcript, frames, creator_note, goal, 35000
+        meta, mat, transcript, frames, creator_note, goal, 30000
     )
     
     # Determine section label based on goal
