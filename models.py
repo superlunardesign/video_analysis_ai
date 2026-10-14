@@ -128,11 +128,14 @@ def init_db(app):
 
     # Handle Heroku-style postgres:// URLs (need to be postgresql://)
     if database_url and database_url.startswith('postgres://'):
-        database_url = database_url.replace('postgres://', 'postgresql://', 1)
-        print("[DB] Converted postgres:// to postgresql://")
+        database_url = database_url.replace('postgres://', 'postgresql+psycopg2://', 1)
+        print("[DB] Converted postgres:// to postgresql+psycopg2://")
+    elif database_url and database_url.startswith('postgresql://') and '+' not in database_url.split('://')[0]:
+        database_url = database_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+        print("[DB] Added +psycopg2 driver to postgresql:// URL")
 
     # Validate URL format
-    if database_url and not database_url.startswith(('postgresql://', 'sqlite://')):
+    if database_url and not database_url.startswith(('postgresql://', 'postgresql+psycopg2://', 'sqlite://')):
         print(f"[DB ERROR] Invalid DATABASE_URL format. Must start with 'postgresql://' or 'sqlite://'")
         print(f"[DB ERROR] First 50 chars: {database_url[:50]}")
         print("[DB] Falling back to SQLite")
