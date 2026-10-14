@@ -1402,16 +1402,42 @@ def run_main_analysis(transcript_text, frames_summaries_text, creator_note, plat
 KNOWLEDGE BASE CONTEXT:
 {knowledge_context}
 
-DEEP ANALYSIS REQUIREMENTS:
-1. EXPLAIN THE PSYCHOLOGY: Why does this video keep people watching until the end. explain it plainly but in an explanatory manner. how did the hook or hooks work to grab attention? what curiosity gap was created and what were the questions the viewer's mind that kept them watching? when was the curiosity gap closed and did the video end there or continue to create a new hook, promise, payoff. Also explain this in a way something similar to "the hook(s): [hooks here] made people pay attention because → the promise/curiosity gap created the question of [insert question or questions created by curioisty gap]. What they expect to see/hear/understand. → Tension is built by [explain what builds tension that keeps people wanting to stay to close the gap] → Gap is closed when results/ending/answer is shown" if it didn't follow the formulas explain why. what elements work or don't work?
-2. REFERENCE PATTERNS ONLY WHEN RELEVANT: If a knowledge base pattern genuinely matches what this video does, cite it. If none fit, say so — do not stretch a pattern to fit. Analyze the video on its own merits first.
-3. BE SPECIFIC: Analyze EXACTLY what happens in THIS video, not generic observations
-4. DISTINGUISH CONTENT TYPES: Clearly differentiate and identify what's spoken vs what's shown vs what's written. if text on screen correlates with script then it may be captions, sometimes though people do not add captions and add text on screen that matches what they said. 
-5. PERFORMANCE REASONING: Explain WHY this got {view_count if view_count else 'its current'} views
-6. ACTIONABLE INSIGHTS: Provide specific improvements to this exact video like explaining how a stronger curiosity gap could have been created or delivery could have been saved until after saying something.
-7. TIMING PRECISION: Break down what happens at each second marker and watch for lulls in conversation to understand where pacing could have been improved if applicable
+ANALYSIS APPROACH — OBSERVE FIRST, THEN EVALUATE:
+
+STEP 1 — IDENTIFY THE FORMAT:
+Before evaluating anything, determine what this video IS. Does it match a known format from the
+knowledge base (e.g. Before & After, Expert Callout, List Tease, Process Reveal)? If so, name it.
+If it doesn't fit any known format cleanly, describe its structure on its own terms — but only
+call it a genuinely new format if it represents a distinct, reusable pattern. Most videos are
+variations of existing formats, not new ones.
+
+STEP 2 — INFER THE VIDEO'S LIKELY GOAL(S):
+Based on the content, CTA, structure, and audience — what is THIS video trying to achieve?
+Possible goals: views/reach, follower growth, sales/inquiries, engagement/comments, authority
+building, community, education. A video can serve multiple goals, or clearly prioritize one.
+State what you see, not what the user selected (the user's selected goal "{goal}" is for the
+replication formula output, not a description of this video's intent).
+
+STEP 3 — EVALUATE EXECUTION:
+Now grade how well this video executes its own format and serves its own goal(s). Where does it
+excel? Where does it fall short? Judge it by its own standards, not by a generic viral checklist.
+
+ANALYSIS REQUIREMENTS:
+1. EXPLAIN THE PSYCHOLOGY: How do the hooks grab attention? What curiosity gap is created and
+   what questions form in the viewer's mind? When is the gap closed — and does the video end
+   there or open a new loop? Trace the flow: hook → promise → tension → payoff.
+2. REFERENCE PATTERNS ONLY WHEN RELEVANT: If a knowledge base pattern genuinely matches what
+   this video does, cite it. If none fit, say so — do not stretch a pattern to fit.
+3. BE SPECIFIC: Analyze EXACTLY what happens in THIS video, not generic observations.
+4. DISTINGUISH CONTENT: Differentiate what's spoken vs shown vs written on screen. Compare
+   transcript with text overlays to determine if text is captions or added text.
+5. PERFORMANCE REASONING: Explain WHY this got {view_count if view_count else 'its current'}
+   views given its format, niche, and inferred goal(s).
+6. ACTIONABLE IMPROVEMENTS: Suggest changes specific to this video's format and goal — not
+   generic advice that applies to every video.
+7. TIMING PRECISION: Note pacing, lulls, and where attention may drop.
 8. HANDLE ALL VIDEO TYPES: Visual-only, speech, viral audio, tutorials, transformations, etc.
-9. CONSIDER CREATOR NOTES. IF QUESTIONS OR REQUESTS ARE MADE, answer THEM. IF CONTEXT IS PROVIDED, CONSIDER IT WITH YOUR ANALYSIS.
+9. CREATOR NOTES: If notes contain questions or context, address them directly.
 """
 
     # Adapt prompt based on video type
@@ -1591,55 +1617,24 @@ THEN SUGGEST: Amplifications to go even bigger
    - Are sounds and visuals synchronized effectively?
    - Does the audio-visual combination create satisfaction?
 
-5. PATTERN MATCHING:
-   - Which proven patterns from the knowledge base apply?
-   - How well does it execute these patterns?
-   - What patterns could be better implemented?
-   
-MANDATORY: Every formula and hook suggestion MUST include:
-1. A specific example INSPIRED BY the knowledge base, no need to adhere too strictly as long as it fits the criteria for a strong hook
-2. How to adapt it to either the same niche or 'audience'
-3. The exact psychological principles it leverages
-4. Expected performance metrics based on similar content
+5. FORMAT EVALUATION:
+   - What format does this video use? Does it match a known pattern from the knowledge base?
+   - How well does it execute that format's requirements?
+   - Where does the execution fall short of what makes that format work?
+   - If it doesn't match a known format, describe its structure and evaluate it on its own terms.
 
-Example output format:
-"Hook 1 - Controversial angle: 'Your skincare routine is aging you faster (here's why)' 
-- Adaptation: For fitness: 'Your workouts are making you weaker', For cooking: 'Your healthy meals are nutrient-dead'
-- Psychology: Challenges existing beliefs, creating cognitive dissonance that demands resolution
-- Expected CTR: 2.3x baseline based on controversial hook performance"
-
-Example output format for formulas:
-This video would do well being readapted to [recommended formula]. Here is how I'd do it for maximum success in [goal]:
-[reformat video into recommended video format with an exact script based off your experise and the supporting knowledge. give exact script example and include where to place pattern interrupts and other opportunities to layers hooks, reintroduce hooks, and continually leave the curiosity gap open until the end of the video. Explain in an educational and descriptive way without too much jargon.]
-
-CRITICAL CONTEXT:
-- Platform: {platform}
-- Performance: {view_count if view_count else 'Not specified'} ({performance_level})
-- Creator's note: "{creator_note if creator_note else 'No additional context'}"
-- Content type detected: {visual_content_analysis.get('content_type', 'general')}
-- Audio type: {audio_type_info.get('audio_description', 'unknown')}
-- Goal: {goal}
-- Target audience: {audience}
-- Duration target: {target_duration}s
-- Niche context: {' (mentions inquiries/sales)' if creator_note and ('inquir' in creator_note.lower() or 'sale' in creator_note.lower()) else ''}
-
-PERFORMANCE CALIBRATION:
-- For B2B/professional content: 90k views = HIGHLY SUCCESSFUL
-- For entertainment: 90k views = moderate
-- If creator mentions "inquiries" or "sales" = SUCCESS regardless of views
-
-AUDIO CONTEXT:
-{f"SONG LYRICS (attached track: {audio_type_info.get('track_name', 'unknown')}): {transcript_text}  — NOTE: These are song lyrics, NOT the creator speaking. Do not interpret them as the video's message." if is_song else (f"Speech detected: {transcript_text}" if has_speech else f"Non-speech audio: {audio_type_info.get('likely_sound_source', 'ambient sounds')} (based on visual activity)")}
-
-VISUAL CONTENT (frames - what's SHOWN/WRITTEN):
-{frames_summaries_text}
-
-{knowledge_section}
-
-{video_type_context}
-
-{performance_message}
-
+HOOK AND SUGGESTION DISCIPLINE:
+- Every suggested hook MUST leave a curiosity gap open. If the hook tells the viewer what the
+  answer is, it has failed — the viewer has no reason to watch. Test every hook you write: "Would
+  I keep scrolling because I already know the answer?" If yes, rewrite it.
+- Do NOT default to a single hook style. "$X mistake" stakes hooks, controversial reframes,
+  self-implicating questions, transformation teases — these are ALL valid approaches, but the
+  right one depends on the video's format, niche, and goal. A sales video, an educational video,
+  and an entertainment video need different hook strategies.
+- Hook suggestions should feel like they belong on THIS creator's page, not like generic viral
+  templates pasted in. Consider their tone, niche, and audience.
+- When suggesting improvements, explain WHY this specific change would work for THIS video's
+  format and goal — not just that it's a "proven" technique.
 
 {"Respond using SECTION DELIMITERS with DEEP, COMPREHENSIVE insights. Provide detailed, educational explanations with full psychological breakdowns. Don't hold back on details and examples." if analysis_depth == 'deep' else "Respond using SECTION DELIMITERS with CONCISE, ACTIONABLE insights. Keep each section brief (2-4 sentences). Focus on the most important takeaways only."}
 
@@ -1648,7 +1643,7 @@ You can use quotes "like this" freely, write multiple paragraphs, and format nat
 Use this EXACT format with === delimiters:
 
 ===WHAT_THIS_VIDEO_IS===
-{"This is a [specific formula/pattern] video that [explain the core idea/hook/appeal in educational, explanatory language]. It works because [detailed psychological reason with moment-by-moment breakdown explaining hook effectiveness, promise clarity, tension building, and satisfaction delivery. Point out specific seconds where retention tactics work and explain why]." if analysis_depth == 'deep' else "This is a [specific formula/pattern] video. Core hook: [what grabbed attention]. Why it works: [1-2 sentence psychological explanation]. Result: [did it satisfy or not, briefly]."}
+{"FORMAT: Name the format this video uses (from the knowledge base if it matches, or describe it if it doesn't). INFERRED GOAL(S): What is this video most likely trying to achieve — views, follows, sales, engagement, authority? State the evidence. ANALYSIS: [explain the core idea/hook/appeal in educational, explanatory language]. It works because [detailed psychological reason with moment-by-moment breakdown explaining hook effectiveness, promise clarity, tension building, and satisfaction delivery. Point out specific seconds where retention tactics work and explain why]. Where it excels: [what this video does well within its format]. Where it falls short: [what it misses, judged by its own format's standards]." if analysis_depth == 'deep' else "FORMAT: [specific formula/pattern]. INFERRED GOAL: [what the video is trying to achieve and why you think so]. Core hook: [what grabbed attention]. Why it works: [1-2 sentence psychological explanation]. Result: [did it satisfy or not, briefly]."}
 
 ===WHY_IT_PERFORMED===
 {"This video got {view_count if view_count else 'these views'} because [comprehensive analysis: list each performance driver, explain why it generated views, break down hook/promise/retention/satisfaction, identify what worked or didn't work, provide specific improvement suggestions]. Main psychological trigger: [detailed explanation]. Viewers stayed because: [comprehensive reason]. It attracted [specific audience] who [detailed engagement explanation]." if analysis_depth == 'deep' else "This video got {view_count if view_count else 'these views'} because: [1-2 main reasons]. Key trigger: [one psychological driver]. Audience: [who watched and why in 1 sentence]."}
@@ -1739,8 +1734,19 @@ visual_requirements: [2-3 specific visual ideas that serve THIS format's mechani
 each one works.]
 
 ===IMPROVEMENTS===
-REMEMBER: NEVER suggest revealing payoff earlier than 75% through video. Focus on hook strength, visual variety, tension building, and engagement hooks instead.
-{"Improvement 1: [Detailed specific actionable change with exact word-for-word script suggestions, pattern interrupts, and retention tactics. Explain why this would work psychologically]. Improvement 2: [Another detailed improvement with scripts and explanations]. Improvement 3: [Third improvement]. This could push views to [realistic projection with detailed reasoning]." if analysis_depth == 'deep' else "1. [Most important improvement in 1 sentence]. 2. [Second improvement in 1 sentence]. 3. [Third improvement in 1 sentence]. Potential: [projected views with brief reason]."}
+RULES FOR IMPROVEMENTS:
+- NEVER suggest revealing payoff earlier than 75% through video.
+- Every suggested hook must OPEN a curiosity gap, not close one. If your hook gives away the
+  answer, the viewer already has what they came for. Test: does this hook make the viewer need
+  to watch, or does it satisfy them before they start?
+- Improvements must work within THIS video's format. If you're suggesting a fundamentally
+  different video, that goes in VIRAL_MECHANICS under "SEPARATE VIDEO CONCEPT."
+- Only suggest improvements that are genuine — if the video already does something well,
+  say so instead of manufacturing a fix. Fewer real improvements beat three invented ones.
+- Match the creator's voice and niche. A design educator's hook sounds different from a
+  fitness influencer's hook.
+
+{"Improvement 1: [Detailed specific actionable change with exact word-for-word script suggestions, pattern interrupts, and retention tactics. Explain why this would work psychologically for THIS video's format and goal]. Improvement 2: [Another detailed improvement with scripts and explanations]. Improvement 3: [Third improvement]. This could push views to [realistic projection with detailed reasoning]." if analysis_depth == 'deep' else "1. [Most important improvement in 1 sentence]. 2. [Second improvement in 1 sentence]. 3. [Third improvement in 1 sentence]. Potential: [projected views with brief reason]."}
 
 ===VIRAL_MECHANICS===
 SCOPE RULE: Suggestions here must work WITHIN this video's format. A change that requires a
@@ -1908,7 +1914,7 @@ manufacturing a fix — fewer real improvements beat three invented ones.
             model="claude-sonnet-4-5-20250929",
             max_tokens=6000,
             temperature=0.7,
-            system="You are an expert in viral psychology and content analysis. Provide DEEP, specific insights about why content succeeds or fails. Always explain the psychological mechanisms. Never give surface-level observations. Correctly interpret audio based on visual context - if someone is drawing, sounds are likely marker/pen sounds, not animal noises.",
+            system="You are an expert in video structure, retention psychology, and content strategy. You identify what a video IS before judging it — its format, its likely goal, and how well it executes on its own terms. You analyze the specific psychological mechanisms at work: curiosity gaps, tension loops, promise/payoff timing. You never default to generic viral advice or one-size-fits-all hook templates. Your suggestions respect the creator's voice, niche, and format — you improve their video, not replace it with a different one. Correctly interpret audio based on visual context - if someone is drawing, sounds are likely marker/pen sounds, not animal noises.",
             messages=[
                 {"role": "user", "content": prompt}
             ]
