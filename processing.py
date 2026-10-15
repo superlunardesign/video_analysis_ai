@@ -65,11 +65,12 @@ def download_video(tiktok_url: str) -> str:
 
     ydl_opts = {
         "outtmpl": out_tmpl,
-        "format": "mp4/bestvideo+bestaudio/best",
+        "format": "bestvideo*+bestaudio*/best",
         "merge_output_format": "mp4",
         "quiet": True,
         "retries": 5,
         "noprogress": True,
+        "postprocessor_args": {"merger": ["-strict", "-2"]},
     }
 
     try:
@@ -150,6 +151,47 @@ def download_video(tiktok_url: str) -> str:
             except Exception as e3:
                 print(f"[DOWNLOAD ERROR] All repair attempts failed: {e3}")
 
+    # Verify the downloaded file has an audio stream
+    try:
+        info = ffmpeg.probe(video_path)
+        streams = info.get('streams', [])
+        audio_streams = [s for s in streams if s.get('codec_type') == 'audio']
+        video_streams = [s for s in streams if s.get('codec_type') == 'video']
+        print(f"[DOWNLOAD] Streams: {len(video_streams)} video, {len(audio_streams)} audio")
+        if audio_streams:
+            print(f"[DOWNLOAD] Audio codec: {audio_streams[0].get('codec_name', 'unknown')}, "
+                  f"channels: {audio_streams[0].get('channels', '?')}")
+        elif video_streams:
+            print(f"[DOWNLOAD] WARNING: No audio stream found — re-downloading with 'best' format...")
+            redownload_tmpl = os.path.abspath(os.path.join("downloads", f"vid_{stamp}_retry.%(ext)s"))
+            retry_opts = {
+                "outtmpl": redownload_tmpl,
+                "format": "best",
+                "merge_output_format": "mp4",
+                "quiet": True,
+                "retries": 5,
+                "noprogress": True,
+            }
+            try:
+                with YoutubeDL(retry_opts) as ydl:
+                    ydl.download([tiktok_url])
+                retry_files = sorted(Path("downloads").glob(f"vid_{stamp}_retry*.mp4"))
+                if retry_files:
+                    retry_path = str(retry_files[-1])
+                    retry_info = ffmpeg.probe(retry_path)
+                    retry_audio = [s for s in retry_info.get('streams', []) if s.get('codec_type') == 'audio']
+                    if retry_audio:
+                        print(f"[DOWNLOAD] Re-download has audio! Switching to: {retry_path}")
+                        os.remove(video_path)
+                        video_path = retry_path
+                    else:
+                        print(f"[DOWNLOAD] Re-download also has no audio — video may genuinely lack audio")
+                        os.remove(retry_path)
+            except Exception as re_err:
+                print(f"[DOWNLOAD] Re-download failed: {re_err}")
+    except Exception as probe_err:
+        print(f"[DOWNLOAD] Post-download probe failed: {probe_err}")
+
     return video_path
 
 
@@ -177,44 +219,81 @@ def probe_duration(video_path: str) -> float:
 
 def extract_audio(video_path: str) -> str:
     _ensure_dirs()
+
+    # Pre-check: verify audio stream exists in the file
+    try:
+        info = ffmpeg.probe(video_path)
+        audio_streams = [s for s in info.get('streams', []) if s.get('codec_type') == 'audio']
+        if not audio_streams:
+            print(f"[AUDIO] File has no audio stream according to ffprobe — skipping extraction")
+            return None
+        print(f"[AUDIO] Found {len(audio_streams)} audio stream(s), codec: {audio_streams[0].get('codec_name', '?')}")
+    except Exception as probe_err:
+        print(f"[AUDIO] ffprobe pre-check failed ({probe_err}), attempting extraction anyway...")
+
+    # Method 1: subprocess with libmp3lame (most reliable)
     audio_path = os.path.abspath(os.path.join("audio", f"aud_{int(time.time())}.mp3"))
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-y", "-i", video_path, "-vn", "-acodec", "libmp3lame",
+             "-ar", "44100", "-ac", "2", "-q:a", "2", audio_path],
+            capture_output=True, text=True, timeout=60
+        )
+        if os.path.exists(audio_path) and os.path.getsize(audio_path) > 1000:
+            print(f"[AUDIO] Extracted audio: {os.path.getsize(audio_path)} bytes")
+            return audio_path
+        else:
+            print(f"[AUDIO] Method 1 (libmp3lame) produced no usable output")
+            if result.stderr:
+                if 'does not contain any stream' in result.stderr:
+                    print("[AUDIO] Confirmed: video has no audio stream")
+                    return None
+                print(f"[AUDIO] stderr: {result.stderr[-300:]}")
+    except Exception as e:
+        print(f"[AUDIO] Method 1 failed: {e}")
+
+    # Method 2: ffmpeg-python library
+    audio_path2 = os.path.abspath(os.path.join("audio", f"aud_{int(time.time())}_m2.mp3"))
     try:
         out, err = (
             ffmpeg
             .input(video_path)
-            .output(audio_path, format="mp3", acodec="mp3", ar=44100, ac=2)
+            .output(audio_path2, format="mp3", acodec="libmp3lame", ar=44100, ac=2)
             .overwrite_output()
             .run(capture_stdout=True, capture_stderr=True)
         )
-        if os.path.exists(audio_path) and os.path.getsize(audio_path) > 0:
-            print(f"[AUDIO] Extracted audio: {os.path.getsize(audio_path)} bytes")
-            return audio_path
+        if os.path.exists(audio_path2) and os.path.getsize(audio_path2) > 1000:
+            print(f"[AUDIO] Method 2 (ffmpeg-python) succeeded: {os.path.getsize(audio_path2)} bytes")
+            return audio_path2
         else:
-            print(f"[AUDIO] Audio file empty or missing after extraction, trying subprocess fallback...")
+            print(f"[AUDIO] Method 2 produced empty output")
     except Exception as e:
         stderr_text = getattr(e, 'stderr', b'').decode('utf-8', errors='replace') if hasattr(e, 'stderr') else str(e)
-        print(f"[AUDIO] ffmpeg-python extraction failed: {stderr_text[:300]}")
+        print(f"[AUDIO] Method 2 failed: {stderr_text[:300]}")
 
-    # Subprocess fallback: try extracting with different approach
+    # Method 3: try AAC copy (some containers have AAC that libmp3lame can't transcode)
+    audio_path3 = os.path.abspath(os.path.join("audio", f"aud_{int(time.time())}_m3.aac"))
     try:
-        audio_path_fb = os.path.abspath(os.path.join("audio", f"aud_{int(time.time())}_fb.mp3"))
         result = subprocess.run(
-            ["ffmpeg", "-y", "-i", video_path, "-vn", "-acodec", "libmp3lame",
-             "-ar", "44100", "-ac", "2", "-q:a", "4", audio_path_fb],
+            ["ffmpeg", "-y", "-i", video_path, "-vn", "-acodec", "copy", audio_path3],
             capture_output=True, text=True, timeout=30
         )
-        if os.path.exists(audio_path_fb) and os.path.getsize(audio_path_fb) > 0:
-            print(f"[AUDIO] Subprocess fallback succeeded: {os.path.getsize(audio_path_fb)} bytes")
-            return audio_path_fb
-        else:
-            print(f"[AUDIO] Subprocess fallback also produced no output")
-            if result.stderr and 'does not contain any stream' in result.stderr:
-                print("[AUDIO] Video genuinely has no audio stream")
-            elif result.stderr:
-                print(f"[AUDIO] stderr: {result.stderr[-300:]}")
-    except Exception as e2:
-        print(f"[AUDIO] Subprocess fallback failed: {e2}")
+        if os.path.exists(audio_path3) and os.path.getsize(audio_path3) > 1000:
+            # Convert AAC to MP3 for compatibility
+            audio_path3_mp3 = audio_path3.replace('.aac', '.mp3')
+            result2 = subprocess.run(
+                ["ffmpeg", "-y", "-i", audio_path3, "-acodec", "libmp3lame",
+                 "-ar", "44100", "-ac", "2", "-q:a", "2", audio_path3_mp3],
+                capture_output=True, text=True, timeout=30
+            )
+            os.remove(audio_path3)
+            if os.path.exists(audio_path3_mp3) and os.path.getsize(audio_path3_mp3) > 1000:
+                print(f"[AUDIO] Method 3 (copy+transcode) succeeded: {os.path.getsize(audio_path3_mp3)} bytes")
+                return audio_path3_mp3
+    except Exception as e:
+        print(f"[AUDIO] Method 3 failed: {e}")
 
+    print(f"[AUDIO] All extraction methods failed for {video_path}")
     return None
 
 
