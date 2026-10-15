@@ -1932,7 +1932,6 @@ manufacturing a fix — fewer real improvements beat three invented ones.
             claude_client.messages.create,
             model="claude-sonnet-4-5-20250929",
             max_tokens=6000,
-            temperature=0.7,
             system="You are an expert in video structure, retention psychology, and content strategy. You identify what a video IS before judging it — its format, its likely goal, and how well it executes on its own terms. You analyze the specific psychological mechanisms at work: curiosity gaps, tension loops, promise/payoff timing. You never default to generic viral advice or one-size-fits-all hook templates. Your suggestions respect the creator's voice, niche, and format — you improve their video, not replace it with a different one. Correctly interpret audio based on visual context - if someone is drawing, sounds are likely marker/pen sounds, not animal noises.",
             messages=[
                 {"role": "user", "content": prompt}
