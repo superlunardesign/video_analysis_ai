@@ -653,19 +653,64 @@ def extract_audio_and_frames_from_file(
 
 def transcribe_audio(audio_path: str) -> str:
     """
-    Transcribe with OpenAI (gpt-4o-mini-transcribe).
+    Transcribe with OpenAI (gpt-4o-mini-transcribe) with word-level timestamps.
+    Returns a timestamped transcript string so the analyzer knows when things are said.
     On connection failure, retry; if still failing and local Whisper is present, use it.
     """
     def _remote_transcribe():
         with open(audio_path, "rb") as f:
             return client.audio.transcriptions.create(
                 model="gpt-4o-mini-transcribe",
-                file=f
+                file=f,
+                response_format="verbose_json",
+                timestamp_granularities=["word", "segment"],
             )
 
     try:
         tr = _api_retry(_remote_transcribe)
-        return tr.text
+        plain_text = tr.text or ""
+
+        segments = getattr(tr, 'segments', None)
+        words = getattr(tr, 'words', None)
+
+        if segments:
+            timed_lines = []
+            for seg in segments:
+                start = seg.get('start', seg.start) if hasattr(seg, 'start') else seg.get('start', 0)
+                end = seg.get('end', seg.end) if hasattr(seg, 'end') else seg.get('end', 0)
+                text = seg.get('text', seg.text) if hasattr(seg, 'text') else seg.get('text', '')
+                text = text.strip()
+                if text:
+                    timed_lines.append(f"[{start:.1f}s-{end:.1f}s] {text}")
+
+            if timed_lines:
+                # Calculate speech pace stats
+                total_words = len(plain_text.split()) if plain_text else 0
+                if segments:
+                    first_start = segments[0].get('start', getattr(segments[0], 'start', 0)) if segments else 0
+                    last_end = segments[-1].get('end', getattr(segments[-1], 'end', 0)) if segments else 0
+                    speech_duration = last_end - first_start
+                    if speech_duration > 0:
+                        wpm = total_words / (speech_duration / 60)
+                        pace_label = "very fast" if wpm > 200 else "fast" if wpm > 160 else "moderate" if wpm > 120 else "slow" if wpm > 80 else "very slow"
+                        timed_lines.insert(0, f"[SPEECH PACE: ~{int(wpm)} words/min ({pace_label}), {total_words} words over {speech_duration:.1f}s]")
+
+                # Detect significant pauses between segments
+                pause_notes = []
+                for i in range(1, len(segments)):
+                    prev_end = segments[i-1].get('end', getattr(segments[i-1], 'end', 0))
+                    curr_start = segments[i].get('start', getattr(segments[i], 'start', 0))
+                    gap = curr_start - prev_end
+                    if gap >= 1.5:
+                        pause_notes.append(f"[PAUSE: {gap:.1f}s gap at {prev_end:.1f}s]")
+
+                result = "\n".join(timed_lines)
+                if pause_notes:
+                    result += "\n" + "\n".join(pause_notes)
+                print(f"[TRANSCRIBE] Got {len(segments)} timed segments, {len(pause_notes)} notable pauses")
+                return result
+
+        return plain_text
     except Exception as e:
         print(f"[warn] Remote transcription failed: {e}")
         if local_whisper is not None:
