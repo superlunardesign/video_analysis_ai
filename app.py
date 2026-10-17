@@ -419,7 +419,7 @@ def parse_delimited_response(response_text, transcript=''):
                 key, value = line.split(':', 1)
                 key = key.strip().lower().replace(' ', '_')
                 value = value.strip()
-                if key in ('goal_type', 'confidence', 'evidence', 'sales_channel', 'product_info'):
+                if key in ('goal_type', 'confidence', 'evidence', 'sales_channel', 'product_info', 'selling_signals'):
                     content_goal[key] = value
 
     # Parse WHAT_TO_TRY_INSTEAD (underperforming video alternative to replication formula)
@@ -1756,6 +1756,38 @@ def detect_product_sales_goal(metadata, creator_note='', user_goal=None):
     return None
 
 
+def _build_caption_hashtag_section(metadata):
+    """Build caption/description and hashtag context for the analysis prompt."""
+    if not metadata:
+        return ""
+
+    description = (metadata.get('description', '') or '').strip()
+    hashtags = metadata.get('hashtags', []) or []
+    title = (metadata.get('title', '') or '').strip()
+
+    if not description and not hashtags:
+        return ""
+
+    parts = ["CAPTION & HASHTAG DATA (from the posted video — analyze these as selling/engagement tools):"]
+
+    if title:
+        parts.append(f"Title: {title}")
+    if description:
+        parts.append(f"Caption/Description: {description}")
+    if hashtags:
+        parts.append(f"Hashtags: {' '.join('#' + h if not h.startswith('#') else h for h in hashtags)}")
+
+    parts.append("""
+Analyze these as STRATEGIC CHOICES, not just metadata:
+- Does the caption function as sales copy (benefit-first, price mention, CTA)?
+- Do hashtags signal a shopping audience (#amazonfinds, #tiktokshop, #tiktokmademebuyit)?
+- Is there a direct CTA ("link in bio", "shop now", "tap the tag")?
+- Does the caption complement or contradict the video's hook strategy?
+- For product videos: does the caption stack proof (price, authority, urgency)?""")
+
+    return "\n".join(parts)
+
+
 def retrieve_successful_references(user_id, goal=None, content_type=None, exclude_analysis_id=None, limit=3):
     """Find successful analyses from the user's library for 'what to try instead' suggestions."""
     try:
@@ -2048,6 +2080,8 @@ CRITICAL CONTEXT:
 {engagement_context}
 {perf_context}
 
+{_build_caption_hashtag_section(metadata) if metadata else ""}
+
 ANTI-FABRICATION RULES:
 - Do NOT invent prices, dollar amounts, or product claims unless they appear in the transcript,
   on-screen text, or creator's note. If a sample script needs a claim, use a placeholder like
@@ -2174,7 +2208,26 @@ hook with a problem, question, or story — the product appears as the SOLUTION,
    - Are sounds and visuals synchronized effectively?
    - Does the audio-visual combination create satisfaction?
 
-5. FORMAT EVALUATION:
+5. ON-SCREEN SELLING SIGNALS (detect even without spoken words):
+   Look for visual selling elements that exist OUTSIDE the transcript:
+   - TikTok Shop tag/orange basket icon visible in frames
+   - Price text overlays ("$5", "under $20") shown on screen
+   - "Link in bio" or "Shop now" text overlays
+   - Product close-ups, demonstrations, before/after comparisons
+   - Screenshot overlays (search results, articles, reviews as proof)
+   - Authority text ("dermatologist approved", "Vogue recommended")
+   - Comment proof shown on screen ("everyone asking where I got this")
+   These signals prove selling intent even when the transcript contains NO sales language.
+   Report what you actually see in the frames — do not assume signals that aren't visible.
+
+6. TRANSCRIPT CORRECTION FROM ON-SCREEN TEXT:
+   The transcript comes from audio recognition, which can mishear words — especially product
+   names, brand names, and technical terms. When on-screen text clearly shows a word that the
+   transcript garbled (e.g., screen shows "exfoliating" but transcript says "exfolia"), trust
+   the on-screen text and note the correction. This is especially important for product videos
+   where the product name may be shown on-screen but transcribed incorrectly or not at all.
+
+7. FORMAT EVALUATION:
    - What format does this video use? Does it match a known pattern from the knowledge base?
    - How well does it execute that format's requirements?
    - Where does the execution fall short of what makes that format work?
@@ -2208,15 +2261,23 @@ You can use quotes "like this" freely, write multiple paragraphs, and format nat
 Use this EXACT format with === delimiters:
 
 ===CONTENT_GOAL===
-Detect what this video is trying to achieve. Look at ALL available signals: the transcript,
-on-screen text (especially CTAs), creator's note, comments, visual elements (product packaging,
-shopping carts, link overlays), and the overall structure.
+Detect what this video is trying to achieve. Look at ALL available signals — selling happens
+across multiple channels simultaneously, not just in spoken words:
+- TRANSCRIPT: What's said (price mentions, CTAs, product claims)
+- ON-SCREEN TEXT: Text overlays, price tags, CTAs visible in frames
+- VISUAL ELEMENTS: Product packaging, shopping cart icons, TikTok Shop tags, before/after demos
+- CAPTION & HASHTAGS: Shopping hashtags, "link in bio", benefit-first copy, price in caption
+- COMMENTS: "Where did you get this?", "Link?", "I just ordered it" = purchase intent
+- CREATOR'S NOTE: Any context about the video's intent
+A video can be selling even if the creator never says a word — on-screen proof, captions,
+hashtags, and visual demonstrations all count as selling signals.
 
 goal_type: [one of: entertainment, education, product_sales, service_promotion, brand_awareness, engagement_bait, community_building, affiliate_marketing]
 confidence: [one of: confirmed (creator explicitly stated it or clear in-video CTA), likely (strong signals but not stated), possible (some signals but ambiguous)]
 evidence: [list the specific signals you found — e.g., "orange cart icon visible", "creator note says TikTok Shop", "says 'link in bio'", "no sales signals detected"]
 sales_channel: [only if goal involves selling — one of: tiktok_shop, affiliate_link_in_bio, own_website, unknown, none]
 product_info: [only if a product is featured — the product name/category ONLY if explicitly stated in the video, transcript, or note. If not stated, write "product shown but not named" or "unidentified [category]". Do NOT guess product names or brands.]
+selling_signals: [list ALL detected selling signals across ALL channels — on-screen text, visual elements, caption, hashtags, comments, transcript. Even if confidence is "possible", list what you found. Example: "orange cart icon in frames, #amazonfinds hashtag, price in caption ($5), comments asking for link"]
 
 ===WHAT_THIS_VIDEO_IS===
 {"FORMAT: Name the format this video uses (from the knowledge base if it matches, or describe it if it doesn't). INFERRED GOAL(S): What is this video most likely trying to achieve — views, follows, sales, engagement, authority? State the evidence. ANALYSIS: [explain the core idea/hook/appeal in educational, explanatory language]. It works because [detailed psychological reason with moment-by-moment breakdown explaining hook effectiveness, promise clarity, tension building, and satisfaction delivery. Point out specific seconds where retention tactics work and explain why]. Where it excels: [what this video does well within its format]. Where it falls short: [what it misses, judged by its own format's standards]." if analysis_depth == 'deep' else "FORMAT: [specific formula/pattern]. INFERRED GOAL: [what the video is trying to achieve and why you think so]. Core hook: [what grabbed attention]. Why it works: [1-2 sentence psychological explanation]. Result: [did it satisfy or not, briefly]."}
