@@ -73,6 +73,7 @@ def _analysis_to_dict(row):
         "scores", "all_hooks_identified", "exact_hook_breakdown",
         "replication_formula", "timing_mastery", "format_fingerprint",
         "format_match", "comment_insights", "hook_mechanisms", "hook_intelligence",
+        "follow_up_ideas",
     ]:
         if data.get(key):
             result[key] = data[key]

@@ -490,6 +490,7 @@ def parse_delimited_response(response_text, transcript=''):
         'scores': scores,
         'timing_mastery': timing,
         'performance_prediction': sections.get('PERFORMANCE_PREDICTION', ''),
+        'follow_up_ideas': sections.get('FOLLOW_UP_IDEAS', ''),
         'knowledge_patterns_applied': knowledge_patterns,
         'format_fingerprint': format_fingerprint,
         'format_match': format_match if format_match else None,
@@ -2134,6 +2135,14 @@ hook with a problem, question, or story — the product appears as the SOLUTION,
    - Where does the execution fall short of what makes that format work?
    - If it doesn't match a known format, describe its structure and evaluate it on its own terms.
 
+COMMENTS AS CONTEXT (not rules):
+When comments mention a specific visual element, product detail, or moment, that's evidence
+the element exists and was noticed. When a comment thread has high engagement (likes in the
+thousands), consider whether that thread's topic is an engagement driver before recommending
+changes to whatever triggered it. Comments are data about what viewers actually reacted to.
+Use your judgment — sometimes a debate IS the value, sometimes it really is pointing at a flaw.
+The goal is to CHECK, not to follow a blanket rule.
+
 HOOK AND SUGGESTION DISCIPLINE:
 - Every suggested hook MUST leave a curiosity gap open. If the hook tells the viewer what the
   answer is, it has failed — the viewer has no reason to watch. Test every hook you write: "Would
@@ -2331,6 +2340,24 @@ and the product appears as the solution.''' if perf_classification == 'underperf
 - Match the creator's voice and niche. A design educator's hook sounds different from a
   fitness influencer's hook.'''}
 
+ENGAGEMENT-DRIVER CHECK (use judgment, not a blanket rule):
+Before suggesting removing, softening, explaining, or "clarifying" an element, check whether
+it might be driving engagement in the comments. This isn't an absolute — sometimes a flaw is
+a flaw. But consider:
+- If a debate or pushback thread has high-engagement comments (likes in the thousands), that
+  element might be helping distribution more than it's hurting. Consider whether fixing it
+  would kill the engagement. If so, note it as an engagement driver instead.
+- "Cheaper alternative" comments can be engagement signals rather than problems. They also
+  suggest potential follow-up video ideas.
+- Unanswered questions or mysteries (e.g. unexplained patches, "what IS that?") may be
+  driving watch time and rewatches. If comments show curiosity about it, consider whether
+  the mystery is working before suggesting it be explained.
+- Before suggesting "add X," check the comments and frame descriptions. If comments already
+  reference it (e.g. "parmesan cheese" comments prove buildup was visible), it's likely
+  already there.
+- Do NOT fabricate engagement estimates. Never say "nearly 70K people tried to find the
+  product" unless that exact number appears in the data.
+
 {"Improvement 1: [Detailed specific actionable change with exact word-for-word script suggestions, pattern interrupts, and retention tactics. Explain why this would work psychologically for THIS video's format and goal]. Improvement 2: [Another detailed improvement with scripts and explanations]. Improvement 3: [Third improvement]. This could push views to [realistic projection with detailed reasoning]." if analysis_depth == 'deep' else "1. [Most important improvement in 1 sentence]. 2. [Second improvement in 1 sentence]. 3. [Third improvement in 1 sentence]. Potential: [projected views with brief reason]."}
 
 ===VIRAL_MECHANICS===
@@ -2342,7 +2369,35 @@ heading "SEPARATE VIDEO CONCEPT:" at the end and label it as a new idea, not an 
 Do not present format-breaking ideas as fixes to this video.
 
 CRITICAL: NEVER suggest "front-loading the reveal" or "satisfying curiosity faster" - this destroys retention. Suggest adding tension, stakes, visual variety, engagement hooks BEFORE the payoff instead.
+
+ENGAGEMENT-DRIVER AWARENESS: If the video already has viral mechanics working (debate in
+comments, controversial element driving reactions, unanswered question driving rewatches),
+NAME those mechanics and explain why they work — do not recommend removing them.
 {'"This went viral because: [List 3-5 specific viral triggers with detailed psychological explanations, referring to exact moments and mechanics]" if performance_level == "viral" else "To go viral, this video needs: [List 3-5 specific viral triggers to add/strengthen with explanations - focus on hook power, tension building, visual pattern breaks, NOT moving the payoff earlier]"' if analysis_depth == 'deep' else '"Viral because: [2 main reasons]" if performance_level == "viral" else "To go viral: [2 key additions needed - NOT earlier payoff]"'}
+
+===FOLLOW_UP_IDEAS===
+Mine the comments for NEW VIDEO IDEAS — but ONLY when genuine high-engagement signals exist.
+Not every video has follow-up ideas in its comments. If the comments are thin, generic, or
+low-engagement, say "No strong follow-up signals in the comments" and move on. Do not force
+ideas from weak data.
+
+When there ARE strong signals, look for:
+- Debates with thousands of likes ("a pencil does the same thing" → video idea: pencil vs. product)
+- Frequently asked questions ("where did you get that?" → video idea addressing the question)
+- "I tried this" or alternative method comments → video comparing approaches
+- Pushback or skepticism ("this doesn't actually work") → video proving or testing it
+- Unexpected use cases people mention → video exploring that angle
+
+For each idea worth proposing:
+1. **Comment signal**: Quote the comment(s) and their engagement (likes) that prove interest
+2. **Video concept**: One sentence describing the new video
+3. **Opening 3 seconds**: What the viewer sees/hears — must open a curiosity gap
+4. **Hook/structure source**: If a hook or format from a successful analysis in the library
+   would work here, name it and reference the analysis ID. If none fits, describe the structure.
+5. **Why it works**: Why this combination of proven interest + structure would perform
+
+Limit to 1-2 strong ideas. Quality over quantity. An idea backed by a 44K-like comment thread
+is worth proposing. An idea backed by a 12-like comment is not.
 
 ===SCORES===
 IMPORTANT: Provide actual numeric scores based on THIS video's performance, NOT placeholders.
@@ -2968,7 +3023,8 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'performance_analysis': gpt_result.get('performance_analysis', ''),
         'performance_deep_dive': gpt_result.get('performance_deep_dive', ''),
         'viral_mechanics': gpt_result.get('viral_mechanics', ''),
-        
+        'follow_up_ideas': gpt_result.get('follow_up_ideas', ''),
+
         # Knowledge and insights
         'knowledge_insights': gpt_result.get('knowledge_insights', ''),
         'knowledge_patterns_applied': gpt_result.get('knowledge_patterns_applied', []),
@@ -5035,6 +5091,7 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             'replication_formula': template_vars.get('replication_formula', {}),
             'improvements': template_vars.get('improvements'),
             'viral_mechanics': template_vars.get('viral_mechanics'),
+            'follow_up_ideas': template_vars.get('follow_up_ideas', ''),
             'performance_prediction': template_vars.get('performance_prediction'),
             'scores': template_vars.get('scores', {}),
             'exact_hook_breakdown': template_vars.get('exact_hook_breakdown', {}),
