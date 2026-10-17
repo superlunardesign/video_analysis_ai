@@ -1434,8 +1434,10 @@ STEP 2 — INFER THE VIDEO'S LIKELY GOAL(S):
 Based on the content, CTA, structure, and audience — what is THIS video trying to achieve?
 Possible goals: views/reach, follower growth, sales/inquiries, engagement/comments, authority
 building, community, education. A video can serve multiple goals, or clearly prioritize one.
-State what you see, not what the user selected (the user's selected goal "{goal}" is for the
-replication formula output, not a description of this video's intent).
+IMPORTANT: Infer the goal from the VIDEO ITSELF — its content, CTA, format, and audience signals.
+Do NOT default to "follower growth" or "educational value + authority positioning" unless the
+video genuinely demonstrates those intents. Many videos are purely entertainment, satisfying
+curiosity, showcasing a process, or selling a product. State what you actually see.
 
 STEP 3 — EVALUATE EXECUTION:
 Now grade how well this video executes its own format and serves its own goal(s). Where does it
@@ -1516,10 +1518,10 @@ CRITICAL CONTEXT:
 - Creator's note: "{creator_note if creator_note else 'No additional context'}"
 - Content type detected: {_readable_content_type(visual_content_analysis.get('content_type', 'general'))}
 - Audio type: {audio_type_info.get('audio_description', 'unknown') if audio_type_info.get('audio_description') not in ('no_audio_detected', 'no_audio_stream', 'no audio stream') else 'no speech detected — analyze visuals and on-screen text'}
-- Goal: {goal}
 - Target audience: {audience}
 - Duration target: {target_duration}s
 - Views: {view_count}
+- User's selected goal for replication formula: {goal} (use this ONLY in the replication formula section — do NOT let it influence your analysis of what the video IS or what its actual intent appears to be)
 
 AUDIO CONTEXT:
 {f"SONG LYRICS (attached track: {audio_type_info.get('track_name', 'unknown')}): {transcript_text}  — NOTE: These are song lyrics, NOT the creator speaking. Do not interpret them as the video's message." if is_song else (f"Speech detected: {transcript_text}" if has_speech else f"Non-speech audio: {audio_type_info.get('likely_sound_source', 'ambient sounds')} (based on visual activity)")}
@@ -3114,12 +3116,16 @@ Key patterns for video analysis:
             from models import KnowledgePattern
             db_patterns = KnowledgePattern.query.order_by(KnowledgePattern.created_at.desc()).all()
             if db_patterns:
-                curator_knowledge = "\n\n=== CURATOR-OBSERVED PATTERNS (reference only) ===\n"
-                curator_knowledge += "These patterns were observed in specific successful videos. "
-                curator_knowledge += "Only cite a pattern if it genuinely fits THIS video. "
-                curator_knowledge += "Most videos will match zero or one of these — do NOT force-apply them.\n\n"
+                curator_knowledge = "\n\n=== CURATOR-OBSERVED PATTERNS (structural reference only) ===\n"
+                curator_knowledge += "These patterns describe STRUCTURAL techniques observed in other videos. "
+                curator_knowledge += "CRITICAL: These are about FORMAT and PSYCHOLOGY — not about specific products, "
+                curator_knowledge += "topics, or visual elements from those other videos. Do NOT transfer specific "
+                curator_knowledge += "details (product names, visual elements, topics) from these patterns to THIS video. "
+                curator_knowledge += "Only apply a pattern if THIS video's structure genuinely uses the same technique. "
+                curator_knowledge += "Most videos will match zero or one of these.\n\n"
                 for pat in db_patterns:
-                    curator_knowledge += f"--- Pattern: {pat.pattern_summary} ---\n"
+                    source_note = f" (observed in: {pat.video_url})" if pat.video_url else ""
+                    curator_knowledge += f"--- Pattern: {pat.pattern_summary}{source_note} ---\n"
                     if pat.key_insights:
                         for insight in pat.key_insights:
                             curator_knowledge += f"  - {insight}\n"

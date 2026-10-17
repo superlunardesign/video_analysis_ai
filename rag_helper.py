@@ -258,7 +258,15 @@ def retrieve_smart_context(transcript: str, frames: str, creator_note: str, goal
         "viral_reach": "VIRAL AMPLIFICATION STRATEGIES",
         "engagement": "ENGAGEMENT OPTIMIZATION"
     }.get(goal, "TARGETED STRATEGIES")
-    
+
+    # When goal is the default (follower_growth), label it as general content-relevant strategies
+    # to avoid biasing the analysis toward growth-specific framing
+    if goal == "follower_growth":
+        specific_label = "CONTENT-RELEVANT STRATEGIES"
+        goal_desc = "this video's content"
+    else:
+        goal_desc = f"your {goal.replace('_', ' ')} goal"
+
     combined = f"""
 === ESSENTIAL VIDEO FOUNDATIONS (ALWAYS APPLY) ===
 Every video needs strong hooks, retention mechanics, and viral principles:
@@ -266,7 +274,7 @@ Every video needs strong hooks, retention mechanics, and viral principles:
 {baseline_text}
 
 === {specific_label} ===
-Specific strategies for your {goal.replace('_', ' ')} goal:
+Specific strategies relevant to {goal_desc}:
 
 {specific_text}
 """.strip()
