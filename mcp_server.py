@@ -332,7 +332,23 @@ def check_analysis_status(analysis_id: int) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Entry point — SSE transport for remote deployment, stdio for local
+# Health check route (so Render's health check doesn't 404)
+# ---------------------------------------------------------------------------
+
+@mcp.custom_route("/health", methods=["GET", "HEAD"])
+async def health(request):
+    from starlette.responses import JSONResponse
+    return JSONResponse({"status": "ok", "server": "video-analysis-mcp"})
+
+
+@mcp.custom_route("/", methods=["GET", "HEAD"])
+async def root(request):
+    from starlette.responses import JSONResponse
+    return JSONResponse({"status": "ok", "server": "video-analysis-mcp", "transport": "/mcp"})
+
+
+# ---------------------------------------------------------------------------
+# Entry point — streamable HTTP for remote, stdio for local
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
