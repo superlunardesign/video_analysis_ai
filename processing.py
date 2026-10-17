@@ -429,7 +429,7 @@ def extract_frames_at_times(video_path: str, out_dir: str, timestamps: List[floa
     os.makedirs(out_dir, exist_ok=True)
     paths = []
     for i, ts in enumerate(timestamps, start=1):
-        out_path = os.path.join(out_dir, f"ts_{i:04d}.jpg")
+        out_path = os.path.join(out_dir, f"ts_{i:04d}_at{ts:.3f}.jpg")
         try:
             (
                 ffmpeg
@@ -462,7 +462,7 @@ def _extract_frames_cv2(video_path: str, out_dir: str, timestamps: List[float]) 
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
         ret, frame = cap.read()
         if ret and frame is not None:
-            out_path = os.path.join(out_dir, f"ts_{i:04d}.jpg")
+            out_path = os.path.join(out_dir, f"ts_{i:04d}_at{ts:.3f}.jpg")
             h, w = frame.shape[:2]
             if w > 480:
                 scale = 480 / w
@@ -718,14 +718,24 @@ def analyze_frames_batch(frame_paths, transcript=None):
     for group_idx, frame_group in enumerate(frame_groups):
         print(f"[INFO] Analyzing frame group {group_idx + 1}/{total_groups} ({len(frame_group)} frames)...")
 
-        # Convert frames to base64 for GPT-4 Vision
+        # Parse timestamps from filenames and convert frames to base64
         base64_images = []
+        frame_timestamps = []
         for frame_path in frame_group:
             try:
                 with open(frame_path, 'rb') as f:
                     img_data = base64.b64encode(f.read()).decode()
                     base64_images.append(img_data)
                     gallery_urls.append(f"data:image/jpeg;base64,{img_data}")
+                fname = os.path.basename(frame_path)
+                if '_at' in fname:
+                    ts_str = fname.split('_at')[1].replace('.jpg', '').replace('.png', '')
+                    try:
+                        frame_timestamps.append(float(ts_str))
+                    except ValueError:
+                        frame_timestamps.append(None)
+                else:
+                    frame_timestamps.append(None)
             except Exception as e:
                 print(f"[ERROR] Failed to process frame {frame_path}: {e}")
                 continue
@@ -733,11 +743,20 @@ def analyze_frames_batch(frame_paths, transcript=None):
         if not base64_images:
             continue
 
+        # Build timestamp labels for the prompt
+        timestamp_labels = ""
+        if any(t is not None for t in frame_timestamps):
+            labels = []
+            for idx, ts in enumerate(frame_timestamps):
+                if ts is not None:
+                    labels.append(f"Frame {idx + 1} = {ts:.1f}s into the video")
+                else:
+                    labels.append(f"Frame {idx + 1} = unknown time")
+            timestamp_labels = "FRAME TIMESTAMPS (when each frame appears in the video):\n" + "\n".join(labels)
+
         # Build the analysis prompt with transcript context
         transcript_context = ""
         if transcript:
-            # Estimate which part of transcript might correspond to these frames
-            # (This is approximate - you might want to use timing info if available)
             transcript_words = transcript.split()
             total_groups = len(frame_groups)
             words_per_group = len(transcript_words) // total_groups if total_groups > 0 else len(transcript_words)
@@ -748,6 +767,8 @@ def analyze_frames_batch(frame_paths, transcript=None):
 
         # Create structured prompt for GPT-4o
         prompt = f"""Analyze these {len(frame_group)} sequential video frames in detail.
+
+{timestamp_labels}
 
 {transcript_context}
 

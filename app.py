@@ -2358,6 +2358,23 @@ a flaw. But consider:
 - Do NOT fabricate engagement estimates. Never say "nearly 70K people tried to find the
   product" unless that exact number appears in the data.
 
+MECHANISM-PRESERVATION CHECK:
+Before suggesting ANY addition or change, ask: would this undermine the mechanism that already
+makes this video work? Some formats succeed BECAUSE of what they withhold, not despite it.
+- Curiosity-gap and cognitive-dissonance hooks (e.g. absurd text over unrelated visuals) work
+  because they DON'T make sense until the payoff. Do not suggest making them "clearer" or
+  "more obvious" — that closes the loop the viewer needs to stay open.
+- Silence or minimal audio can be the structural choice, not a gap to fill. If the format's
+  power comes from visual-only storytelling, suggesting a voiceover or explanation may kill it.
+- Simplicity can be the format. If a video works because it has ONE hook and ONE payoff with
+  nothing in between, suggesting additional hooks, text overlays, or engagement elements risks
+  diluting the mechanism. Note when simplicity is a strength, not an absence.
+- If you identify an improvement that WOULD help but carries a real risk of breaking what works,
+  flag the tradeoff explicitly — don't bury it. "This would increase X but risks killing Y" is
+  more useful than just suggesting the change.
+This is not a rule against suggesting improvements — it's a rule against improvements that
+cost more than they add. Use judgment.
+
 {"Improvement 1: [Detailed specific actionable change with exact word-for-word script suggestions, pattern interrupts, and retention tactics. Explain why this would work psychologically for THIS video's format and goal]. Improvement 2: [Another detailed improvement with scripts and explanations]. Improvement 3: [Third improvement]. This could push views to [realistic projection with detailed reasoning]." if analysis_depth == 'deep' else "1. [Most important improvement in 1 sentence]. 2. [Second improvement in 1 sentence]. 3. [Third improvement in 1 sentence]. Potential: [projected views with brief reason]."}
 
 ===VIRAL_MECHANICS===
@@ -2427,6 +2444,12 @@ For each interval, describe:
 - Viewer psychological state
 - Retention tactics used (or missing)
 - How it builds toward payoff
+
+VISUAL ACCURACY: Only describe what is ACTUALLY VISIBLE in the frames at each timestamp.
+Do not project later reveals onto earlier moments — if buildup/product/result is not yet
+visible, say so. Getting the timing of when things FIRST appear wrong undermines the entire
+timing analysis. If you're unsure whether something is visible at a given moment, say what
+you can confirm and note uncertainty.
 
 ===PERFORMANCE_PREDICTION===
 This section does NOT introduce new suggestions. Every change referenced here must already
