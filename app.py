@@ -1507,8 +1507,28 @@ This video has VERBAL CONTENT. Analyze:
     else:
         performance_message = f"This video got {view_count if view_count else 'certain performance'} - analyze what's working and what needs to improve to achieve higher success in relation to the chosen goal."
     
+    # Build engagement context from metadata
+    engagement_context = ""
+    if metadata:
+        likes = metadata.get('like_count', 0)
+        comments = metadata.get('comment_count', 0)
+        reposts = metadata.get('repost_count', 0)
+        eng_metrics = metadata.get('engagement_metrics', {})
+        eng_rate = eng_metrics.get('total_engagement_rate', 0)
+        if likes or comments or reposts:
+            engagement_context = f"""
+ACTUAL ENGAGEMENT DATA (auto-detected from the platform — use these exact numbers, do NOT fabricate different ones):
+- Likes: {likes:,}
+- Comments: {comments:,}
+- Reposts/Shares: {reposts:,}
+- Total engagement rate: {eng_rate}%
+IMPORTANT: Do NOT predict or fabricate follow counts, sales numbers, or engagement
+numbers that differ from the data above. You do not have access to follower conversion
+data. When discussing engagement in Performance Prediction, reference these ACTUAL
+numbers and explain what they reveal about the video's performance."""
+
     prompt = f"""
-You are a video psychology expert analyzing transcribed and extracted data from a {platform} video. 
+You are a video psychology expert analyzing transcribed and extracted data from a {platform} video.
 You have been provided with frame-by-frame descriptions and audio transcription below.
 You are NOT being asked to view a video directly - you are analyzing the provided text data. {performance_message}
 
@@ -1522,6 +1542,7 @@ CRITICAL CONTEXT:
 - Duration target: {target_duration}s
 - Views: {view_count}
 - User's selected goal for replication formula: {goal} (use this ONLY in the replication formula section — do NOT let it influence your analysis of what the video IS or what its actual intent appears to be)
+{engagement_context}
 
 AUDIO CONTEXT:
 {f"SONG LYRICS (attached track: {audio_type_info.get('track_name', 'unknown')}): {transcript_text}  — NOTE: These are song lyrics, NOT the creator speaking. Do not interpret them as the video's message." if is_song else (f"Speech detected: {transcript_text}" if has_speech else f"Non-speech audio: {audio_type_info.get('likely_sound_source', 'ambient sounds')} (based on visual activity)")}
@@ -1814,11 +1835,16 @@ This section does NOT introduce new suggestions. Every change referenced here mu
 appear in ===IMPROVEMENTS===. If you find yourself introducing a new idea here, move it to
 IMPROVEMENTS instead.
 
+CRITICAL: Use the ACTUAL engagement data provided above (likes, comments, shares).
+Do NOT fabricate specific follower counts, sales numbers, or comment counts that differ
+from the real data. You cannot know how many followers a video generated — do not guess.
+Instead, explain the DIRECTION and REASONING of how improvements would affect each goal.
+
 Explain the expected effect of the improvements already listed, PER GOAL:
 - Views/reach: [effect and why]
-- Follows/growth: [effect and why]
-- Inquiries/sales: [effect and why]
-- Comments/engagement: [effect and why]
+- Follows/growth: [direction of effect and why — do NOT fabricate specific follow counts]
+- Inquiries/sales: [effect and why — only if the video has sales elements]
+- Comments/engagement: [effect and why — reference the ACTUAL comment count, not an invented one]
 
 State which goal the changes serve most, and name any tradeoff (e.g. added sales mechanics may
 reduce raw reach). Be honest when a change helps one goal and does nothing for another.
