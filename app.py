@@ -4225,6 +4225,68 @@ def check_existing():
     return jsonify({'exists': False})
 
 
+@app.route("/api/analyze", methods=["POST"])
+def api_analyze():
+    """API endpoint for MCP server to trigger analyses.
+    Authenticates via MCP_AUTH_TOKEN, not session cookies.
+    """
+    data = request.get_json()
+    auth_token = data.get("auth_token", "")
+    expected_token = os.environ.get("MCP_AUTH_TOKEN", "")
+
+    if not expected_token or auth_token != expected_token:
+        return jsonify({"status": "error", "message": "Invalid auth token"}), 403
+
+    video_url = data.get("video_url", "").strip()
+    if not video_url:
+        return jsonify({"status": "error", "message": "video_url is required"}), 400
+
+    # Find admin user to associate the analysis with
+    admin_user = User.query.filter_by(email='christina@superlunardesign.com').first()
+    if not admin_user:
+        return jsonify({"status": "error", "message": "Admin user not found"}), 500
+
+    # Create processing record
+    processing_record = create_processing_analysis(admin_user.id, video_url)
+    if not processing_record:
+        return jsonify({"status": "error", "message": "Failed to create analysis record"}), 500
+
+    analysis_id = processing_record.id
+
+    form_data = {
+        'tiktok_url': video_url,
+        'view_count': data.get("view_count", ""),
+        'creator_note': data.get("creator_note", ""),
+        'strategy': 'smart',
+        'frames_per_minute': '24',
+        'cap': '40',
+        'scene_threshold': '0.24',
+        'platform': 'tiktok',
+        'target_duration': '30',
+        'goal': 'follower_growth',
+        'tone': 'confident, friendly',
+        'audience': 'creators and small business owners',
+        'analysis_depth': 'standard',
+        'force_refresh': True,
+        'results_speed': data.get("speed_tier", "standard"),
+    }
+
+    update_progress(analysis_id, 'starting', 'Initializing analysis...', 0)
+
+    thread = threading.Thread(
+        target=_run_analysis_background,
+        args=(form_data, admin_user.id, analysis_id),
+        daemon=True
+    )
+    thread.start()
+
+    return jsonify({
+        "status": "success",
+        "analysis_id": analysis_id,
+        "message": f"Analysis started. Poll /api/analyze/{analysis_id}/status for progress."
+    }), 200
+
+
 def normalize_video_url(url):
     """Normalize TikTok URL for comparison."""
     # Extract video ID from various TikTok URL formats
