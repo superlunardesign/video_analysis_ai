@@ -118,7 +118,6 @@ def get_specific_knowledge(meta, mat, transcript, frames, creator_note, goal, ma
     # GOAL-BASED DOCUMENT SELECTION
     goal_document_map = {
         "sales_conversions": [
-            "product_selling_mechanics.txt",
             "sales-psychology.txt",
             "sales_backed_content.txt",
             "messaging_to_sell_your_offer.txt",
