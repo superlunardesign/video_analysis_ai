@@ -4967,6 +4967,39 @@ def api_analyze():
     }), 200
 
 
+@app.route("/api/analysis/<int:analysis_id>/pdf", methods=["GET"])
+def api_analysis_pdf(analysis_id):
+    """API endpoint for MCP server to get a PDF download URL.
+    Authenticates via MCP_AUTH_TOKEN, not session cookies.
+    """
+    auth_token = request.args.get("auth_token", "")
+    expected_token = os.environ.get("MCP_AUTH_TOKEN", "")
+
+    if not expected_token or auth_token != expected_token:
+        return jsonify({"status": "error", "message": "Invalid auth token"}), 403
+
+    analysis = Analysis.query.get(analysis_id)
+    if not analysis:
+        return jsonify({"status": "error", "message": "Analysis not found"}), 404
+    if analysis.status != "completed":
+        return jsonify({"status": "error", "message": f"Analysis status is '{analysis.status}'"}), 400
+
+    cache_key = analysis.pdf_cache_key
+    if not cache_key:
+        return jsonify({"status": "error", "message": "No PDF available for this analysis"}), 404
+
+    app_url = os.environ.get("APP_URL", request.host_url.rstrip("/"))
+    pdf_url = f"{app_url}/download_pdf/{cache_key}"
+
+    return jsonify({
+        "status": "success",
+        "analysis_id": analysis_id,
+        "video_title": analysis.video_title,
+        "pdf_url": pdf_url,
+        "pdf_cache_key": cache_key,
+    }), 200
+
+
 def normalize_video_url(url):
     """Normalize TikTok URL for comparison."""
     # Extract video ID from various TikTok URL formats

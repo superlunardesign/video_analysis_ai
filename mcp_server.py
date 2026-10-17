@@ -11,12 +11,18 @@ import os
 import sys
 import json
 import logging
+import base64
 from datetime import datetime
 
 try:
     from mcp.server.fastmcp import FastMCP as MCPServer
 except (ImportError, ModuleNotFoundError):
     from mcp.server.mcpserver import MCPServer
+
+try:
+    from mcp.server.mcpserver import Image as MCPImage
+except (ImportError, ModuleNotFoundError):
+    from mcp.server.mcpserver.utilities.types import Image as MCPImage
 
 logging.basicConfig(level=logging.INFO, format="[MCP] %(message)s")
 logger = logging.getLogger(__name__)
@@ -330,6 +336,114 @@ def check_analysis_status(analysis_id: int) -> str:
             result["hook"] = data.get("hook", "")
 
         return json.dumps(result, indent=2, default=str)
+    finally:
+        Session.remove()
+
+
+@mcp.tool()
+def get_analysis_frames(analysis_id: int, start: int = 0, count: int = 5) -> list:
+    """Get frame images from an analysis. Returns up to `count` frames starting at index `start` as viewable images, plus a text summary. Frame images are extracted during video analysis and show key moments. Max 5 frames per call to keep response size manageable."""
+    session = Session()
+    try:
+        analysis = session.query(Analysis).get(analysis_id)
+        if not analysis:
+            return ["Analysis not found."]
+        if analysis.status != "completed":
+            return [f"Analysis status is '{analysis.status}', frames only available for completed analyses."]
+
+        data = analysis.analysis_data or {}
+        frames = data.get("frame_gallery", [])
+        if not frames:
+            return ["No frames available for this analysis."]
+
+        count = min(count, 5)
+        start = max(0, min(start, len(frames) - 1))
+        selected = frames[start:start + count]
+
+        results = []
+        results.append(f"Frames {start + 1}-{start + len(selected)} of {len(frames)} total for \"{analysis.video_title or 'Untitled'}\"")
+
+        for i, frame in enumerate(selected):
+            frame_data = frame if isinstance(frame, str) else frame.get("image", "")
+            if not frame_data:
+                results.append(f"Frame {start + i + 1}: (empty)")
+                continue
+
+            if frame_data.startswith("data:"):
+                header, b64_str = frame_data.split(",", 1)
+                mime = header.split(":")[1].split(";")[0] if ":" in header else "image/jpeg"
+            else:
+                b64_str = frame_data
+                mime = "image/jpeg"
+
+            fmt = mime.split("/")[1] if "/" in mime else "jpeg"
+            if fmt == "jpg":
+                fmt = "jpeg"
+
+            try:
+                img_bytes = base64.b64decode(b64_str)
+                results.append(MCPImage(data=img_bytes, format=fmt))
+            except Exception:
+                results.append(f"Frame {start + i + 1}: (failed to decode)")
+
+            if isinstance(frame, dict):
+                desc = frame.get("description", "")
+                ts = frame.get("timestamp", "")
+                if desc or ts:
+                    label = f"Frame {start + i + 1}"
+                    if ts:
+                        label += f" @ {ts}s"
+                    if desc:
+                        label += f": {desc}"
+                    results.append(label)
+
+        if start + count < len(frames):
+            results.append(f"More frames available. Call get_analysis_frames(analysis_id={analysis_id}, start={start + count}) to see the next batch.")
+
+        return results
+    finally:
+        Session.remove()
+
+
+@mcp.tool()
+def get_analysis_pdf(analysis_id: int) -> str:
+    """Generate and retrieve the PDF report for a completed analysis. Returns the PDF as a downloadable link via the web app. Note: PDF generation requires the web app to be running."""
+    import requests as req
+
+    session = Session()
+    try:
+        analysis = session.query(Analysis).get(analysis_id)
+        if not analysis:
+            return "Analysis not found."
+        if analysis.status != "completed":
+            return f"Analysis status is '{analysis.status}', PDF only available for completed analyses."
+
+        cache_key = analysis.pdf_cache_key
+        if not cache_key:
+            return "No PDF cache key found for this analysis. The PDF may not have been generated yet."
+
+        app_url = os.environ.get("APP_URL", "http://localhost:5000")
+        auth_token = os.environ.get("MCP_AUTH_TOKEN", "")
+
+        try:
+            resp = req.get(
+                f"{app_url}/api/analysis/{analysis_id}/pdf",
+                params={"auth_token": auth_token},
+                timeout=60,
+            )
+            if resp.ok:
+                result = resp.json()
+                return json.dumps({
+                    "status": "success",
+                    "analysis_id": analysis_id,
+                    "video_title": analysis.video_title,
+                    "pdf_url": result.get("pdf_url", ""),
+                    "message": "PDF is available at the URL above. Share this link to view/download the report.",
+                }, indent=2)
+            else:
+                return f"Failed to get PDF: {resp.status_code} {resp.text}"
+        except Exception as e:
+            return f"Error getting PDF (is the web app running?): {str(e)}"
     finally:
         Session.remove()
 
