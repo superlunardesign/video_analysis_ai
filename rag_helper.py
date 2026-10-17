@@ -118,6 +118,7 @@ def get_specific_knowledge(meta, mat, transcript, frames, creator_note, goal, ma
     # GOAL-BASED DOCUMENT SELECTION
     goal_document_map = {
         "sales_conversions": [
+            "product_selling_mechanics.txt",
             "sales-psychology.txt",
             "sales_backed_content.txt",
             "messaging_to_sell_your_offer.txt",
@@ -147,33 +148,45 @@ def get_specific_knowledge(meta, mat, transcript, frames, creator_note, goal, ma
         ]
     }
     
-    # Load goal-specific documents
+    # Load goal-specific documents using semantic search for relevance
     if goal in goal_document_map:
-        print(f"[SPECIFIC] Loading {goal} knowledge")
-        target_docs = goal_document_map[goal]
-        
-        for target_file in target_docs:
-            if total_chars >= max_chars * 0.7:  # Use 70% for goal docs
+        print(f"[SPECIFIC] Loading {goal} knowledge via semantic retrieval")
+        target_docs = set(goal_document_map[goal])
+        goal_budget = int(max_chars * 0.7)
+
+        # Build a query from the goal + content context
+        goal_query = f"{goal.replace('_', ' ')} {transcript[:200]} {frames[:200]} {creator_note}"
+        v = _embed_query(goal_query)
+        sims = mat @ v
+
+        # Get all chunks from goal docs, ranked by relevance
+        goal_chunks = []
+        for idx in range(len(sims)):
+            m = meta.get(int(idx))
+            if m and m["file"] in target_docs:
+                goal_chunks.append((float(sims[idx]), idx, m))
+
+        goal_chunks.sort(key=lambda x: -x[0])
+
+        for sim, idx, m in goal_chunks:
+            if total_chars >= goal_budget:
                 break
-                
-            # Get all chunks from this file
-            file_chunks = []
-            for idx, m in meta.items():
-                if m["file"] == target_file:
-                    file_chunks.append((m["chunk_id"], m["text"]))
-            
-            # Sort and add
-            file_chunks.sort(key=lambda x: x[0])
-            for chunk_id, text in file_chunks:
-                if total_chars + len(text) > max_chars * 0.7:
-                    break
-                specific_chunks.append(f"[{goal.replace('_', ' ').title()}: {target_file}]\n{text}")
-                specific_citations.append({
-                    "file": target_file,
-                    "type": f"{goal}_specific",
-                    "chunk_id": chunk_id
-                })
-                total_chars += len(text)
+            if sim < 0.25:
+                continue
+            text = m["text"]
+            if total_chars + len(text) > goal_budget:
+                continue
+            specific_chunks.append(f"[{goal.replace('_', ' ').title()}: {m['file']}]\n{text}")
+            specific_citations.append({
+                "file": m["file"],
+                "type": f"{goal}_specific",
+                "chunk_id": m["chunk_id"],
+                "similarity": sim
+            })
+            total_chars += len(text)
+
+        loaded_files = set(c["file"] for c in specific_citations)
+        print(f"[SPECIFIC] Loaded chunks from {len(loaded_files)} goal docs: {', '.join(loaded_files)}")
     
     # Use remaining space for contextual semantic search if mat is available
     if mat is not None and total_chars < max_chars:
@@ -190,7 +203,7 @@ def get_specific_knowledge(meta, mat, transcript, frames, creator_note, goal, ma
         if "tutorial" in combined_context or "how to" in combined_context:
             context_queries.append("educational tutorial teaching guide")
         
-        if goal in ["sales", "lead_generation"]:
+        if goal in ["sales_conversions", "lead_generation"]:
             context_queries.append("conversion selling services client acquisition")
         
         # Semantic search for additional relevant content
@@ -252,16 +265,16 @@ def retrieve_smart_context(transcript: str, frames: str, creator_note: str, goal
     
     # Determine section label based on goal
     specific_label = {
-        "sales": "SALES & CONVERSION STRATEGIES",
+        "sales_conversions": "SALES & CONVERSION STRATEGIES",
         "lead_generation": "LEAD GENERATION & WARMING",
         "follower_growth": "AUDIENCE GROWTH TACTICS",
         "viral_reach": "VIRAL AMPLIFICATION STRATEGIES",
         "engagement": "ENGAGEMENT OPTIMIZATION"
     }.get(goal, "TARGETED STRATEGIES")
 
-    # When goal is the default (follower_growth), label it as general content-relevant strategies
-    # to avoid biasing the analysis toward growth-specific framing
-    if goal == "follower_growth":
+    # When goal is the default (viral_reach), label it as general content-relevant strategies
+    # to avoid biasing the analysis toward a specific framing
+    if goal == "viral_reach":
         specific_label = "CONTENT-RELEVANT STRATEGIES"
         goal_desc = "this video's content"
     else:

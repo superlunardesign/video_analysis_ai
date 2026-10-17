@@ -285,8 +285,8 @@ def get_review_stats() -> str:
 
 
 @mcp.tool()
-def trigger_analysis(video_url: str, speed_tier: str = "standard", view_count: str = "", creator_note: str = "") -> str:
-    """Start a new video analysis. Returns the analysis ID which can be polled with check_analysis_status until status is 'completed'. Typical wait is 3-9 minutes depending on speed tier."""
+def trigger_analysis(video_url: str, speed_tier: str = "standard", view_count: str = "", creator_note: str = "", goal: str = "") -> str:
+    """Start a new video analysis. Returns the analysis ID which can be polled with check_analysis_status until status is 'completed'. Typical wait is 3-9 minutes depending on speed tier. Optional goal: viral_reach (default), sales_conversions, follower_growth, lead_generation, engagement."""
     import requests as req
 
     app_url = os.environ.get("APP_URL", "http://localhost:5000")
@@ -301,6 +301,7 @@ def trigger_analysis(video_url: str, speed_tier: str = "standard", view_count: s
                 "view_count": view_count,
                 "creator_note": creator_note,
                 "auth_token": auth_token,
+                "goal": goal,
             },
             timeout=30,
         )

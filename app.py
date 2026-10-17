@@ -1584,7 +1584,7 @@ def retrieve_hook_intelligence(format_fingerprint, content_type=None, exclude_an
     return results
 
 
-def classify_video_performance(metadata, user_id, creator_note='', goal='follower_growth'):
+def classify_video_performance(metadata, user_id, creator_note='', goal='viral_reach'):
     """Classify video as success/mixed/underperforming by comparing engagement rates to the user's history."""
     result = {
         'classification': 'unknown',
@@ -1713,6 +1713,47 @@ def classify_video_performance(metadata, user_id, creator_note='', goal='followe
     result['reasoning'] = '; '.join(reasons) if reasons else 'Engagement rates appear typical.'
     print(f"[PERF CLASSIFY] {result['classification']}: {result['reasoning']}")
     return result
+
+
+def detect_product_sales_goal(metadata, creator_note='', user_goal=None):
+    """Auto-detect if a video is selling a product. Returns 'sales_conversions' if detected, else None.
+    User's explicit goal always wins."""
+    if user_goal and user_goal != 'viral_reach':
+        return None
+
+    signals = []
+    meta = metadata or {}
+    description = (meta.get('description', '') or '').lower()
+    title = (meta.get('title', '') or '').lower()
+    hashtags = [h.lower() for h in (meta.get('hashtags', []) or [])]
+    combined = f"{description} {title} {' '.join(hashtags)} {(creator_note or '').lower()}"
+
+    product_hashtags = ['amazonfinds', 'tiktokshop', 'tiktokmademebuyit',
+                        'musthave', 'shopnow', 'linkinbio', 'affiliatelink',
+                        'amazonfavorites', 'amazonhaul', 'productreview']
+    for tag in hashtags:
+        if any(pt in tag for pt in product_hashtags):
+            signals.append(f"product hashtag: #{tag}")
+
+    price_patterns = ['$', 'only ', 'just ', 'under ', 'sale', 'discount',
+                      'off code', 'promo code', 'coupon']
+    for pat in price_patterns:
+        if pat in combined:
+            signals.append(f"price/deal signal: '{pat}'")
+            break
+
+    shop_signals = ['link in bio', 'link in profile', 'tiktok shop', 'shop now',
+                    'got it on amazon', 'found on amazon', 'amazon find',
+                    'sold out', 'selling fast', "run don't walk", 'run!!']
+    for sig in shop_signals:
+        if sig in combined:
+            signals.append(f"shopping signal: '{sig}'")
+
+    if signals:
+        print(f"[GOAL DETECT] Product sales signals found: {signals}")
+        return 'sales_conversions'
+
+    return None
 
 
 def retrieve_successful_references(user_id, goal=None, content_type=None, exclude_analysis_id=None, limit=3):
@@ -1938,15 +1979,19 @@ This video has VERBAL CONTENT. Analyze:
         likes = metadata.get('like_count', 0)
         comments = metadata.get('comment_count', 0)
         reposts = metadata.get('repost_count', 0)
+        saves = metadata.get('save_count', 0)
         eng_metrics = metadata.get('engagement_metrics', {})
         eng_rate = eng_metrics.get('total_engagement_rate', 0)
+        save_rate = eng_metrics.get('save_rate', 0)
         if likes or comments or reposts:
             engagement_context = f"""
 ACTUAL ENGAGEMENT DATA (auto-detected from the platform — use these exact numbers, do NOT fabricate different ones):
 - Likes: {likes:,}
 - Comments: {comments:,}
 - Reposts/Shares: {reposts:,}
+- Saves/Bookmarks: {saves:,}{f" (save rate: {save_rate}%)" if save_rate else ""}
 - Total engagement rate: {eng_rate}%
+NOTE: High saves relative to likes often signals purchase intent or "I need this later" behavior — especially relevant for product videos.
 IMPORTANT: Do NOT predict or fabricate follow counts, sales numbers, or engagement
 numbers that differ from the data above. You do not have access to follower conversion
 data. When discussing engagement in Performance Prediction, reference these ACTUAL
@@ -2976,7 +3021,7 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'view_count': form_data.get('view_count', ''),
         'platform': form_data.get('platform', 'tiktok'),
         'target_duration': form_data.get('target_duration', '30'),
-        'goal': form_data.get('goal', 'follower_growth'),
+        'goal': form_data.get('goal', 'viral_reach'),
         'tone': form_data.get('tone', 'confident, friendly'),
         'audience': form_data.get('audience', 'creators and small business owners'),
         'strategy': form_data.get('strategy', 'smart'),
@@ -3225,7 +3270,7 @@ def process():
         'scene_threshold': request.form.get("scene_threshold", "0.24"),
         'platform': request.form.get("platform", "tiktok").strip(),
         'target_duration': request.form.get("target_duration", "30").strip(),
-        'goal': request.form.get("goal", "follower_growth").strip(),
+        'goal': request.form.get("goal", "viral_reach").strip(),
         'tone': request.form.get("tone", "confident, friendly").strip(),
         'audience': request.form.get("audience", "creators and small business owners").strip(),
         'analysis_depth': request.form.get("analysis_depth", "standard").strip(),
@@ -3295,7 +3340,7 @@ def analyze_upload():
         'scene_threshold': request.form.get("scene_threshold", "0.24"),
         'platform': request.form.get("platform", "tiktok").strip(),
         'target_duration': request.form.get("target_duration", "30").strip(),
-        'goal': request.form.get("goal", "follower_growth").strip(),
+        'goal': request.form.get("goal", "viral_reach").strip(),
         'tone': request.form.get("tone", "confident, friendly").strip(),
         'audience': request.form.get("audience", "creators and small business owners").strip(),
         'analysis_depth': request.form.get("analysis_depth", "standard").strip(),
@@ -3949,7 +3994,7 @@ Key patterns for video analysis:
                 perf_classification = classify_video_performance(
                     metadata, user_id,
                     creator_note=form_data.get('creator_note', ''),
-                    goal=form_data.get('goal', 'follower_growth'),
+                    goal=form_data.get('goal', 'viral_reach'),
                 )
                 if perf_classification.get('classification') in ('underperforming', 'mixed'):
                     successful_refs = retrieve_successful_references(
@@ -3959,6 +4004,16 @@ Key patterns for video analysis:
                     )
             except Exception as e:
                 print(f"[PERF CLASSIFY] Error: {e}")
+
+            # Auto-detect product sales goal
+            detected_goal = detect_product_sales_goal(
+                metadata,
+                creator_note=form_data.get('creator_note', ''),
+                user_goal=form_data.get('goal', 'viral_reach')
+            )
+            if detected_goal:
+                form_data['goal'] = detected_goal
+                print(f"[GOAL] Auto-detected goal: {detected_goal}")
 
             # Run comprehensive analysis with metadata and audio insights
             update_progress(current_analysis_id, 'deep_analysis', 'Running deep psychological analysis...', 75)
@@ -4973,7 +5028,7 @@ def api_analyze():
         'scene_threshold': '0.24',
         'platform': 'tiktok',
         'target_duration': '30',
-        'goal': 'follower_growth',
+        'goal': data.get('goal', '') or 'viral_reach',
         'tone': 'confident, friendly',
         'audience': 'creators and small business owners',
         'analysis_depth': 'standard',
