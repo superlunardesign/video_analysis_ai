@@ -82,7 +82,9 @@ def _analysis_to_dict(row):
             result[key] = data[key]
 
     for key in ["content_type", "niche", "platform", "audio_type",
-                 "music_info", "video_description", "hashtags"]:
+                 "music_info", "video_description", "hashtags",
+                 "content_goal", "performance_classification",
+                 "performance_section_type", "replication_section_type"]:
         if data.get(key):
             result[key] = data[key]
 

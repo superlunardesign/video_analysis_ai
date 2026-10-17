@@ -411,6 +411,55 @@ def parse_delimited_response(response_text, transcript=''):
             'format_hook_fit': format_hook_fit.strip(),
         }
 
+    # Parse CONTENT_GOAL into structured dict
+    content_goal = {}
+    if 'CONTENT_GOAL' in sections:
+        for line in sections['CONTENT_GOAL'].split('\n'):
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key = key.strip().lower().replace(' ', '_')
+                value = value.strip()
+                if key in ('goal_type', 'confidence', 'evidence', 'sales_channel', 'product_info'):
+                    content_goal[key] = value
+
+    # Parse WHAT_TO_TRY_INSTEAD (underperforming video alternative to replication formula)
+    what_to_try = {}
+    if 'WHAT_TO_TRY_INSTEAD' in sections:
+        content = sections['WHAT_TO_TRY_INSTEAD']
+        lines = content.split('\n')
+        try_keys = {'salvage_option', 'pivot_format', 'sample_execution', 'text_template',
+                    'why_original_failed', 'key_difference'}
+        block_keys_try = {'sample_execution', 'text_template'}
+
+        current_key = None
+        current_value = []
+
+        for line in lines:
+            is_new_key = False
+            if ':' in line and not line.strip().startswith('**') and not line.strip().startswith('-'):
+                candidate_key = line.split(':', 1)[0].strip()
+                if candidate_key in try_keys:
+                    is_new_key = True
+                elif current_key not in block_keys_try:
+                    is_new_key = True
+
+            if is_new_key:
+                if current_key:
+                    what_to_try[current_key] = '\n'.join(current_value).strip()
+                key, value = line.split(':', 1)
+                current_key = key.strip()
+                current_value = [value.strip()] if value.strip() else []
+            else:
+                if current_key:
+                    current_value.append(line)
+
+        if current_key:
+            what_to_try[current_key] = '\n'.join(current_value).strip()
+
+        if 'sample_execution' in what_to_try:
+            what_to_try['script'] = what_to_try['sample_execution']
+            what_to_try['script_type'] = 'alternative'
+
     # Parse FORMAT_FINGERPRINT into dict
     format_fingerprint = {}
     if 'FORMAT_FINGERPRINT' in sections:
@@ -423,14 +472,20 @@ def parse_delimited_response(response_text, transcript=''):
                            'audio_approach', 'content_format', 'payoff_type', 'format_summary'):
                     format_fingerprint[key] = value
 
+    # Determine which section types were used (underperforming vs standard)
+    is_underperforming = 'WHY_IT_UNDERPERFORMED' in sections
+    has_what_to_try = 'WHAT_TO_TRY_INSTEAD' in sections
+
     # Return structured data in the same format template expects
     return {
         'what_this_video_is': sections.get('WHAT_THIS_VIDEO_IS', ''),
-        'why_it_performed': sections.get('WHY_IT_PERFORMED', ''),
+        'why_it_performed': sections.get('WHY_IT_PERFORMED') or sections.get('WHY_IT_UNDERPERFORMED', ''),
+        'performance_section_type': 'underperformed' if is_underperforming else 'performed',
         'all_hooks_identified': all_hooks,
         'exact_hook_breakdown': exact_hook,
-        'replication_formula': replication,
-        'improvements': sections.get('IMPROVEMENTS', ''),
+        'replication_formula': what_to_try if has_what_to_try else replication,
+        'replication_section_type': 'what_to_try' if has_what_to_try else 'replication',
+        'improvements': sections.get('WHAT_TO_IMPROVE') or sections.get('IMPROVEMENTS', ''),
         'viral_mechanics': sections.get('VIRAL_MECHANICS', ''),
         'scores': scores,
         'timing_mastery': timing,
@@ -439,10 +494,11 @@ def parse_delimited_response(response_text, transcript=''):
         'format_fingerprint': format_fingerprint,
         'format_match': format_match if format_match else None,
         'hook_mechanisms': hook_mechanisms,
+        'content_goal': content_goal,
 
         # Also include as single field for compatibility
         'analysis': sections.get('WHAT_THIS_VIDEO_IS', ''),
-        'performance_deep_dive': sections.get('WHY_IT_PERFORMED', ''),
+        'performance_deep_dive': sections.get('WHY_IT_PERFORMED') or sections.get('WHY_IT_UNDERPERFORMED', ''),
     }
 
 
@@ -1527,7 +1583,214 @@ def retrieve_hook_intelligence(format_fingerprint, content_type=None, exclude_an
     return results
 
 
-def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown', metadata=None, audio_insights=None, analysis_depth='standard', comment_insights=None, format_match_context=None):
+def classify_video_performance(metadata, user_id, creator_note='', goal='follower_growth'):
+    """Classify video as success/mixed/underperforming by comparing engagement rates to the user's history."""
+    result = {
+        'classification': 'unknown',
+        'reasoning': '',
+        'like_rate': None,
+        'comment_rate': None,
+        'share_rate': None,
+        'baseline': {},
+        'data_gaps': [],
+    }
+
+    view_count_raw = (metadata or {}).get('view_count', 0) or 0
+    like_count = (metadata or {}).get('like_count', 0) or 0
+    comment_count = (metadata or {}).get('comment_count', 0) or 0
+    repost_count = (metadata or {}).get('repost_count', 0) or 0
+
+    if not view_count_raw:
+        result['data_gaps'].append('view_count')
+        result['classification'] = 'unknown'
+        result['reasoning'] = 'View count is missing — cannot reliably classify performance.'
+        return result
+
+    like_rate = (like_count / view_count_raw * 100) if view_count_raw else 0
+    comment_rate = (comment_count / view_count_raw * 100) if view_count_raw else 0
+    share_rate = (repost_count / view_count_raw * 100) if view_count_raw else 0
+    result['like_rate'] = round(like_rate, 2)
+    result['comment_rate'] = round(comment_rate, 4)
+    result['share_rate'] = round(share_rate, 4)
+
+    try:
+        completed = Analysis.query.filter_by(user_id=user_id, status='completed').all()
+        rates = []
+        for a in completed:
+            d = a.analysis_data or {}
+            v = d.get('view_count', '')
+            vc_raw = 0
+            if isinstance(v, (int, float)):
+                vc_raw = int(v)
+            elif isinstance(v, str):
+                clean = v.lower().replace(',', '').replace(' views', '').strip()
+                try:
+                    if 'm' in clean:
+                        vc_raw = int(float(clean.replace('m', '')) * 1_000_000)
+                    elif 'k' in clean:
+                        vc_raw = int(float(clean.replace('k', '')) * 1_000)
+                    elif clean:
+                        vc_raw = int(float(clean))
+                except (ValueError, TypeError):
+                    pass
+            lc = d.get('like_count', 0) or 0
+            if vc_raw and vc_raw > 0 and lc:
+                rates.append({
+                    'like_rate': lc / vc_raw * 100,
+                    'comment_rate': (d.get('comment_count', 0) or 0) / vc_raw * 100,
+                    'views': vc_raw,
+                })
+
+        if len(rates) >= 2:
+            avg_like_rate = sum(r['like_rate'] for r in rates) / len(rates)
+            avg_comment_rate = sum(r['comment_rate'] for r in rates) / len(rates)
+            avg_views = sum(r['views'] for r in rates) / len(rates)
+            result['baseline'] = {
+                'avg_like_rate': round(avg_like_rate, 2),
+                'avg_comment_rate': round(avg_comment_rate, 4),
+                'avg_views': int(avg_views),
+                'sample_size': len(rates),
+            }
+        else:
+            result['baseline'] = {}
+    except Exception as e:
+        print(f"[PERF CLASSIFY] Error querying history: {e}")
+        result['baseline'] = {}
+
+    creator_lower = (creator_note or '').lower()
+    creator_signals_flop = any(s in creator_lower for s in [
+        'flop', 'bomb', 'didn\'t work', 'no sales', 'zero sales',
+        'didn\'t sell', 'didn\'t convert', 'boosted', 'tiktok gave',
+    ])
+
+    is_sales_goal = goal in ('product_sales', 'sales', 'conversions') or any(
+        s in creator_lower for s in ['tiktok shop', 'no sales', 'zero sales', 'didn\'t sell']
+    )
+
+    reasons = []
+    baseline = result['baseline']
+
+    if baseline:
+        avg_lr = baseline['avg_like_rate']
+        if like_rate < avg_lr * 0.4:
+            reasons.append(f"like rate ({like_rate:.1f}%) is well below your average ({avg_lr:.1f}%)")
+        elif like_rate < avg_lr * 0.7:
+            reasons.append(f"like rate ({like_rate:.1f}%) is below your average ({avg_lr:.1f}%)")
+        elif like_rate >= avg_lr * 1.3:
+            reasons.append(f"like rate ({like_rate:.1f}%) is above your average ({avg_lr:.1f}%)")
+
+        avg_v = baseline['avg_views']
+        if view_count_raw < avg_v * 0.3:
+            reasons.append(f"views ({view_count_raw:,}) are well below your average ({avg_v:,})")
+        elif view_count_raw < avg_v * 0.6:
+            reasons.append(f"views ({view_count_raw:,}) are below your average ({avg_v:,})")
+    else:
+        if like_rate < 1.0:
+            reasons.append(f"like rate is very low ({like_rate:.1f}%)")
+        elif like_rate < 2.0:
+            reasons.append(f"like rate is below typical ({like_rate:.1f}%)")
+
+    if creator_signals_flop:
+        reasons.append("creator noted poor performance")
+    if is_sales_goal and any(s in creator_lower for s in ['no sales', 'zero sales', 'didn\'t sell']):
+        reasons.append("sales goal with no reported conversions")
+
+    negative_signals = sum(1 for r in reasons if any(w in r for w in ['below', 'low', 'poor', 'no reported']))
+    positive_signals = sum(1 for r in reasons if 'above' in r)
+
+    if negative_signals >= 2 or (is_sales_goal and 'no reported' in ' '.join(reasons)):
+        result['classification'] = 'underperforming'
+    elif negative_signals == 1 and positive_signals == 0:
+        result['classification'] = 'mixed'
+    elif negative_signals == 0 and (positive_signals > 0 or like_rate >= 2.0):
+        result['classification'] = 'success'
+    elif like_rate < 1.0 and view_count_raw < 10000:
+        result['classification'] = 'underperforming'
+    else:
+        result['classification'] = 'mixed'
+
+    result['reasoning'] = '; '.join(reasons) if reasons else 'Engagement rates appear typical.'
+    print(f"[PERF CLASSIFY] {result['classification']}: {result['reasoning']}")
+    return result
+
+
+def retrieve_successful_references(user_id, goal=None, content_type=None, exclude_analysis_id=None, limit=3):
+    """Find successful analyses from the user's library for 'what to try instead' suggestions."""
+    try:
+        query = Analysis.query.filter_by(user_id=user_id, status='completed')
+        if exclude_analysis_id:
+            query = query.filter(Analysis.id != exclude_analysis_id)
+        candidates = query.order_by(Analysis.created_at.desc()).limit(100).all()
+    except Exception as e:
+        print(f"[SUCCESS REF] Error querying: {e}")
+        return []
+
+    scored = []
+    for a in candidates:
+        d = a.analysis_data or {}
+        vc_raw = 0
+        v = d.get('view_count', '')
+        if isinstance(v, (int, float)):
+            vc_raw = int(v)
+        elif isinstance(v, str):
+            clean = v.lower().replace(',', '').replace(' views', '').strip()
+            try:
+                if 'm' in clean:
+                    vc_raw = int(float(clean.replace('m', '')) * 1_000_000)
+                elif 'k' in clean:
+                    vc_raw = int(float(clean.replace('k', '')) * 1_000)
+                elif clean:
+                    vc_raw = int(float(clean))
+            except (ValueError, TypeError):
+                pass
+
+        lc = d.get('like_count', 0) or 0
+        if not vc_raw or vc_raw == 0:
+            continue
+        like_rate = lc / vc_raw * 100
+        if like_rate < 2.0 and vc_raw < 50000:
+            continue
+
+        score = 0
+        score += min(like_rate, 10)
+        if vc_raw >= 100000:
+            score += 3
+        elif vc_raw >= 50000:
+            score += 2
+        elif vc_raw >= 20000:
+            score += 1
+
+        if goal and d.get('goal') == goal:
+            score += 2
+
+        a_ct = d.get('content_type', '') or ''
+        if content_type and a_ct and content_type.lower() in a_ct.lower():
+            score += 2
+
+        fp = d.get('format_fingerprint', {})
+        scored.append({
+            'analysis_id': a.id,
+            'video_title': a.video_title or 'Untitled',
+            'video_url': a.video_url,
+            'view_count': v,
+            'like_rate': round(like_rate, 1),
+            'goal': d.get('goal', ''),
+            'format_fingerprint': fp,
+            'what_this_video_is': (d.get('what_this_video_is') or '')[:300],
+            'replication_formula': d.get('replication_formula', {}),
+            'scores': d.get('scores', {}),
+            'score': score,
+        })
+
+    scored.sort(key=lambda x: -x['score'])
+    results = scored[:limit]
+    if results:
+        print(f"[SUCCESS REF] Found {len(results)} successful references "
+              f"(top: #{results[0]['analysis_id']} score={results[0]['score']:.1f})")
+    return results
+
+
+def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown', metadata=None, audio_insights=None, analysis_depth='standard', comment_insights=None, format_match_context=None, performance_classification=None, successful_references=None):
     """Comprehensive analysis that adapts to ALL video types with deep insights"""
     
     # First analyze frames to understand visual content
@@ -1654,14 +1917,20 @@ This video has VERBAL CONTENT. Analyze:
 - ensure to compare transcript with text on screen to determine if its added text or captions. if transcript does not match up with text on screen, it is likely added text. if they match up, it is captions.
 """
 
+    # Set up performance classification variables for prompt conditionals
+    perf_class = performance_classification or {}
+    perf_classification = perf_class.get('classification', 'unknown')
+
     # Build the performance message separately to avoid f-string issues
     if performance_level == 'draft':
         performance_message = "This is an UNPUBLISHED DRAFT video. Analyze its structure, hooks, retention design, and give specific pre-publish improvement suggestions."
     elif performance_level == 'viral':
         performance_message = f"This video went VIRAL with {view_count} - analyze WHY it succeeded."
+    elif perf_classification == 'underperforming':
+        performance_message = f"This video got {view_count if view_count else 'limited views'} and UNDERPERFORMED. Diagnose what went wrong — do not treat this as a success."
     else:
         performance_message = f"This video got {view_count if view_count else 'certain performance'} - analyze what's working and what needs to improve to achieve higher success in relation to the chosen goal."
-    
+
     # Build engagement context from metadata
     engagement_context = ""
     if metadata:
@@ -1682,6 +1951,39 @@ numbers that differ from the data above. You do not have access to follower conv
 data. When discussing engagement in Performance Prediction, reference these ACTUAL
 numbers and explain what they reveal about the video's performance."""
 
+    # Build performance classification context
+    perf_context = ""
+    if perf_class and perf_classification != 'unknown':
+        baseline_info = ""
+        bl = perf_class.get('baseline', {})
+        if bl:
+            baseline_info = f" Creator's average like rate: {bl.get('avg_like_rate', '?')}%, average views: {bl.get('avg_views', '?'):,} (based on {bl.get('sample_size', 0)} prior analyses)."
+        perf_context = f"""
+PERFORMANCE CLASSIFICATION: {perf_classification.upper()}
+This video's like rate: {perf_class.get('like_rate', '?')}%, comment rate: {perf_class.get('comment_rate', '?')}%.{baseline_info}
+Assessment: {perf_class.get('reasoning', '')}
+{"Data gaps: " + ", ".join(perf_class.get("data_gaps", [])) if perf_class.get("data_gaps") else ""}
+"""
+
+    # Build successful references context for underperforming videos
+    success_ref_context = ""
+    if successful_references and perf_classification in ('underperforming', 'mixed'):
+        ref_lines = ["SUCCESSFUL VIDEOS FROM YOUR LIBRARY (for comparison and 'what to try instead'):"]
+        for ref in successful_references[:3]:
+            fp = ref.get('format_fingerprint', {})
+            ref_lines.append(
+                f"- Analysis #{ref['analysis_id']}: \"{ref['video_title']}\" — {ref['view_count']} views, "
+                f"{ref['like_rate']}% like rate, goal: {ref.get('goal', 'unknown')}"
+                f"{', format: ' + fp.get('format_summary', '') if fp.get('format_summary') else ''}"
+                f"\n  What it is: {ref.get('what_this_video_is', '')[:200]}"
+            )
+            rep = ref.get('replication_formula', {})
+            if rep.get('formula_name'):
+                ref_lines.append(f"  Formula: {rep['formula_name']}")
+            if rep.get('invariant'):
+                ref_lines.append(f"  Invariant: {rep['invariant'][:150]}")
+        success_ref_context = '\n'.join(ref_lines)
+
     prompt = f"""
 You are a video psychology expert analyzing transcribed and extracted data from a {platform} video.
 You have been provided with frame-by-frame descriptions and audio transcription below.
@@ -1698,6 +2000,16 @@ CRITICAL CONTEXT:
 - Views: {view_count}
 - User's selected goal for replication formula: {goal} (use this ONLY in the replication formula section — do NOT let it influence your analysis of what the video IS or what its actual intent appears to be)
 {engagement_context}
+{perf_context}
+
+ANTI-FABRICATION RULES:
+- Do NOT invent prices, dollar amounts, or product claims unless they appear in the transcript,
+  on-screen text, or creator's note. If a sample script needs a claim, use a placeholder like
+  [price], [benefit you can honestly claim], or [product name].
+- Do NOT invent sales numbers, follower counts, or conversion rates. You have no access to that data.
+- Do NOT attribute health claims, ingredients, or benefits to a product unless the video or note
+  explicitly states them. "It helps with [X]" is fabrication if the video never said that.
+- If the product name is not stated, say "the product" or "[product name]", not a guess.
 
 AUDIO CONTEXT:
 {f"SONG LYRICS (attached track: {audio_type_info.get('track_name', 'unknown')}): {transcript_text}  — NOTE: These are song lyrics, NOT the creator speaking. Do not interpret them as the video's message." if is_song else (f"Speech detected: {transcript_text}" if has_speech else f"Non-speech audio: {audio_type_info.get('likely_sound_source', 'ambient sounds')} (based on visual activity)")}
@@ -1717,6 +2029,8 @@ VISUAL ANALYSIS:
 {knowledge_section}
 
 {_build_format_match_section(format_match_context) if format_match_context else ""}
+
+{success_ref_context}
 
 COMPREHENSIVE ANALYSIS INSTRUCTIONS:
 {f"Since this went VIRAL, identify the EXACT psychological triggers and viral mechanics." if performance_level == 'viral' else f"This is an UNPUBLISHED DRAFT — focus on pre-publish improvements: hook strength, retention structure, pacing, visual flow, and what to change BEFORE posting. Be specific and actionable." if performance_level == 'draft' else "Identify opportunities for this specific video that can help improve based on or inspired by proven patterns. Give 2-3 ideas and examples. Instead of saying something like 'enhance visual storytelling' explain to them how they might do that thing and provide strong examples"}
@@ -1746,21 +2060,21 @@ B2B content with 90K views generating multiple inquiries is worth more than ente
 BUT there is also a world where a video MEANT to sell only amassed many views and didn't generate sales. We need to explain in the output why this happened and what sales psychology tactics are missing and then HOW to implement them.
 
 **IF A VIDEO SEEMS TO BE ABOUT ANY TYPE OF SELLING/SERVICE/PRODUCT**
-START WITH: "This video achieved strong performance because..."
-NOT: "This video shows potential but..."
-IDENTIFY: What psychological triggers drove success
+Evaluate whether the video SUCCEEDED or FAILED at its sales/service goal.
+- If the performance classification says "underperforming" and the goal was sales, the video
+  FAILED at selling. Do not say it "achieved strong performance." Diagnose what went wrong
+  with the sales psychology: was the hook too product-forward? Was the CTA too early? Was
+  there no compelling reason to buy?
+- If the video performed well AND shows genuine engagement, then analyze what drove success.
 
-For videos with 50K+ views in B2C/B2B/service niches:
-Trust building
-Objection handling
-Authority demonstration
-Problem-solving display
+For videos with 50K+ views in B2C/B2B/service niches that SUCCEEDED:
+Trust building, objection handling, authority demonstration, problem-solving display.
+THEN SUGGEST amplifications.
 
-THEN SUGGEST: Amplifications to go even bigger
-
-"To reach 200K+, consider..."
-"To maximize inquiries, add..."
-"To increase conversion, include..."
+For sales videos that UNDERPERFORMED:
+What was the sales structure? Where did viewers likely bounce? Was the hook a curiosity gap
+or did it announce "buy this product" in the first second? Successful sales videos on TikTok
+hook with a problem, question, or story — the product appears as the SOLUTION, not the opening.
 
 ### NICHE-SPECIFIC VIEW EXPECTATIONS
 
@@ -1839,11 +2153,22 @@ You can use quotes "like this" freely, write multiple paragraphs, and format nat
 
 Use this EXACT format with === delimiters:
 
+===CONTENT_GOAL===
+Detect what this video is trying to achieve. Look at ALL available signals: the transcript,
+on-screen text (especially CTAs), creator's note, comments, visual elements (product packaging,
+shopping carts, link overlays), and the overall structure.
+
+goal_type: [one of: entertainment, education, product_sales, service_promotion, brand_awareness, engagement_bait, community_building, affiliate_marketing]
+confidence: [one of: confirmed (creator explicitly stated it or clear in-video CTA), likely (strong signals but not stated), possible (some signals but ambiguous)]
+evidence: [list the specific signals you found — e.g., "orange cart icon visible", "creator note says TikTok Shop", "says 'link in bio'", "no sales signals detected"]
+sales_channel: [only if goal involves selling — one of: tiktok_shop, affiliate_link_in_bio, own_website, unknown, none]
+product_info: [only if a product is featured — the product name/category ONLY if explicitly stated in the video, transcript, or note. If not stated, write "product shown but not named" or "unidentified [category]". Do NOT guess product names or brands.]
+
 ===WHAT_THIS_VIDEO_IS===
 {"FORMAT: Name the format this video uses (from the knowledge base if it matches, or describe it if it doesn't). INFERRED GOAL(S): What is this video most likely trying to achieve — views, follows, sales, engagement, authority? State the evidence. ANALYSIS: [explain the core idea/hook/appeal in educational, explanatory language]. It works because [detailed psychological reason with moment-by-moment breakdown explaining hook effectiveness, promise clarity, tension building, and satisfaction delivery. Point out specific seconds where retention tactics work and explain why]. Where it excels: [what this video does well within its format]. Where it falls short: [what it misses, judged by its own format's standards]." if analysis_depth == 'deep' else "FORMAT: [specific formula/pattern]. INFERRED GOAL: [what the video is trying to achieve and why you think so]. Core hook: [what grabbed attention]. Why it works: [1-2 sentence psychological explanation]. Result: [did it satisfy or not, briefly]."}
 
-===WHY_IT_PERFORMED===
-{"This video got {view_count if view_count else 'these views'} because [comprehensive analysis: list each performance driver, explain why it generated views, break down hook/promise/retention/satisfaction, identify what worked or didn't work, provide specific improvement suggestions]. Main psychological trigger: [detailed explanation]. Viewers stayed because: [comprehensive reason]. It attracted [specific audience] who [detailed engagement explanation]." if analysis_depth == 'deep' else "This video got {view_count if view_count else 'these views'} because: [1-2 main reasons]. Key trigger: [one psychological driver]. Audience: [who watched and why in 1 sentence]."}
+{"===WHY_IT_UNDERPERFORMED===" if perf_classification == 'underperforming' else "===WHY_IT_PERFORMED==="}
+{f"This video got {view_count if view_count else 'these views'} but UNDERPERFORMED relative to this creator's other content. Diagnose WHY. Was it the concept (wrong topic/angle for the audience), the format fit (wrong structure for this type of content), the hook (failed to stop the scroll), the payoff (didn't deliver on the promise), the sales structure (too aggressive, too early, or missing entirely), or distribution (posted at wrong time, wrong hashtags, algorithm didn't push it)? Be specific about which elements failed and why. Do not sugarcoat — a video with a {perf_class.get('like_rate', '?')}% like rate when the creator averages {perf_class.get('baseline', {}).get('avg_like_rate', 'higher')}% needs honest diagnosis, not encouragement." if perf_classification == 'underperforming' else ("This video got {view_count if view_count else 'these views'} because [comprehensive analysis: list each performance driver, explain why it generated views, break down hook/promise/retention/satisfaction, identify what worked or didn't work, provide specific improvement suggestions]. Main psychological trigger: [detailed explanation]. Viewers stayed because: [comprehensive reason]. It attracted [specific audience] who [detailed engagement explanation]." if analysis_depth == 'deep' else "This video got {view_count if view_count else 'these views'} because: [1-2 main reasons]. Key trigger: [one psychological driver]. Audience: [who watched and why in 1 sentence].")}
 
 ===ALL_HOOKS_TEXT===
 ONLY list text that appears in the FIRST 3 SECONDS that STOPS the scroll.
@@ -1896,8 +2221,40 @@ format_hook_fit: [In 2-3 sentences, explain why these specific hook mechanisms w
 for THIS video's format. Different formats need different hook approaches — a vulnerability
 hook works on a transformation reveal but falls flat on a tutorial. Explain the relationship.]
 
-===REPLICATION_FORMULA===
-Extract the TRANSFERABLE pattern, not a transcription of this video.
+{"===WHAT_TO_TRY_INSTEAD===" if perf_classification == 'underperforming' else "===REPLICATION_FORMULA==="}
+{f'''This video underperformed. Do NOT build a replication formula from it unless it clearly
+attempted a proven formula and just executed it poorly — in that case, name the formula it
+was trying and explain what went wrong in execution.
+
+Instead, provide:
+
+salvage_option: [Can this same idea/product/concept work in a DIFFERENT structure? Describe
+one specific alternative format that has worked for similar goals in this creator's library
+or in general. Reference a specific successful analysis if one was provided above.]
+
+pivot_format: [Name a proven format from the knowledge base or the creator's successful
+analyses above that would serve this video's apparent goal better. Explain WHY that format
+works for this goal.]
+
+sample_execution:
+IMPORTANT: This is ONE way to try the ALTERNATIVE approach at {target_duration}s.
+
+**Concept:** [One line: what this execution does differently]
+
+**0-Xs:** [beat] — [why this fixes the original problem]
+**X-Ys:** [beat] — [why]
+[continue through {target_duration}s]
+
+text_template:
+**Added Text:** "[TEXT OVERLAY]"
+**0-3s:** "[Hook text — must open a curiosity gap, not announce the product]"
+[continue with timestamped overlays]
+
+why_original_failed: [In 2-3 sentences, what specifically about the original structure,
+hook, or approach caused it to underperform]
+
+key_difference: [The single most important thing that changes between the failed approach
+and this suggested one, and why that change matters psychologically]''' if perf_classification == 'underperforming' else f'''Extract the TRANSFERABLE pattern, not a transcription of this video.
 
 CRITICAL DISTINCTION:
 - The INVARIANT is the small set of things that must be true or it isn't this format. It is
@@ -1950,10 +2307,19 @@ text_template:
 [continue with timestamped overlays matching the sample execution above]
 
 visual_requirements: [2-3 specific visual ideas that serve THIS format's mechanism, with why
-each one works.]
+each one works.]'''}
 
-===IMPROVEMENTS===
-RULES FOR IMPROVEMENTS:
+{"===WHAT_TO_IMPROVE===" if perf_classification == 'underperforming' else "===IMPROVEMENTS==="}
+{f'''This video underperformed. Do not suggest small tweaks to a broken approach.
+Focus on the ROOT CAUSE of underperformance and what fundamentally needs to change.
+- If the hook was the problem, explain what kind of hook would work and why.
+- If the concept was wrong for the goal, say so directly.
+- If the sales structure was too aggressive or too early, explain the psychology of why
+  viewers bounced and what the timing should look like instead.
+- Reference what works in the creator's successful videos when relevant.
+Do NOT suggest "lead with the product" for sales videos — that makes it look like an ad
+in the first second. Successful sales videos hook with a problem, story, or curiosity gap
+and the product appears as the solution.''' if perf_classification == 'underperforming' else '''RULES FOR IMPROVEMENTS:
 - NEVER suggest revealing payoff earlier than 75% through video.
 - Every suggested hook must OPEN a curiosity gap, not close one. If your hook gives away the
   answer, the viewer already has what they came for. Test: does this hook make the viewer need
@@ -1963,7 +2329,7 @@ RULES FOR IMPROVEMENTS:
 - Only suggest improvements that are genuine — if the video already does something well,
   say so instead of manufacturing a fix. Fewer real improvements beat three invented ones.
 - Match the creator's voice and niche. A design educator's hook sounds different from a
-  fitness influencer's hook.
+  fitness influencer's hook.'''}
 
 {"Improvement 1: [Detailed specific actionable change with exact word-for-word script suggestions, pattern interrupts, and retention tactics. Explain why this would work psychologically for THIS video's format and goal]. Improvement 2: [Another detailed improvement with scripts and explanations]. Improvement 3: [Third improvement]. This could push views to [realistic projection with detailed reasoning]." if analysis_depth == 'deep' else "1. [Most important improvement in 1 sentence]. 2. [Second improvement in 1 sentence]. 3. [Third improvement in 1 sentence]. Potential: [projected views with brief reason]."}
 
@@ -2537,9 +2903,13 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         # New conversational fields
         'what_this_video_is': gpt_result.get('what_this_video_is', ''),
         'why_it_performed': gpt_result.get('why_it_performed', ''),
+        'performance_section_type': gpt_result.get('performance_section_type', 'performed'),
         'all_hooks_identified': gpt_result.get('all_hooks_identified', {}),
         'replication_formula': gpt_result.get('replication_formula', {}),
+        'replication_section_type': gpt_result.get('replication_section_type', 'replication'),
         'improvements': gpt_result.get('improvements', gpt_result.get('improvement_opportunities', '')),
+        'content_goal': gpt_result.get('content_goal', {}),
+        'performance_classification': gpt_result.get('performance_classification', {}),
         
         # Frame and file data
         'frames_count': len(frame_paths) if frame_paths else 0,
@@ -3486,6 +3856,24 @@ Key patterns for video analysis:
             except Exception as e:
                 print(f"[FORMAT MATCH] Error during matching: {e}")
 
+            # Classify video performance before analysis
+            perf_classification = None
+            successful_refs = None
+            try:
+                perf_classification = classify_video_performance(
+                    metadata, user_id,
+                    creator_note=form_data.get('creator_note', ''),
+                    goal=form_data.get('goal', 'follower_growth'),
+                )
+                if perf_classification.get('classification') in ('underperforming', 'mixed'):
+                    successful_refs = retrieve_successful_references(
+                        user_id,
+                        goal=form_data.get('goal'),
+                        exclude_analysis_id=current_analysis_id,
+                    )
+            except Exception as e:
+                print(f"[PERF CLASSIFY] Error: {e}")
+
             # Run comprehensive analysis with metadata and audio insights
             update_progress(current_analysis_id, 'deep_analysis', 'Running deep psychological analysis...', 75)
             try:
@@ -3505,7 +3893,9 @@ Key patterns for video analysis:
                     audio_insights=audio_analysis,
                     analysis_depth=form_data.get('analysis_depth', 'standard'),
                     comment_insights=comment_insights,
-                    format_match_context=format_match_context
+                    format_match_context=format_match_context,
+                    performance_classification=perf_classification,
+                    successful_references=successful_refs,
                 )
 
                 # Post-analysis format match: now that we have the full fingerprint,
@@ -3553,6 +3943,8 @@ Key patterns for video analysis:
                 gpt_result['metadata'] = metadata
                 gpt_result['audio_analysis'] = audio_analysis
                 gpt_result['save_insights'] = analyze_save_metrics(metadata) if metadata else {}
+                gpt_result['performance_classification'] = perf_classification or {}
+                gpt_result['successful_references'] = successful_refs or []
 
                 print("[SUCCESS] Analysis complete")
                 print(f"[INFO] Content type: {gpt_result.get('content_type_detected', 'unknown')}")
@@ -4660,6 +5052,12 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             'hook_mechanisms': template_vars.get('hook_mechanisms', {}),
             'hook_intelligence': template_vars.get('hook_intelligence', []),
 
+            # Performance classification and content goal
+            'performance_classification': template_vars.get('performance_classification', {}),
+            'content_goal': template_vars.get('content_goal', {}),
+            'performance_section_type': template_vars.get('performance_section_type', 'performed'),
+            'replication_section_type': template_vars.get('replication_section_type', 'replication'),
+
             # Upload flag
             'is_upload': template_vars.get('is_upload', False),
 
@@ -4740,6 +5138,10 @@ def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template
             'comment_insights': template_vars.get('comment_insights'),
             'hook_mechanisms': template_vars.get('hook_mechanisms', {}),
             'hook_intelligence': template_vars.get('hook_intelligence', []),
+            'performance_classification': template_vars.get('performance_classification', {}),
+            'content_goal': template_vars.get('content_goal', {}),
+            'performance_section_type': template_vars.get('performance_section_type', 'performed'),
+            'replication_section_type': template_vars.get('replication_section_type', 'replication'),
         }
 
         # Create analysis record
