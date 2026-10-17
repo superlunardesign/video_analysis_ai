@@ -341,5 +341,9 @@ if __name__ == "__main__":
         mcp.run(transport="stdio")
     else:
         port = int(os.environ.get("MCP_PORT", os.environ.get("PORT", "8001")))
-        logger.info(f"Starting MCP Server (SSE mode) on port {port}")
-        mcp.run(transport="sse", host="0.0.0.0", port=port)
+        transport = os.environ.get("MCP_TRANSPORT", "streamable-http")
+        logger.info(f"Starting MCP Server ({transport} mode) on port {port}")
+        if transport == "sse":
+            mcp.run(transport="sse", host="0.0.0.0", port=port)
+        else:
+            mcp.run(transport="streamable-http", host="0.0.0.0", port=port)
