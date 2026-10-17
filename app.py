@@ -37,7 +37,7 @@ from cache_manager import AnalysisCache, PdfCache
 from analysis_optimization import intelligent_frame_extraction, parallel_video_processing, optimize_frame_selection
 from audio_analysis import enhanced_audio_analysis, ViralSoundDetector
 from performance_tracker import AnalysisPerformanceTracker
-from models import db, User, Analysis, ReviewFeedback, init_db
+from models import db, User, Analysis, ReviewFeedback, HookPattern, init_db
 from auth import auth_bp, init_auth
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
@@ -374,6 +374,43 @@ def parse_delimited_response(response_text, transcript=''):
                            'advantages', 'recommendations', 'performance_explanation'):
                     format_match[key] = value.strip()
 
+    # Parse HOOK_MECHANISMS into structured data
+    hook_mechanisms = {}
+    if 'HOOK_MECHANISMS' in sections:
+        raw = sections['HOOK_MECHANISMS']
+        hooks_list = []
+        current_hook = None
+        current_layers = []
+        format_hook_fit = ""
+
+        for line in raw.split('\n'):
+            stripped = line.strip()
+            if stripped.startswith('hook:'):
+                if current_hook:
+                    hooks_list.append({'hook': current_hook, 'layers': current_layers})
+                current_hook = stripped.split(':', 1)[1].strip()
+                current_layers = []
+            elif stripped.startswith('- mechanism:'):
+                current_layers.append({'mechanism': stripped.split(':', 1)[1].strip()})
+            elif stripped.startswith('loop:') and current_layers:
+                current_layers[-1]['loop'] = stripped.split(':', 1)[1].strip()
+            elif stripped.startswith('target:') and current_layers:
+                current_layers[-1]['target'] = stripped.split(':', 1)[1].strip()
+            elif stripped.startswith('comment_driver:') and current_layers:
+                current_layers[-1]['comment_driver'] = stripped.split(':', 1)[1].strip()
+            elif stripped.startswith('format_hook_fit:'):
+                format_hook_fit = stripped.split(':', 1)[1].strip()
+            elif not stripped.startswith(('hook:', 'layers:', '-')) and format_hook_fit:
+                format_hook_fit += ' ' + stripped
+
+        if current_hook:
+            hooks_list.append({'hook': current_hook, 'layers': current_layers})
+
+        hook_mechanisms = {
+            'hooks': hooks_list,
+            'format_hook_fit': format_hook_fit.strip(),
+        }
+
     # Parse FORMAT_FINGERPRINT into dict
     format_fingerprint = {}
     if 'FORMAT_FINGERPRINT' in sections:
@@ -401,6 +438,7 @@ def parse_delimited_response(response_text, transcript=''):
         'knowledge_patterns_applied': knowledge_patterns,
         'format_fingerprint': format_fingerprint,
         'format_match': format_match if format_match else None,
+        'hook_mechanisms': hook_mechanisms,
 
         # Also include as single field for compatibility
         'analysis': sections.get('WHAT_THIS_VIDEO_IS', ''),
@@ -1372,6 +1410,123 @@ def find_format_matches(current_fingerprint, user_id=None, exclude_analysis_id=N
     return best_match
 
 
+def store_hook_intelligence(analysis_id, gpt_result, metadata=None):
+    """Store classified hook mechanisms after analysis completes."""
+    hook_mechs = gpt_result.get('hook_mechanisms', {})
+    if not hook_mechs or not hook_mechs.get('hooks'):
+        return None
+
+    fp = gpt_result.get('format_fingerprint', {})
+    content_type = gpt_result.get('content_type', '')
+
+    # Parse view count to integer
+    view_raw = 0
+    vc = gpt_result.get('view_count', '')
+    if metadata:
+        view_raw = metadata.get('view_count', 0) or 0
+    if not view_raw and vc:
+        try:
+            clean = str(vc).lower().replace(',', '').replace(' views', '').strip()
+            if 'm' in clean:
+                view_raw = int(float(clean.replace('m', '')) * 1_000_000)
+            elif 'k' in clean:
+                view_raw = int(float(clean.replace('k', '')) * 1_000)
+            else:
+                view_raw = int(float(clean))
+        except (ValueError, TypeError):
+            pass
+
+    eng_rate = 0.0
+    comment_count = 0
+    if metadata:
+        eng_metrics = metadata.get('engagement_metrics', {})
+        eng_rate = eng_metrics.get('total_engagement_rate', 0) or 0
+        comment_count = metadata.get('comment_count', 0) or 0
+
+    try:
+        pattern = HookPattern(
+            analysis_id=analysis_id,
+            hooks_classified=hook_mechs.get('hooks', []),
+            format_hook_fit=hook_mechs.get('format_hook_fit', ''),
+            content_format=fp.get('content_format', ''),
+            hook_type_category=fp.get('hook_type', ''),
+            structure=fp.get('structure', ''),
+            content_type=content_type,
+            view_count_raw=view_raw,
+            performance_level=gpt_result.get('performance_level', ''),
+            engagement_rate=eng_rate,
+            comment_count=comment_count,
+        )
+        db.session.add(pattern)
+        db.session.commit()
+        print(f"[HOOK INTELLIGENCE] Stored {len(hook_mechs.get('hooks', []))} classified hooks "
+              f"for analysis #{analysis_id} (format: {fp.get('content_format', 'unknown')})")
+        return pattern
+    except Exception as e:
+        print(f"[HOOK INTELLIGENCE] Error storing: {e}")
+        db.session.rollback()
+        return None
+
+
+def retrieve_hook_intelligence(format_fingerprint, content_type=None, exclude_analysis_id=None, limit=5):
+    """Retrieve hook patterns from similar video formats for cross-analysis intelligence."""
+    if not format_fingerprint:
+        return []
+
+    content_format = format_fingerprint.get('content_format', '')
+    hook_type = format_fingerprint.get('hook_type', '')
+    structure = format_fingerprint.get('structure', '')
+
+    if not content_format:
+        return []
+
+    query = HookPattern.query.filter(HookPattern.hooks_classified.isnot(None))
+    if exclude_analysis_id:
+        query = query.filter(HookPattern.analysis_id != exclude_analysis_id)
+
+    candidates = query.order_by(HookPattern.created_at.desc()).limit(50).all()
+    if not candidates:
+        return []
+
+    scored = []
+    for hp in candidates:
+        score = 0
+        if hp.content_format and hp.content_format.lower() == content_format.lower():
+            score += 3
+        if hp.structure and structure and hp.structure.lower() == structure.lower():
+            score += 2
+        if hp.hook_type_category and hook_type and hp.hook_type_category.lower() == hook_type.lower():
+            score += 1
+        if hp.content_type and content_type and hp.content_type.lower() == content_type.lower():
+            score += 1
+
+        if score >= 3:
+            scored.append((score, hp))
+
+    scored.sort(key=lambda x: (-x[0], -(x[1].view_count_raw or 0)))
+
+    results = []
+    for score, hp in scored[:limit]:
+        analysis = Analysis.query.get(hp.analysis_id)
+        results.append({
+            'analysis_id': hp.analysis_id,
+            'video_title': analysis.video_title if analysis else 'Unknown',
+            'content_format': hp.content_format,
+            'hooks': hp.hooks_classified,
+            'format_hook_fit': hp.format_hook_fit,
+            'view_count_raw': hp.view_count_raw,
+            'performance_level': hp.performance_level,
+            'engagement_rate': hp.engagement_rate,
+            'comment_count': hp.comment_count,
+            'match_score': score,
+        })
+
+    if results:
+        print(f"[HOOK INTELLIGENCE] Found {len(results)} matching hook patterns "
+              f"for format '{content_format}'")
+    return results
+
+
 def run_main_analysis(transcript_text, frames_summaries_text, creator_note, platform, target_duration, goal, tone, audience, knowledge_context, view_count=None, performance_level='unknown', metadata=None, audio_insights=None, analysis_depth='standard', comment_insights=None, format_match_context=None):
     """Comprehensive analysis that adapts to ALL video types with deep insights"""
     
@@ -1718,6 +1873,28 @@ audio_element: {audio_type_info.get('audio_description', 'Audio type')}
 hook_psychology: [Why this hook works or doesn't psychologically]
 hook_score: [1-10]
 hook_reasoning: [Score reasoning]
+
+===HOOK_MECHANISMS===
+For each hook identified above, classify its psychological LAYERS. A strong hook often works
+on multiple levels simultaneously — each layer opens a different loop for a different audience
+segment. The goal is to understand WHY these hooks work for THIS specific format, not to
+create a universal template.
+
+IMPORTANT: Not every video needs multi-layered hooks. A silent process video may hook purely
+through visual satisfaction. A controversial take hooks through the controversy itself.
+Classify what IS there — do not invent layers that don't exist.
+
+For each distinct hook (text, visual, or verbal), output:
+hook: [the hook text or brief description]
+layers:
+- mechanism: [e.g., sacrifice_stakes, curiosity_gap, audience_self_selection, debate_trigger, oddity_frame, authority_challenge, vulnerability_frame, promise_of_value, social_proof, relatability, visual_satisfaction, process_curiosity, controversy, before_after_tension, fear_of_missing_out, identity_signal]
+  loop: [what question this creates in the viewer's mind]
+  target: [who this specifically hooks]
+  comment_driver: [what comments this tends to generate, if any]
+
+format_hook_fit: [In 2-3 sentences, explain why these specific hook mechanisms work (or don't)
+for THIS video's format. Different formats need different hook approaches — a vulnerability
+hook works on a transformation reveal but falls flat on a tutorial. Explain the relationship.]
 
 ===REPLICATION_FORMULA===
 Extract the TRANSFERABLE pattern, not a transcription of this video.
@@ -2427,7 +2604,9 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'knowledge_patterns_applied': gpt_result.get('knowledge_patterns_applied', []),
         'format_fingerprint': gpt_result.get('format_fingerprint', {}),
         'format_match': gpt_result.get('format_match'),
-        
+        'hook_mechanisms': gpt_result.get('hook_mechanisms', {}),
+        'hook_intelligence': gpt_result.get('hook_intelligence', []),
+
         # Video type and hook analysis
         'video_type_analysis': gpt_result.get('video_type_analysis', ''),
         'exact_hook_breakdown': gpt_result.get('exact_hook_breakdown', {}),
@@ -3353,6 +3532,20 @@ Key patterns for video analysis:
                     except Exception as e:
                         print(f"[FORMAT MATCH] Post-match error: {e}")
 
+                # Hook intelligence: retrieve patterns from similar formats
+                if gpt_result.get('format_fingerprint'):
+                    try:
+                        hook_intel = retrieve_hook_intelligence(
+                            gpt_result['format_fingerprint'],
+                            content_type=gpt_result.get('content_type', ''),
+                            exclude_analysis_id=current_analysis_id,
+                        )
+                        if hook_intel:
+                            gpt_result['hook_intelligence'] = hook_intel
+                            print(f"[HOOK INTELLIGENCE] Retrieved {len(hook_intel)} matching patterns")
+                    except Exception as e:
+                        print(f"[HOOK INTELLIGENCE] Retrieval error: {e}")
+
                 # Add transcript quality info, view data, and new metrics
                 gpt_result['transcript_quality'] = transcript_data
                 gpt_result['actual_view_count'] = view_count
@@ -3517,6 +3710,13 @@ Key patterns for video analysis:
             except Exception as e:
                 print(f"[WARNING] Failed to save to user history: {e}")
                 # Continue anyway - this shouldn't block the response
+
+        # Store hook intelligence for future cross-analysis learning
+        if current_analysis_id and gpt_result.get('hook_mechanisms'):
+            try:
+                store_hook_intelligence(current_analysis_id, gpt_result, metadata=metadata)
+            except Exception as e:
+                print(f"[WARNING] Failed to store hook intelligence: {e}")
 
         update_progress(current_analysis_id, 'complete', 'Analysis complete!', 100)
         print("[INFO] Analysis complete, results saved to DB")
@@ -4456,6 +4656,10 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             'format_fingerprint': template_vars.get('format_fingerprint', {}),
             'format_match': template_vars.get('format_match'),
 
+            # Hook intelligence
+            'hook_mechanisms': template_vars.get('hook_mechanisms', {}),
+            'hook_intelligence': template_vars.get('hook_intelligence', []),
+
             # Upload flag
             'is_upload': template_vars.get('is_upload', False),
 
@@ -4534,6 +4738,8 @@ def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template
             'format_fingerprint': template_vars.get('format_fingerprint', {}),
             'format_match': template_vars.get('format_match'),
             'comment_insights': template_vars.get('comment_insights'),
+            'hook_mechanisms': template_vars.get('hook_mechanisms', {}),
+            'hook_intelligence': template_vars.get('hook_intelligence', []),
         }
 
         # Create analysis record

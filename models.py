@@ -99,6 +99,37 @@ class KnowledgePattern(db.Model):
         return f'<KnowledgePattern {self.id}: {self.pattern_summary[:50] if self.pattern_summary else ""}>'
 
 
+class HookPattern(db.Model):
+    """Classified hook mechanisms per analysis — enables cross-analysis hook intelligence."""
+    __tablename__ = 'hook_patterns'
+
+    id = db.Column(db.Integer, primary_key=True)
+    analysis_id = db.Column(db.Integer, db.ForeignKey('analyses.id'), nullable=False, index=True)
+
+    # Classified hooks with psychological mechanism layers
+    hooks_classified = db.Column(db.JSON)
+    format_hook_fit = db.Column(db.Text)
+
+    # Video format context (indexed for cross-analysis queries)
+    content_format = db.Column(db.String(50), index=True)
+    hook_type_category = db.Column(db.String(50), index=True)
+    structure = db.Column(db.String(50))
+    content_type = db.Column(db.String(100), index=True)
+
+    # Performance for correlation
+    view_count_raw = db.Column(db.BigInteger)
+    performance_level = db.Column(db.String(20))
+    engagement_rate = db.Column(db.Float)
+    comment_count = db.Column(db.Integer)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    analysis = db.relationship('Analysis', backref=db.backref('hook_intelligence', uselist=False))
+
+    def __repr__(self):
+        return f'<HookPattern {self.id}: analysis={self.analysis_id} format={self.content_format}>'
+
+
 class ReviewFeedback(db.Model):
     """Per-section review feedback on analyses — builds fine-tuning training data."""
     __tablename__ = 'review_feedback'
@@ -242,6 +273,33 @@ def _run_migrations(app, database_url):
             ))
             db.session.commit()
             print("[DB MIGRATION] Added 'format_fingerprint' column")
+
+        # Migration: Create 'hook_patterns' table if it doesn't exist
+        if not inspector.has_table('hook_patterns'):
+            print("[DB MIGRATION] Creating 'hook_patterns' table...")
+            db.session.execute(text("""
+                CREATE TABLE hook_patterns (
+                    id SERIAL PRIMARY KEY,
+                    analysis_id INTEGER NOT NULL REFERENCES analyses(id),
+                    hooks_classified JSONB,
+                    format_hook_fit TEXT,
+                    content_format VARCHAR(50),
+                    hook_type_category VARCHAR(50),
+                    structure VARCHAR(50),
+                    content_type VARCHAR(100),
+                    view_count_raw BIGINT,
+                    performance_level VARCHAR(20),
+                    engagement_rate FLOAT,
+                    comment_count INTEGER,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """))
+            db.session.execute(text("CREATE INDEX ix_hook_patterns_analysis_id ON hook_patterns(analysis_id)"))
+            db.session.execute(text("CREATE INDEX ix_hook_patterns_content_format ON hook_patterns(content_format)"))
+            db.session.execute(text("CREATE INDEX ix_hook_patterns_hook_type_category ON hook_patterns(hook_type_category)"))
+            db.session.execute(text("CREATE INDEX ix_hook_patterns_content_type ON hook_patterns(content_type)"))
+            db.session.commit()
+            print("[DB MIGRATION] Created 'hook_patterns' table with indexes")
 
     except Exception as e:
         print(f"[DB MIGRATION ERROR] {e}")
