@@ -253,35 +253,79 @@
     .action-btn.secondary { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: var(--stellar-cream); }
     .action-btn.secondary:hover { border-color: var(--solar-lime); color: var(--solar-lime); }
 
-    /* Admin Learning Section */
-    .admin-section {
+    /* Review Mode */
+    .review-section {
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 16px;
       padding: 1.5rem;
       margin-top: 2rem;
     }
-    .admin-section h3 { color: var(--lunar-blush); margin-bottom: 0.5rem; }
-    .admin-section label { display: block; font-weight: 600; margin-bottom: 5px; color: var(--stellar-cream); font-size: 0.9rem; }
-    .admin-section input, .admin-section textarea, .admin-section select {
+    .review-section h3 { color: var(--lunar-blush); margin-bottom: 0.5rem; }
+    .review-item {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background: rgba(0,0,0,0.15);
+      transition: border-color 0.3s;
+    }
+    .review-item.rated-accurate { border-color: rgba(16, 185, 129, 0.5); }
+    .review-item.rated-partial { border-color: rgba(245, 158, 11, 0.5); }
+    .review-item.rated-wrong { border-color: rgba(239, 68, 68, 0.5); }
+    .review-item-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;
+    }
+    .review-item-header h4 { color: var(--stellar-cream); font-size: 0.95rem; margin: 0; }
+    .review-rating-btns { display: flex; gap: 6px; }
+    .review-rating-btns button {
+      padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2);
+      background: transparent; color: var(--celestial-lavender); cursor: pointer;
+      font-size: 0.8rem; font-family: var(--font-primary); font-weight: 500; transition: all 0.2s;
+    }
+    .review-rating-btns button:hover { border-color: var(--stellar-cream); color: var(--stellar-cream); }
+    .review-rating-btns button.active-accurate { background: rgba(16,185,129,0.3); border-color: #10b981; color: #10b981; }
+    .review-rating-btns button.active-partial { background: rgba(245,158,11,0.3); border-color: #f59e0b; color: #f59e0b; }
+    .review-rating-btns button.active-wrong { background: rgba(239,68,68,0.3); border-color: #ef4444; color: #ef4444; }
+    .review-original {
+      font-size: 0.85rem; color: var(--celestial-lavender); line-height: 1.6;
+      max-height: 120px; overflow-y: auto; margin-bottom: 0.5rem;
+      padding: 0.5rem; background: rgba(0,0,0,0.15); border-radius: 6px;
+    }
+    .review-correction {
+      display: none; margin-top: 0.5rem;
+    }
+    .review-correction textarea {
       width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
-      background: rgba(255,255,255,0.05); color: white; font-family: var(--font-primary); font-size: 0.95rem;
-      margin-bottom: 12px;
+      background: rgba(255,255,255,0.05); color: white; font-family: var(--font-primary);
+      font-size: 0.9rem; resize: vertical; min-height: 80px;
     }
-    .admin-section input::placeholder, .admin-section textarea::placeholder {
-      color: rgba(240, 234, 224, 0.4);
+    .review-correction textarea::placeholder { color: rgba(240, 234, 224, 0.4); }
+    .review-correction textarea:focus { outline: none; border-color: var(--lunar-blush); }
+    .review-correction label {
+      display: block; font-size: 0.8rem; font-weight: 600; color: var(--solar-lime);
+      margin-bottom: 4px;
     }
-    .admin-section p { color: var(--stellar-cream); }
-    .admin-section input:focus, .admin-section textarea:focus, .admin-section select:focus {
-      outline: none; border-color: var(--lunar-blush);
+    .review-submit-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);
+      flex-wrap: wrap; gap: 0.75rem;
     }
-    .admin-btn {
-      width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
-      cursor: pointer; transition: all 0.2s; font-family: var(--font-primary);
+    .review-stats-inline { font-size: 0.85rem; color: var(--celestial-lavender); }
+    .review-submit-btn {
+      padding: 10px 24px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; font-family: var(--font-primary); transition: all 0.2s;
+      background: linear-gradient(135deg, #56ab2f, #a8e063); color: white;
     }
-    .admin-btn.preview { background: linear-gradient(135deg, var(--lunar-blush), var(--celestial-lavender)); color: var(--cosmic-indigo); }
-    .admin-btn.submit { background: linear-gradient(135deg, #56ab2f, #a8e063); color: white; margin-top: 12px; }
-    .admin-btn:hover { transform: translateY(-2px); }
+    .review-submit-btn:hover { transform: translateY(-2px); }
+    .review-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .review-export-btn {
+      padding: 8px 16px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
+      background: transparent; color: var(--celestial-lavender); cursor: pointer;
+      font-size: 0.85rem; font-family: var(--font-primary); transition: all 0.2s;
+    }
+    .review-export-btn:hover { border-color: var(--solar-lime); color: var(--solar-lime); }
 
     /* Responsive */
     @media (max-width: 768px) {
@@ -858,42 +902,24 @@
     {% endif %}
     <!-- End extraction/raw/normal conditional -->
 
-    <!-- Admin Learning (Only visible to admin) -->
-    <div id="adminLearningSection" style="display:none;">
-      <div class="admin-section">
-        <h3>Beta: Context-Aware Pattern Learning</h3>
-        <p style="font-size: 0.85rem; margin-bottom: 1rem;">Admin Only - Patterns stored with context and applicability rules</p>
+    <!-- Review Mode (Only visible to admin) -->
+    <div id="reviewModeSection" style="display:none;">
+      <div class="review-section">
+        <h3>Review This Analysis</h3>
+        <p style="font-size: 0.85rem; margin-bottom: 1rem; color: var(--celestial-lavender);">
+          Rate each section. Corrections build training data for future fine-tuning.
+        </p>
 
-        <label>What patterns should we learn from this video?</label>
-        <textarea id="learningNotes" placeholder="e.g., 'This vs That' format with 3-second hook showing contrast..." rows="4"></textarea>
-        <p style="font-size: 0.8rem; margin-top: -8px; margin-bottom: 12px;">Focus on FORMATS and STRUCTURES (not opinions about why it succeeded)</p>
+        <div id="reviewItems"></div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <div><label>Niche</label><input type="text" id="videoNiche" placeholder="e.g., fitness, cooking" value="{{ niche|default('general') }}"></div>
-          <div><label>Platform</label><select id="videoPlatform"><option value="tiktok" {% if platform == 'tiktok' %}selected{% endif %}>TikTok</option><option value="youtube" {% if platform == 'youtube' %}selected{% endif %}>YouTube</option><option value="instagram" {% if platform == 'instagram' %}selected{% endif %}>Instagram</option></select></div>
-          <div><label>Target Audience</label><input type="text" id="targetAudience" placeholder="e.g., beginners, Gen Z"></div>
-          <div><label>Video Type</label><input type="text" id="videoType" placeholder="e.g., tutorial, comparison"></div>
-          <div><label>Views</label><input type="number" id="videoViews" placeholder="e.g., 150000"></div>
-          <div><label>Engagement Rate</label><input type="text" id="engagementRate" placeholder="e.g., 0.12 or 12%"></div>
+        <div class="review-submit-bar">
+          <div>
+            <span class="review-stats-inline" id="reviewProgress">0 of 0 sections rated</span>
+            <a href="/review/export" class="review-export-btn" style="margin-left: 12px;">Export Training Data</a>
+          </div>
+          <button onclick="submitReviews()" id="reviewSubmitBtn" class="review-submit-btn" disabled>Submit Reviews</button>
         </div>
-
-        <button onclick="previewPattern()" id="previewBtn" class="admin-btn preview">Preview Pattern</button>
-
-        <div id="patternPreview" style="display: none; background: rgba(0,0,0,0.2); border: 1px solid var(--lunar-blush); border-radius: 12px; padding: 1rem; margin-top: 1rem;">
-          <h4 style="color: var(--lunar-blush); margin-bottom: 0.5rem;">Knowledge Preview</h4>
-          <p style="font-size: 0.8rem; margin-bottom: 1rem;">Edit the generated knowledge below before submitting.</p>
-
-          <label style="color: var(--solar-lime);">Knowledge Summary (what will be stored)</label>
-          <textarea id="editableSummary" rows="4" style="width: 100%; margin-bottom: 12px;"></textarea>
-
-          <label style="color: var(--solar-lime);">Key Insights</label>
-          <div id="editableInsights"></div>
-          <button onclick="addInsight()" style="background: transparent; border: 1px dashed rgba(255,255,255,0.3); color: var(--celestial-lavender); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; margin: 8px 0 12px;">+ Add Insight</button>
-
-          <div id="previewMeta" style="font-size: 0.85rem; margin-bottom: 12px;"></div>
-
-          <button onclick="submitForLearning()" id="submitLearningBtn" class="admin-btn submit">Confirm & Submit for Learning</button>
-        </div>
+        <div id="reviewResult" style="display:none; margin-top: 0.75rem;"></div>
       </div>
     </div>
 
@@ -919,139 +945,129 @@
       event.target.classList.add('active');
     }
 
-    // Admin learning section
-    {% if current_user and current_user.is_authenticated and current_user.email.lower() == 'christina@superlunardesign.com' %}
-      document.getElementById('adminLearningSection').style.display = 'block';
+    // Review mode (admin only)
+    {% if current_user and current_user.is_authenticated and current_user.email.lower() == 'christina@superlunardesign.com' and analysis_id is defined and analysis_id %}
+      document.getElementById('reviewModeSection').style.display = 'block';
+
+      const ANALYSIS_ID = {{ analysis_id }};
+      const reviewSections = [
+        {key: 'what_this_video_is', label: 'What This Video Is', text: {{ (what_this_video_is|default('') or analysis|default(''))|tojson }}},
+        {key: 'why_it_performed', label: 'Why It Performed', text: {{ (why_it_performed|default('') or performance_deep_dive|default(''))|tojson }}},
+        {key: 'viral_mechanics', label: 'Viral Mechanics', text: {{ (viral_mechanics or '')|tojson }}},
+        {key: 'hook_breakdown', label: 'Hook Breakdown', text: {{ (all_hooks_identified|default({}))|tojson }}},
+        {key: 'timing_mastery', label: 'Timing Mastery', text: {{ (timing_mastery|default({}))|tojson }}},
+        {key: 'replication_formula', label: 'Replication Formula', text: {{ (replication_formula|default({}))|tojson }}},
+        {key: 'improvements', label: 'Improvements', text: {{ (improvements|default('') or improvement_opportunities|default(''))|tojson }}},
+        {key: 'comment_ai_insights', label: 'AI Comment Analysis', text: {% if comment_insights and comment_insights.ai_insights %}{{ comment_insights.ai_insights|tojson }}{% else %}""{% endif %}},
+      ];
+
+      const reviewState = {};
+
+      function textify(val) {
+        if (!val) return '';
+        if (typeof val === 'string') return val;
+        if (typeof val === 'object') {
+          return Object.entries(val).map(([k, v]) => {
+            if (Array.isArray(v)) return k + ': ' + v.join('; ');
+            return k + ': ' + v;
+          }).join('\n');
+        }
+        return String(val);
+      }
+
+      function buildReviewItems() {
+        const container = document.getElementById('reviewItems');
+        container.innerHTML = '';
+        reviewSections.forEach(sec => {
+          const txt = textify(sec.text);
+          if (!txt.trim()) return;
+
+          const div = document.createElement('div');
+          div.className = 'review-item';
+          div.id = 'review-' + sec.key;
+          div.innerHTML = `
+            <div class="review-item-header">
+              <h4>${sec.label}</h4>
+              <div class="review-rating-btns">
+                <button onclick="rateSection('${sec.key}','accurate',this)">Accurate</button>
+                <button onclick="rateSection('${sec.key}','partial',this)">Partially Right</button>
+                <button onclick="rateSection('${sec.key}','wrong',this)">Wrong</button>
+              </div>
+            </div>
+            <div class="review-original">${txt.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+            <div class="review-correction" id="correction-${sec.key}">
+              <label>What should it have said?</label>
+              <textarea placeholder="Write the corrected analysis for this section..." oninput="updateCorrection('${sec.key}',this.value)"></textarea>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+        updateProgress();
+      }
+
+      function rateSection(key, rating, btn) {
+        const item = document.getElementById('review-' + key);
+        item.className = 'review-item rated-' + rating;
+        item.querySelectorAll('.review-rating-btns button').forEach(b => {
+          b.className = '';
+        });
+        btn.className = 'active-' + rating;
+
+        if (!reviewState[key]) reviewState[key] = {};
+        reviewState[key].rating = rating;
+        reviewState[key].section_name = key;
+        reviewState[key].original_text = textify(reviewSections.find(s => s.key === key).text);
+
+        const correctionEl = document.getElementById('correction-' + key);
+        correctionEl.style.display = (rating === 'partial' || rating === 'wrong') ? 'block' : 'none';
+
+        updateProgress();
+      }
+
+      function updateCorrection(key, val) {
+        if (!reviewState[key]) reviewState[key] = {};
+        reviewState[key].correction = val;
+      }
+
+      function updateProgress() {
+        const total = document.querySelectorAll('.review-item').length;
+        const rated = Object.keys(reviewState).filter(k => reviewState[k].rating).length;
+        document.getElementById('reviewProgress').textContent = `${rated} of ${total} sections rated`;
+        document.getElementById('reviewSubmitBtn').disabled = (rated === 0);
+      }
+
+      async function submitReviews() {
+        const sections = Object.values(reviewState).filter(s => s.rating);
+        if (!sections.length) return;
+
+        const btn = document.getElementById('reviewSubmitBtn');
+        btn.textContent = 'Submitting...';
+        btn.disabled = true;
+
+        try {
+          const resp = await fetch('/review/submit', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ analysis_id: ANALYSIS_ID, sections })
+          });
+          const data = await resp.json();
+          if (resp.ok) {
+            document.getElementById('reviewResult').style.display = 'block';
+            document.getElementById('reviewResult').innerHTML =
+              `<div class="success-box">${data.message}. Training data accumulating for future fine-tuning.</div>`;
+            btn.textContent = 'Submitted';
+          } else {
+            throw new Error(data.message || 'Submit failed');
+          }
+        } catch (e) {
+          alert('Error: ' + e.message);
+          btn.textContent = 'Submit Reviews';
+          btn.disabled = false;
+        }
+      }
+
+      buildReviewItems();
     {% endif %}
-
-    let currentPatternData = null;
-
-    async function previewPattern() {
-      const notes = document.getElementById('learningNotes').value.trim();
-      const views = parseInt(document.getElementById('videoViews').value) || 0;
-      let engagement = document.getElementById('engagementRate').value.trim();
-      const niche = document.getElementById('videoNiche').value.trim();
-      const platform = document.getElementById('videoPlatform').value;
-      const audience = document.getElementById('targetAudience').value.trim();
-      const videoType = document.getElementById('videoType').value.trim();
-
-      if (!notes) { alert('Please add notes about what patterns to learn'); return; }
-      if (engagement.includes('%')) { engagement = parseFloat(engagement.replace('%', '')) / 100; } else { engagement = parseFloat(engagement) || 0; }
-
-      const btn = document.getElementById('previewBtn');
-      btn.textContent = 'Generating Preview...';
-      btn.disabled = true;
-
-      try {
-        const response = await fetch('/preview_pattern', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            cache_key: '{{ pdf_cache_key|default("") }}',
-            video_url: '{{ tiktok_url|default("") }}',
-            notes, views, engagement_rate: engagement, niche, platform, audience, video_type: videoType
-          })
-        });
-        const data = await response.json();
-        if (response.ok) {
-          currentPatternData = data.preview.preview;
-          displayPreview(data.preview);
-          btn.textContent = 'Preview Generated';
-          setTimeout(() => { btn.textContent = 'Preview Pattern'; btn.disabled = false; }, 2000);
-        } else { throw new Error(data.message || 'Preview failed'); }
-      } catch (error) { alert('Error: ' + error.message); btn.textContent = 'Preview Pattern'; btn.disabled = false; }
-    }
-
-    function escapeAttr(s) { return (s||'').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
-
-    function displayPreview(previewData) {
-      const preview = previewData.preview;
-      const similar = previewData.similarity_examples || [];
-
-      // Fill editable summary
-      document.getElementById('editableSummary').value = preview.pattern_summary || '';
-
-      // Fill editable insights
-      const insights = preview.key_insights || [];
-      const container = document.getElementById('editableInsights');
-      container.innerHTML = insights.map((insight, i) =>
-        `<div style="display: flex; gap: 8px; margin-bottom: 6px; align-items: start;">
-          <textarea class="insight-input" rows="2" style="flex: 1;">${escapeAttr(insight)}</textarea>
-          <button onclick="this.parentElement.remove()" style="background: transparent; border: none; color: #f44336; cursor: pointer; font-size: 1.2rem; padding: 4px;">×</button>
-        </div>`
-      ).join('');
-
-      // Show context and similar patterns
-      let metaHtml = '';
-      if (preview.when_to_apply && preview.when_to_apply.length) {
-        metaHtml += `<p style="color: var(--solar-lime);"><strong>When to apply:</strong></p><ul style="padding-left: 1.5rem; margin-bottom: 8px;">`;
-        preview.when_to_apply.forEach(w => { metaHtml += `<li>${w}</li>`; });
-        metaHtml += `</ul>`;
-      }
-      if (similar.length > 0) {
-        metaHtml += `<p style="color: var(--celestial-lavender);"><strong>Similar patterns already stored:</strong></p><ul style="padding-left: 1.5rem;">`;
-        similar.forEach(ex => { metaHtml += `<li>${ex.pattern} (${(ex.similarity * 100).toFixed(0)}% similar)</li>`; });
-        metaHtml += `</ul>`;
-      }
-      document.getElementById('previewMeta').innerHTML = metaHtml;
-      document.getElementById('patternPreview').style.display = 'block';
-    }
-
-    function addInsight() {
-      const container = document.getElementById('editableInsights');
-      const div = document.createElement('div');
-      div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 6px; align-items: start;';
-      div.innerHTML = `<textarea class="insight-input" rows="2" style="flex: 1;" placeholder="Add a new insight..."></textarea>
-        <button onclick="this.parentElement.remove()" style="background: transparent; border: none; color: #f44336; cursor: pointer; font-size: 1.2rem; padding: 4px;">×</button>`;
-      container.appendChild(div);
-    }
-
-    async function submitForLearning() {
-      if (!currentPatternData) { alert('Preview first'); return; }
-
-      // Read edited values from the editable fields
-      const editedSummary = document.getElementById('editableSummary').value.trim();
-      const insightEls = document.querySelectorAll('.insight-input');
-      const editedInsights = Array.from(insightEls).map(el => el.value.trim()).filter(v => v);
-
-      // Update pattern data with edits
-      currentPatternData.pattern_summary = editedSummary;
-      currentPatternData.key_insights = editedInsights;
-
-      const notes = document.getElementById('learningNotes').value.trim();
-      const views = parseInt(document.getElementById('videoViews').value) || 0;
-      let engagement = document.getElementById('engagementRate').value.trim();
-      const niche = document.getElementById('videoNiche').value.trim();
-      const platform = document.getElementById('videoPlatform').value;
-      const audience = document.getElementById('targetAudience').value.trim();
-      const videoType = document.getElementById('videoType').value.trim();
-      if (engagement.includes('%')) { engagement = parseFloat(engagement.replace('%', '')) / 100; } else { engagement = parseFloat(engagement) || 0; }
-
-      const btn = document.getElementById('submitLearningBtn');
-      btn.textContent = 'Submitting...';
-      btn.disabled = true;
-
-      try {
-        const response = await fetch('/submit_for_learning', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            cache_key: '{{ pdf_cache_key|default("") }}',
-            video_url: '{{ tiktok_url|default("") }}',
-            notes, views, engagement_rate: engagement, niche, platform, audience, video_type: videoType,
-            pattern_data: currentPatternData
-          })
-        });
-        const data = await response.json();
-        if (response.ok) {
-          btn.textContent = 'Submitted!';
-          document.getElementById('learningNotes').value = '';
-          document.getElementById('patternPreview').style.display = 'none';
-          currentPatternData = null;
-          setTimeout(() => { btn.textContent = 'Confirm & Submit for Learning'; btn.disabled = false; }, 3000);
-        } else { throw new Error(data.message || 'Submission failed'); }
-      } catch (error) { alert('Error: ' + error.message); btn.textContent = 'Confirm & Submit for Learning'; btn.disabled = false; }
-    }
   </script>
 </body>
 </html>

@@ -99,6 +99,47 @@ class KnowledgePattern(db.Model):
         return f'<KnowledgePattern {self.id}: {self.pattern_summary[:50] if self.pattern_summary else ""}>'
 
 
+class ReviewFeedback(db.Model):
+    """Per-section review feedback on analyses — builds fine-tuning training data."""
+    __tablename__ = 'review_feedback'
+
+    id = db.Column(db.Integer, primary_key=True)
+    analysis_id = db.Column(db.Integer, db.ForeignKey('analyses.id'), nullable=False, index=True)
+    section_name = db.Column(db.String(100), nullable=False)
+    rating = db.Column(db.String(20), nullable=False)  # accurate, partial, wrong
+    original_text = db.Column(db.Text, nullable=False)
+    correction = db.Column(db.Text)  # null if accurate
+    video_context = db.Column(db.JSON)  # URL, content type, metrics, transcript snippet
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    analysis = db.relationship('Analysis', backref=db.backref('reviews', lazy='dynamic'))
+
+    def to_training_pair(self):
+        """Export as input/output pair for fine-tuning."""
+        ctx = self.video_context or {}
+        system_context = f"Video: {ctx.get('video_url', 'unknown')}\n"
+        if ctx.get('content_type'):
+            system_context += f"Content type: {ctx['content_type']}\n"
+        if ctx.get('transcript_snippet'):
+            system_context += f"Transcript: {ctx['transcript_snippet']}\n"
+
+        if self.rating == 'accurate':
+            return {
+                'input': f"[SECTION: {self.section_name}]\n{system_context}\nAnalyze this section.",
+                'output': self.original_text,
+                'rating': 'accurate',
+            }
+        else:
+            return {
+                'input': f"[SECTION: {self.section_name}]\n{system_context}\nOriginal analysis:\n{self.original_text}\n\nThis was {'partially correct' if self.rating == 'partial' else 'incorrect'}. Provide the corrected analysis.",
+                'output': self.correction,
+                'rating': self.rating,
+            }
+
+    def __repr__(self):
+        return f'<ReviewFeedback {self.id}: {self.section_name} ({self.rating})>'
+
+
 def init_db(app):
     """Initialize database with app context."""
     # Get database URL from environment or use default

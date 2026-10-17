@@ -37,7 +37,7 @@ from cache_manager import AnalysisCache, PdfCache
 from analysis_optimization import intelligent_frame_extraction, parallel_video_processing, optimize_frame_selection
 from audio_analysis import enhanced_audio_analysis, ViralSoundDetector
 from performance_tracker import AnalysisPerformanceTracker
-from models import db, User, Analysis, init_db
+from models import db, User, Analysis, ReviewFeedback, init_db
 from auth import auth_bp, init_auth
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
@@ -3444,8 +3444,9 @@ Key patterns for video analysis:
                 'timestamp': _time.time()
             }
 
-            # Add cache_key to template_vars so it can be used in template
+            # Add cache_key and analysis_id to template_vars so they can be used in template
             template_vars['pdf_cache_key'] = cache_key
+            template_vars['analysis_id'] = current_analysis_id
 
             print(f"[PDF CACHE] Stored data with key: {cache_key}")
         except Exception as e:
@@ -3858,6 +3859,103 @@ def submit_for_learning():
         import traceback
         traceback.print_exc()
         return {"status": "error", "message": str(e)}, 500
+
+
+# ==============================
+# REVIEW / FEEDBACK MODE (Fine-tuning data collection)
+# ==============================
+
+@app.route("/review/submit", methods=["POST"])
+@login_required
+def submit_review():
+    """Submit per-section review feedback on an analysis (admin only)."""
+    if current_user.email.lower() != 'christina@superlunardesign.com':
+        return {"status": "error", "message": "Access denied"}, 403
+
+    data = request.json
+    analysis_id = data.get('analysis_id')
+    sections = data.get('sections', [])
+
+    if not analysis_id or not sections:
+        return {"status": "error", "message": "Missing analysis_id or sections"}, 400
+
+    analysis = Analysis.query.get(analysis_id)
+    if not analysis:
+        return {"status": "error", "message": "Analysis not found"}, 404
+
+    analysis_data = analysis.analysis_data or {}
+    video_context = {
+        'video_url': analysis.video_url,
+        'content_type': analysis_data.get('content_type', ''),
+        'transcript_snippet': (analysis_data.get('transcript') or '')[:500],
+        'view_count': analysis_data.get('view_count', ''),
+        'niche': analysis_data.get('niche', ''),
+    }
+
+    saved = 0
+    for section in sections:
+        rating = section.get('rating')
+        if not rating or rating not in ('accurate', 'partial', 'wrong'):
+            continue
+
+        fb = ReviewFeedback(
+            analysis_id=analysis_id,
+            section_name=section['section_name'],
+            rating=rating,
+            original_text=section.get('original_text', ''),
+            correction=section.get('correction') if rating != 'accurate' else None,
+            video_context=video_context,
+        )
+        db.session.add(fb)
+        saved += 1
+
+    db.session.commit()
+    print(f"[REVIEW] Saved {saved} section reviews for analysis #{analysis_id}")
+    return {"status": "success", "message": f"Saved {saved} section reviews", "saved": saved}, 200
+
+
+@app.route("/review/export")
+@login_required
+def export_reviews():
+    """Export all review feedback as JSONL for fine-tuning (admin only)."""
+    if current_user.email.lower() != 'christina@superlunardesign.com':
+        return "Access denied", 403
+
+    reviews = ReviewFeedback.query.order_by(ReviewFeedback.created_at.asc()).all()
+
+    lines = []
+    for r in reviews:
+        pair = r.to_training_pair()
+        lines.append(json.dumps(pair))
+
+    response = make_response('\n'.join(lines))
+    response.headers['Content-Type'] = 'application/jsonl'
+    response.headers['Content-Disposition'] = 'attachment; filename=review_training_data.jsonl'
+    print(f"[REVIEW] Exported {len(lines)} training pairs")
+    return response
+
+
+@app.route("/review/stats")
+@login_required
+def review_stats():
+    """Quick stats on accumulated review data (admin only)."""
+    if current_user.email.lower() != 'christina@superlunardesign.com':
+        return {"status": "error", "message": "Access denied"}, 403
+
+    total = ReviewFeedback.query.count()
+    accurate = ReviewFeedback.query.filter_by(rating='accurate').count()
+    partial = ReviewFeedback.query.filter_by(rating='partial').count()
+    wrong = ReviewFeedback.query.filter_by(rating='wrong').count()
+    analyses_reviewed = db.session.query(db.func.count(db.func.distinct(ReviewFeedback.analysis_id))).scalar()
+
+    return {
+        "total_reviews": total,
+        "accurate": accurate,
+        "partial": partial,
+        "wrong": wrong,
+        "analyses_reviewed": analyses_reviewed,
+        "training_pairs_with_corrections": partial + wrong,
+    }, 200
 
 
 # ==============================
