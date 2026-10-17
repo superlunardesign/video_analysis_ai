@@ -2533,11 +2533,19 @@ def analyze_async():
             fail_analysis(processing_analysis.id, "Expired: processing took too long")
             analysis_progress.pop(processing_analysis.id, None)
 
-    # Create a processing record now so progress.html can poll it
-    processing_record = create_processing_analysis(current_user.id, form_data.get('tiktok_url', ''))
+    # Check if this is a re-analysis of the same video
+    tiktok_url = form_data.get('tiktok_url', '')
+    normalized = normalize_video_url(tiktok_url) if tiktok_url else ''
+    prior_exists = bool(normalized and Analysis.query.filter_by(
+        user_id=current_user.id, video_url=normalized, status='completed'
+    ).first())
+
+    # Create a processing record (marks prior analysis as 'replaced' if exists)
+    processing_record = create_processing_analysis(current_user.id, tiktok_url)
     analysis_id = processing_record.id if processing_record else None
 
-    return render_template("progress.html", form_data=form_data, analysis_id=analysis_id)
+    return render_template("progress.html", form_data=form_data, analysis_id=analysis_id,
+                           is_reanalysis=prior_exists)
 
 
 @app.route("/process", methods=["POST"])
@@ -2858,7 +2866,12 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
 
         # Apply Results Speed tier settings
         results_speed = form_data.get('results_speed', 'standard')
-        if results_speed == 'ultra_fast':
+        if results_speed == 'transcript_only':
+            cap = 1  # Just the first frame for hook context
+            scene_threshold = 0.99
+            form_data['strategy'] = 'uniform'
+            print("[SPEED] Transcript-only mode: audio + 1 frame")
+        elif results_speed == 'ultra_fast':
             cap = 1  # Only first frame for hook analysis
             scene_threshold = 0.9  # Very selective
             print("[SPEED] Ultra Fast mode: 1 frame only")
@@ -4152,9 +4165,28 @@ def get_user_processing_analysis(user_id):
 
 
 def create_processing_analysis(user_id, video_url):
-    """Create a new analysis record with status='processing'."""
+    """Create a new analysis record with status='processing'.
+
+    If a completed analysis already exists for this video URL + user,
+    mark it as 'replaced' so the new one takes its place. The old data
+    stays in the DB (user can still download its PDF) but won't show
+    as a duplicate in the history list.
+    """
     try:
         normalized_url = normalize_video_url(video_url)
+
+        # Check for existing completed analysis of the same video
+        existing = Analysis.query.filter_by(
+            user_id=user_id,
+            video_url=normalized_url,
+            status='completed'
+        ).order_by(Analysis.created_at.desc()).all()
+
+        if existing:
+            print(f"[DB] Found {len(existing)} prior analysis(es) for this video — marking as replaced")
+            for old in existing:
+                old.status = 'replaced'
+            db.session.flush()
 
         analysis = Analysis(
             user_id=user_id,

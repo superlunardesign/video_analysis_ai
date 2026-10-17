@@ -65,9 +65,10 @@ def download_video(tiktok_url: str) -> str:
 
     ydl_opts = {
         "outtmpl": out_tmpl,
-        "format": "bestvideo*+bestaudio*/best",
+        "format": "best[ext=mp4][acodec!=none]/bestvideo*+bestaudio*/best",
         "merge_output_format": "mp4",
-        "quiet": True,
+        "quiet": False,
+        "verbose": False,
         "retries": 5,
         "noprogress": True,
         "postprocessor_args": {"merger": ["-strict", "-2"]},
@@ -162,13 +163,13 @@ def download_video(tiktok_url: str) -> str:
             print(f"[DOWNLOAD] Audio codec: {audio_streams[0].get('codec_name', 'unknown')}, "
                   f"channels: {audio_streams[0].get('channels', '?')}")
         elif video_streams:
-            print(f"[DOWNLOAD] WARNING: No audio stream found — re-downloading with 'best' format...")
+            print(f"[DOWNLOAD] WARNING: No audio stream found — re-downloading with audio-priority format...")
             redownload_tmpl = os.path.abspath(os.path.join("downloads", f"vid_{stamp}_retry.%(ext)s"))
             retry_opts = {
                 "outtmpl": redownload_tmpl,
-                "format": "best",
+                "format": "best[acodec!=none]/bestaudio+bestvideo/best",
                 "merge_output_format": "mp4",
-                "quiet": True,
+                "quiet": False,
                 "retries": 5,
                 "noprogress": True,
             }

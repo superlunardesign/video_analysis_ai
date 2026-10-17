@@ -345,6 +345,11 @@
     <div class="progress-header">
         <h1>Analyzing Your Video</h1>
         <div class="time-estimate">Estimated time: <span id="timeEstimate">Loading...</span></div>
+        {% if is_reanalysis %}
+        <div style="background: rgba(255,170,0,0.12); border: 1px solid rgba(255,170,0,0.3); border-radius: 8px; padding: 10px 16px; margin-top: 10px; font-size: 0.9rem; color: #ffa;">
+            This will replace your previous analysis of this video. Download the old PDF from History if you want to keep it.
+        </div>
+        {% endif %}
     </div>
 
     <!-- Left: Stage progress -->
@@ -496,7 +501,7 @@
     }
 
     const resultsSpeed = (passedData && passedData.results_speed) || 'standard';
-    const estimates = { ultra_fast: '30-60 seconds', fast: '1-2 minutes', thorough: '8-12 minutes', standard: '6-9 minutes' };
+    const estimates = { transcript_only: '20-40 seconds', ultra_fast: '30-60 seconds', fast: '1-2 minutes', thorough: '8-12 minutes', standard: '6-9 minutes' };
     document.getElementById('timeEstimate').textContent = estimates[resultsSpeed] || estimates.standard;
 
     const stageToUI = {
