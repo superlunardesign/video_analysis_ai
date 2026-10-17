@@ -653,14 +653,14 @@ def extract_audio_and_frames_from_file(
 
 def transcribe_audio(audio_path: str) -> str:
     """
-    Transcribe with OpenAI (gpt-4o-mini-transcribe) with word-level timestamps.
+    Transcribe with OpenAI whisper-1 (verbose_json) for word-level timestamps.
     Returns a timestamped transcript string so the analyzer knows when things are said.
     On connection failure, retry; if still failing and local Whisper is present, use it.
     """
     def _remote_transcribe():
         with open(audio_path, "rb") as f:
             return client.audio.transcriptions.create(
-                model="gpt-4o-mini-transcribe",
+                model="whisper-1",
                 file=f,
                 response_format="verbose_json",
                 timestamp_granularities=["word", "segment"],
