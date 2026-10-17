@@ -16,7 +16,6 @@ import logging
 from datetime import datetime
 
 from mcp.server import Server
-from mcp.server.stdio import run_server
 from mcp.types import Tool, TextContent, ImageContent
 
 logging.basicConfig(level=logging.INFO, format="[MCP] %(message)s")
@@ -415,12 +414,49 @@ async def call_tool(name: str, arguments: dict):
 
 
 # ---------------------------------------------------------------------------
-# Entry point
+# Entry point — SSE transport for remote deployment, stdio for local
 # ---------------------------------------------------------------------------
 
-async def main():
-    logger.info("Starting Video Analysis MCP Server")
-    await run_server(server)
+def create_starlette_app():
+    """Create a Starlette app that serves the MCP server over SSE."""
+    from mcp.server.sse import SseServerTransport
+    from starlette.applications import Starlette
+    from starlette.routing import Mount, Route
+    from starlette.responses import JSONResponse
+
+    sse = SseServerTransport("/messages/")
+
+    async def handle_sse(request):
+        async with sse.connect_sse(
+            request.scope, request.receive, request._send
+        ) as streams:
+            await server.run(
+                streams[0], streams[1], server.create_initialization_options()
+            )
+
+    async def health(request):
+        return JSONResponse({"status": "ok", "server": "video-analysis-mcp"})
+
+    return Starlette(
+        debug=False,
+        routes=[
+            Route("/health", health),
+            Mount("/sse", app=sse.handle_post_message, name="sse_post"),
+            Route("/sse", endpoint=handle_sse),
+        ],
+    )
+
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import sys
+
+    if "--stdio" in sys.argv:
+        from mcp.server.stdio import run_server
+        logger.info("Starting MCP Server (stdio mode)")
+        asyncio.run(run_server(server))
+    else:
+        import uvicorn
+        port = int(os.environ.get("MCP_PORT", os.environ.get("PORT", "8001")))
+        logger.info(f"Starting MCP Server (SSE mode) on port {port}")
+        app = create_starlette_app()
+        uvicorn.run(app, host="0.0.0.0", port=port)
