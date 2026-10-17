@@ -2451,6 +2451,13 @@ visible, say so. Getting the timing of when things FIRST appear wrong undermines
 timing analysis. If you're unsure whether something is visible at a given moment, say what
 you can confirm and note uncertainty.
 
+PACING JUDGMENT: If the transcript includes timing data ([0.0s-3.2s] segments, speech pace,
+pauses), use it to assess pacing — but silence and pauses are NOT inherently problems.
+A video with no speech, ambient sound only, or long pauses can work if the visuals and hooks
+carry it. Judge pacing by whether the viewer has enough tension, curiosity, or visual interest
+to stay through each moment — not by how much audio is filling the space. Flag a gap only when
+there's nothing visual or psychological holding attention through it.
+
 ===PERFORMANCE_PREDICTION===
 This section does NOT introduce new suggestions. Every change referenced here must already
 appear in ===IMPROVEMENTS===. If you find yourself introducing a new idea here, move it to
