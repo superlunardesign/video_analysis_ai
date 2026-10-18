@@ -1372,17 +1372,24 @@ def _build_format_match_section(match):
     ref_scores = match.get('scores', {})
     scores_str = ', '.join(f"{k}: {v}/10" for k, v in ref_scores.items()) if ref_scores else 'N/A'
 
+    ref_what = match.get('what_this_video_is', 'N/A')
+    ref_why = match.get('why_it_performed', 'N/A')
+
     return f"""
 === FORMAT MATCH DETECTED ===
 A previously analyzed video uses a VERY SIMILAR FORMAT to this one.
+IMPORTANT: The reference below is a DIFFERENT video. Any mention of "the creator's note" in the
+reference data refers to THAT video's creator, NOT the current video's creator. Do NOT attribute
+the reference video's creator note, context, or stated goals to the current video.
+Only use the current video's "Creator's note" field (above) for creator-provided context.
 
 REFERENCE VIDEO (Analysis #{match['analysis_id']}):
 - Title: {match['video_title']}
 - Views: {match.get('view_count', 'unknown')}
 - Format: {match['fingerprint'].get('format_summary', 'N/A')}
 - Scores: {scores_str}
-- What it was: {match.get('what_this_video_is', 'N/A')}
-- Why it performed: {match.get('why_it_performed', 'N/A')}
+- What that video was: {ref_what}
+- Why that video performed the way it did: {ref_why}
 
 INSTRUCTIONS FOR FORMAT MATCH:
 You MUST include a ===FORMAT_MATCH=== section in your response that:
@@ -1395,6 +1402,7 @@ You MUST include a ===FORMAT_MATCH=== section in your response that:
 Do NOT just say "similar format" — point out SPECIFIC execution differences.
 If the reference had higher views, explain exactly what it did better.
 If THIS video outperforms the reference, explain what improvements it made.
+Do NOT reference the other video's creator note as if it applies to this video.
 """
 
 
@@ -2088,14 +2096,18 @@ Assessment: {perf_class.get('reasoning', '')}
     # Build successful references context for underperforming videos
     success_ref_context = ""
     if successful_references and perf_classification in ('underperforming', 'mixed'):
-        ref_lines = ["SUCCESSFUL VIDEOS FROM YOUR LIBRARY (for comparison and 'what to try instead'):"]
+        ref_lines = [
+            "SUCCESSFUL VIDEOS FROM YOUR LIBRARY (for comparison and 'what to try instead'):",
+            "NOTE: These are DIFFERENT videos. Any 'creator's note' references in their summaries",
+            "belong to THOSE videos, not the current one. Only the current video's Creator's note applies here.",
+        ]
         for ref in successful_references[:3]:
             fp = ref.get('format_fingerprint', {})
             ref_lines.append(
                 f"- Analysis #{ref['analysis_id']}: \"{ref['video_title']}\" — {ref['view_count']} views, "
                 f"{ref['like_rate']}% like rate, goal: {ref.get('goal', 'unknown')}"
                 f"{', format: ' + fp.get('format_summary', '') if fp.get('format_summary') else ''}"
-                f"\n  What it is: {ref.get('what_this_video_is', '')[:200]}"
+                f"\n  What that video is: {ref.get('what_this_video_is', '')[:200]}"
             )
             rep = ref.get('replication_formula', {})
             if rep.get('formula_name'):
@@ -2112,7 +2124,8 @@ You are NOT being asked to view a video directly - you are analyzing the provide
 CRITICAL CONTEXT:
 - Platform: {platform}
 - Performance: {view_count if view_count else 'Not specified'} ({performance_level})
-- Creator's note: "{creator_note if creator_note else 'No additional context'}"
+- Creator's note (THIS video only): "{creator_note if creator_note else 'No additional context'}"
+  (If reference videos appear below, their creator notes are THEIRS, not this video's. Never attribute another video's creator note to this one.)
 - Content type detected: {_readable_content_type(visual_content_analysis.get('content_type', 'general'))}
 - Audio type: {audio_type_info.get('audio_description', 'unknown') if audio_type_info.get('audio_description') not in ('no_audio_detected', 'no_audio_stream', 'no audio stream') else 'no speech detected — analyze visuals and on-screen text'}
 - Target audience: {audience}
