@@ -101,7 +101,7 @@ FORMAT: Organize chronologically with clear timestamps. Be thorough — this ana
 replaces frame-by-frame extraction, so every visual detail matters."""
 
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-3.8-flash",
         contents=[
             types.Content(
                 parts=[
