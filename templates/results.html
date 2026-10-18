@@ -931,6 +931,16 @@
           <div class="formula-box">
             <h3>{{ replication_formula.formula_name }}</h3>
 
+            {% if replication_formula.hook_formula %}
+            <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: var(--sv-template-bg); border-radius: 8px; border-left: 3px solid var(--sv-accent);">
+              <strong style="color: var(--sv-accent); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Hook Formula</strong>
+              <p style="margin-top: 0.4rem; font-family: monospace; font-size: 1rem; color: var(--sv-text);">{{ replication_formula.hook_formula }}</p>
+              {% if replication_formula.hook_format_context %}
+              <p style="margin-top: 0.4rem; font-size: 0.9rem; color: var(--sv-text-secondary);">{{ replication_formula.hook_format_context }}</p>
+              {% endif %}
+            </div>
+            {% endif %}
+
             {% if replication_formula.auto_question %}
             <p style="margin-top: 0.75rem;"><strong style="color: var(--sv-text);">Auto-Question:</strong> {{ replication_formula.auto_question }}</p>
             {% endif %}

@@ -270,7 +270,8 @@ def parse_delimited_response(response_text, transcript=''):
         lines = content.split('\n')
 
         # Top-level keys that signal a new field (everything else is continuation)
-        top_level_keys = {'formula_name', 'auto_question', 'invariant', 'free_to_vary',
+        top_level_keys = {'formula_name', 'hook_formula', 'hook_format_context',
+                          'auto_question', 'invariant', 'free_to_vary',
                           'ceiling_lever', 'why_it_works', 'execution_notes',
                           'sample_execution', 'text_template', 'visual_requirements',
                           'structure', 'new_video_script', 'scenarios_for_same_niche'}
@@ -2364,6 +2365,11 @@ product_info: [only if a product is featured — the product name/category ONLY 
 selling_signals: [list ALL detected selling signals across ALL channels — on-screen text, visual elements, caption, hashtags, comments, transcript. Even if confidence is "possible", list what you found. Example: "orange cart icon in frames, #amazonfinds hashtag, price in caption ($5), comments asking for link"]
 
 ===WHAT_THIS_VIDEO_IS===
+ELEMENT WEIGHT RULE: When describing what drives this video, weight elements by how much they
+actually carry the performance — not by how novel or funny they are to notice. A clever shirt,
+a background detail, or an incidental visual may be worth one mention, but if the video would
+perform roughly the same without it, don't position it as a core mechanism. Ask: "If this
+element were removed, would the video still work?" If yes, it's flavor, not structure.
 {"FORMAT: Name the format this video uses (from the knowledge base if it matches, or describe it if it doesn't). INFERRED GOAL(S): What is this video most likely trying to achieve — views, follows, sales, engagement, authority? State the evidence. ANALYSIS: [explain the core idea/hook/appeal in educational, explanatory language]. It works because [detailed psychological reason with moment-by-moment breakdown explaining hook effectiveness, promise clarity, tension building, and satisfaction delivery. Point out specific seconds where retention tactics work and explain why]. Where it excels: [what this video does well within its format]. Where it falls short: [what it misses, judged by its own format's standards]." if analysis_depth == 'deep' else "FORMAT: [specific formula/pattern]. INFERRED GOAL: [what the video is trying to achieve and why you think so]. Core hook: [what grabbed attention]. Why it works: [1-2 sentence psychological explanation]. Result: [did it satisfy or not, briefly]."}
 
 {"===WHY_IT_UNDERPERFORMED===" if perf_classification == 'underperforming' else "===WHY_IT_PERFORMED==="}
@@ -2372,6 +2378,9 @@ selling_signals: [list ALL detected selling signals across ALL channels — on-s
 ===ALL_HOOKS_TEXT===
 ONLY list text that appears in the FIRST 3 SECONDS that STOPS the scroll.
 Not all text is a hook - only attention-grabbing opening text.
+Do NOT elevate incidental or background text (clothing logos, posters, decor) to hook status
+unless there is evidence viewers noticed and responded to it (e.g. comments referencing it).
+A shirt with funny text that appears for a few frames is a detail, not a hook carrying the video.
 - [Text from first 3 seconds only]
 
 hook_suggestions:
@@ -2383,6 +2392,11 @@ different psychological angle (e.g., stakes vs. curiosity vs. controversy).
 
 ===ALL_HOOKS_VISUAL===
 ONLY list visual elements in FIRST 3 SECONDS that grabbed attention.
+WEIGHT CHECK: An element that appears briefly or incidentally (clothing, background objects,
+decor) is NOT a core visual hook unless it is clearly intentional and prominent. The creator's
+face, body language, camera movement, product placement, or on-screen text overlays are
+typically the real hooks. Mention incidental elements once at most — do not build the analysis
+around them or repeat them across multiple sections.
 - [Opening visual hooks only, not all visuals]
 
 hook_suggestions:
@@ -2486,6 +2500,17 @@ CRITICAL DISTINCTION:
 formula_name: [Name the STRUCTURE, not this video's topic. "Before & After (multi-reveal)"
 not "The Portfolio Rescue Formula." If it matches a known format from the knowledge base,
 use that name.]
+
+hook_formula: [Extract the VERBAL HOOK STRUCTURE as a fill-in-the-blank template. This is the
+sentence pattern or rhythm the creator uses in the first 3-5 seconds. Use [BRACKETS] for
+the variables. Example: "if [doing task] causes [pain 1], [pain 2], [pain 3] — here's how
+[shortcut verb]". If the hook is purely visual (no verbal pattern), write "Visual-only hook"
+and describe the visual structure instead. This template should be usable by a creator in ANY
+niche, not just this video's topic.]
+
+hook_format_context: [What type of video is this hook being used in here (tutorial, sales,
+storytelling, etc.)? Then name 1-2 other video types where this same hook structure would
+work well and why. The hook formula is transferable — don't limit it to this format.]
 
 auto_question: [The question this frame opens in the viewer's head for free, the moment they
 see it. What does their brain automatically start wondering?]
