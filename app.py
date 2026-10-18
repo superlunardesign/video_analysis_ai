@@ -4677,10 +4677,20 @@ Key patterns for video analysis:
         # 8. SAVE TO USER'S HISTORY
         if user_id:
             try:
+                # Refresh DB connection — analysis can take 5-10 minutes,
+                # long enough for SSL/idle connections to drop
+                try:
+                    db.session.rollback()
+                    db.engine.dispose()
+                except Exception:
+                    pass
+
                 # Get thumbnail from first frame in gallery
                 thumbnail_url = None
                 if template_vars.get('frame_gallery'):
                     thumbnail_url = template_vars['frame_gallery'][0]
+
+                video_url_for_db = form_data.get('tiktok_url') or f"upload://{form_data.get('uploaded_filename', 'video')}"
 
                 if current_analysis_id:
                     # Update the existing processing analysis to completed
@@ -4693,7 +4703,6 @@ Key patterns for video analysis:
                     )
                 else:
                     # Legacy: Create new analysis record
-                    video_url_for_db = form_data.get('tiktok_url') or f"upload://{form_data.get('uploaded_filename', 'video')}"
                     save_analysis_to_db(
                         user_id=user_id,
                         video_url=video_url_for_db,
@@ -5744,6 +5753,28 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
     except Exception as e:
         db.session.rollback()
         print(f"[DB ERROR] Failed to complete analysis: {e}")
+
+        # Retry once on connection errors (SSL dropped during long analysis)
+        if 'SSL' in str(e) or 'connection' in str(e).lower() or 'closed' in str(e).lower():
+            print(f"[DB] Connection error detected, retrying with fresh connection...")
+            try:
+                db.engine.dispose()
+                analysis = Analysis.query.get(analysis_id)
+                if analysis:
+                    analysis.video_title = video_title
+                    analysis.thumbnail_url = thumbnail_url
+                    analysis.analysis_data = lightweight_data
+                    analysis.format_fingerprint = template_vars.get('format_fingerprint', {})
+                    analysis.pdf_cache_key = pdf_cache_key
+                    analysis.status = 'completed'
+                    analysis.completed_at = datetime.utcnow()
+                    db.session.commit()
+                    print(f"[DB] Retry succeeded for analysis {analysis_id}")
+                    return True
+            except Exception as retry_err:
+                db.session.rollback()
+                print(f"[DB ERROR] Retry also failed: {retry_err}")
+
         return False
 
 
