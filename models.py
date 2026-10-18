@@ -130,6 +130,36 @@ class HookPattern(db.Model):
         return f'<HookPattern {self.id}: analysis={self.analysis_id} format={self.content_format}>'
 
 
+class HookFormula(db.Model):
+    """Extracted hook formula templates that accumulate across analyses for categorization.
+
+    Each row is one hook formula from one analysis. A single analysis can produce
+    multiple formulas (text, visual, verbal) and a formula can belong to multiple
+    hook_types (e.g. a verbal hook that also appears as on-screen text).
+    """
+    __tablename__ = 'hook_formulas'
+
+    id = db.Column(db.Integer, primary_key=True)
+    analysis_id = db.Column(db.Integer, db.ForeignKey('analyses.id'), nullable=False, index=True)
+    formula_template = db.Column(db.Text, nullable=False)
+    formula_name = db.Column(db.String(200))
+    hook_types = db.Column(db.JSON)
+    format_context = db.Column(db.Text)
+    category = db.Column(db.String(100), index=True)
+    video_url = db.Column(db.String(500))
+    video_title = db.Column(db.String(500))
+    content_format = db.Column(db.String(100), index=True)
+    goal_type = db.Column(db.String(50), index=True)
+    view_count_raw = db.Column(db.BigInteger)
+    performance_level = db.Column(db.String(20))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    analysis = db.relationship('Analysis', backref=db.backref('hook_formulas_list', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<HookFormula {self.id}: {self.formula_template[:60] if self.formula_template else ""}>'
+
+
 class ReviewFeedback(db.Model):
     """Per-section review feedback on analyses — builds fine-tuning training data."""
     __tablename__ = 'review_feedback'

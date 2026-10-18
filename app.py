@@ -343,37 +343,51 @@ def parse_delimited_response(response_text, transcript=''):
     def _parse_hooks_with_suggestions(raw_text):
         hooks = []
         suggestions = []
+        formula = None
         in_suggestions = False
         for line in raw_text.split('\n'):
             stripped = line.strip()
             if stripped.lower().startswith('hook_suggestions:'):
                 in_suggestions = True
                 continue
-            if stripped.startswith('-'):
-                item = stripped.lstrip('- ').strip()
-                if in_suggestions:
-                    suggestions.append(item)
-                else:
-                    hooks.append(item)
-        return hooks, suggestions
+            for prefix in ('text_hook_formula:', 'visual_hook_formula:', 'verbal_hook_formula:'):
+                if stripped.lower().startswith(prefix):
+                    val = stripped[len(prefix):].strip()
+                    if val.lower() not in ('none', 'none.', 'n/a', ''):
+                        formula = val
+                    break
+            else:
+                if stripped.startswith('-'):
+                    item = stripped.lstrip('- ').strip()
+                    if in_suggestions:
+                        suggestions.append(item)
+                    else:
+                        hooks.append(item)
+        return hooks, suggestions, formula
 
     if 'ALL_HOOKS_TEXT' in sections:
-        hooks, suggestions = _parse_hooks_with_suggestions(sections['ALL_HOOKS_TEXT'])
+        hooks, suggestions, formula = _parse_hooks_with_suggestions(sections['ALL_HOOKS_TEXT'])
         filtered_hooks = _filter_caption_text(hooks, transcript)
         all_hooks['text_hooks'] = filtered_hooks
         all_hooks['text_hook_suggestions'] = suggestions
+        if formula:
+            all_hooks['text_hook_formula'] = formula
         if len(hooks) != len(filtered_hooks):
             print(f"[HOOKS] Filtered {len(hooks) - len(filtered_hooks)} caption texts from text hooks")
 
     if 'ALL_HOOKS_VISUAL' in sections:
-        hooks, suggestions = _parse_hooks_with_suggestions(sections['ALL_HOOKS_VISUAL'])
+        hooks, suggestions, formula = _parse_hooks_with_suggestions(sections['ALL_HOOKS_VISUAL'])
         all_hooks['visual_hooks'] = hooks
         all_hooks['visual_hook_suggestions'] = suggestions
+        if formula:
+            all_hooks['visual_hook_formula'] = formula
 
     if 'ALL_HOOKS_VERBAL' in sections:
-        hooks, suggestions = _parse_hooks_with_suggestions(sections['ALL_HOOKS_VERBAL'])
+        hooks, suggestions, formula = _parse_hooks_with_suggestions(sections['ALL_HOOKS_VERBAL'])
         all_hooks['verbal_hooks'] = hooks
         all_hooks['verbal_hook_suggestions'] = suggestions
+        if formula:
+            all_hooks['verbal_hook_formula'] = formula
 
     if 'ALL_HOOKS_PSYCHOLOGICAL' in sections:
         hooks = [line.strip('- ').strip() for line in sections['ALL_HOOKS_PSYCHOLOGICAL'].split('\n') if line.strip().startswith('-')]
@@ -1612,6 +1626,136 @@ def store_hook_intelligence(analysis_id, gpt_result, metadata=None):
         return None
 
 
+def store_hook_formulas(analysis_id, gpt_result, metadata=None, video_url=None, video_title=None):
+    """Save extracted hook formula templates for cross-analysis accumulation."""
+    from models import HookFormula
+
+    all_hooks = gpt_result.get('all_hooks_identified', {})
+    replication = gpt_result.get('replication_formula', {})
+    fp = gpt_result.get('format_fingerprint', {})
+    content_goal = gpt_result.get('content_goal', {})
+
+    view_raw = 0
+    if metadata:
+        view_raw = metadata.get('view_count', 0) or 0
+
+    formulas_to_save = []
+
+    if all_hooks.get('text_hook_formula'):
+        formulas_to_save.append({
+            'formula_template': all_hooks['text_hook_formula'],
+            'hook_types': ['text'],
+            'formula_name': None,
+        })
+
+    if all_hooks.get('visual_hook_formula'):
+        formulas_to_save.append({
+            'formula_template': all_hooks['visual_hook_formula'],
+            'hook_types': ['visual'],
+            'formula_name': None,
+        })
+
+    verbal_formula = all_hooks.get('verbal_hook_formula')
+    if verbal_formula:
+        hook_types = ['verbal']
+        if 'also appears as' in verbal_formula.lower() or 'text hook' in verbal_formula.lower():
+            hook_types.append('text')
+        formulas_to_save.append({
+            'formula_template': verbal_formula,
+            'hook_types': hook_types,
+            'formula_name': None,
+        })
+
+    rep_formula = replication.get('hook_formula')
+    if rep_formula and rep_formula.lower() not in ('none', 'visual-only hook', ''):
+        already_saved = any(f['formula_template'] == rep_formula for f in formulas_to_save)
+        if not already_saved:
+            formulas_to_save.append({
+                'formula_template': rep_formula,
+                'hook_types': ['verbal', 'structural'],
+                'formula_name': replication.get('formula_name'),
+            })
+
+    if not formulas_to_save:
+        print(f"[HOOK FORMULAS] No hook formulas extracted for analysis #{analysis_id}")
+        return []
+
+    saved = []
+    try:
+        for f in formulas_to_save:
+            record = HookFormula(
+                analysis_id=analysis_id,
+                formula_template=f['formula_template'],
+                formula_name=f.get('formula_name') or replication.get('formula_name', ''),
+                hook_types=f['hook_types'],
+                format_context=replication.get('hook_format_context', ''),
+                video_url=video_url or '',
+                video_title=video_title or '',
+                content_format=fp.get('content_format', ''),
+                goal_type=content_goal.get('goal_type', '') if isinstance(content_goal, dict) else '',
+                view_count_raw=view_raw,
+                performance_level=gpt_result.get('performance_level', ''),
+            )
+            db.session.add(record)
+            saved.append(record)
+        db.session.commit()
+        print(f"[HOOK FORMULAS] Saved {len(saved)} hook formulas for analysis #{analysis_id}: "
+              + ", ".join(f"{f['hook_types']}" for f in formulas_to_save))
+        return saved
+    except Exception as e:
+        print(f"[HOOK FORMULAS] Error storing: {e}")
+        db.session.rollback()
+        return []
+
+
+def retrieve_hook_formulas_for_context(goal_type=None, content_format=None, limit=20):
+    """Retrieve accumulated hook formulas for injection into analysis context."""
+    from models import HookFormula
+
+    query = HookFormula.query
+    if goal_type:
+        query = query.filter(
+            (HookFormula.goal_type == goal_type) | (HookFormula.goal_type == '')
+        )
+    formulas = query.order_by(HookFormula.view_count_raw.desc()).limit(limit).all()
+    if not formulas:
+        return ''
+
+    seen_templates = set()
+    unique = []
+    for f in formulas:
+        normalized = f.formula_template.strip().lower()
+        if normalized not in seen_templates:
+            seen_templates.add(normalized)
+            unique.append(f)
+
+    if not unique:
+        return ''
+
+    context = "\n\n=== HOOK FORMULA LIBRARY (from previous analyses) ===\n"
+    context += "These are hook TEMPLATES extracted from analyzed videos. They are fill-in-the-blank "
+    context += "patterns, not instructions. When suggesting hooks for THIS video, you may reference "
+    context += "these as options — but only if they genuinely fit this video's format and goal. "
+    context += "A formula that worked for a tutorial may also work for a sales video with adaptation.\n\n"
+
+    for f in unique:
+        types_str = ', '.join(f.hook_types) if f.hook_types else 'unknown'
+        views_str = f""
+        if f.view_count_raw and f.view_count_raw > 0:
+            if f.view_count_raw >= 1_000_000:
+                views_str = f" ({f.view_count_raw / 1_000_000:.1f}M views)"
+            elif f.view_count_raw >= 1_000:
+                views_str = f" ({f.view_count_raw / 1_000:.0f}k views)"
+        context += f"- [{types_str}] {f.formula_template}"
+        if f.formula_name:
+            context += f" (from: {f.formula_name})"
+        context += f"{views_str}\n"
+        if f.format_context:
+            context += f"  Context: {f.format_context}\n"
+
+    return context
+
+
 def retrieve_hook_intelligence(format_fingerprint, content_type=None, exclude_analysis_id=None, limit=5):
     """Retrieve hook patterns from similar video formats for cross-analysis intelligence."""
     if not format_fingerprint:
@@ -2390,6 +2534,8 @@ If the existing text hook is already strong, say so and suggest a variation that
 different psychological angle (e.g., stakes vs. curiosity vs. controversy).
 - [suggestion]: [why it could work better]
 
+text_hook_formula: [Extract the text hook as a fill-in-the-blank template using [BRACKETS] for variables. Example: "POV: [relatable situation that implies failure]". If the text hook is too specific to templatize or is just a brand/title overlay, write "none". This template should work across niches.]
+
 ===ALL_HOOKS_VISUAL===
 ONLY list visual elements in FIRST 3 SECONDS that grabbed attention.
 WEIGHT CHECK: An element that appears briefly or incidentally (clothing, background objects,
@@ -2407,6 +2553,8 @@ phone down, waving a hand, holding an unexpected object). These should be specif
 doable, not generic advice like "better lighting."
 - [suggestion]: [why it would stop the scroll]
 
+visual_hook_formula: [Extract the visual hook as a reusable pattern description. Example: "Creator visibly struggling with [common task] — exaggerated frustration expression". If no clear visual hook pattern, write "none".]
+
 ===ALL_HOOKS_VERBAL===
 ONLY list what's SAID in FIRST 3 SECONDS that grabbed attention.
 Promises, explanations, and body content are NOT hooks - only opening attention-grabbers.
@@ -2416,6 +2564,8 @@ hook_suggestions:
 Suggest 1-2 alternative verbal hooks — different opening lines that would create a stronger
 curiosity gap or pattern interrupt for THIS creator's tone and niche.
 - [suggestion]: [why it would hook better]
+
+verbal_hook_formula: [Extract the verbal hook as a fill-in-the-blank template using [BRACKETS] for variables. Example: "if [doing task] causes [pain 1], [pain 2], [pain 3] — here's how [shortcut verb]". If no clear verbal pattern, write "none". Note if this verbal hook also appears as on-screen text (i.e. it doubles as a text hook).]
 
 ===ALL_HOOKS_PSYCHOLOGICAL===
 What mental trigger(s) in the OPENING caused someone to stop scrolling?
@@ -4078,6 +4228,19 @@ Key patterns for video analysis:
         except Exception as e:
             print(f"[WARNING] Could not load curator patterns from DB: {e}")
 
+        # Inject accumulated hook formulas from prior analyses
+        try:
+            hook_formula_context = retrieve_hook_formulas_for_context(
+                goal_type=form_data.get('goal', ''),
+                content_format=None,
+                limit=20,
+            )
+            if hook_formula_context:
+                knowledge_context += hook_formula_context
+                print(f"[KNOWLEDGE] Appended hook formula library ({len(hook_formula_context)} chars)")
+        except Exception as e:
+            print(f"[WARNING] Could not load hook formulas from DB: {e}")
+
         # Fetch and analyze comments (optional, skip for uploads)
         update_progress(current_analysis_id, 'comments', 'Fetching and analyzing comments...', 70)
         comment_insights = None
@@ -4483,6 +4646,16 @@ Key patterns for video analysis:
                 store_hook_intelligence(current_analysis_id, gpt_result, metadata=metadata)
             except Exception as e:
                 print(f"[WARNING] Failed to store hook intelligence: {e}")
+
+        # Store hook formulas for accumulation and categorization
+        if current_analysis_id:
+            try:
+                store_hook_formulas(
+                    current_analysis_id, gpt_result, metadata=metadata,
+                    video_url=video_url_for_db, video_title=video_title,
+                )
+            except Exception as e:
+                print(f"[WARNING] Failed to store hook formulas: {e}")
 
         update_progress(current_analysis_id, 'complete', 'Analysis complete!', 100)
         print("[INFO] Analysis complete, results saved to DB")
