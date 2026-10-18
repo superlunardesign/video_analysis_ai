@@ -2696,11 +2696,11 @@ works for this goal.]
 sample_execution:
 IMPORTANT: This is ONE way to try the ALTERNATIVE approach at {target_duration}s.
 
-CRITICAL: The sample execution MUST use a COMPLETELY DIFFERENT topic/niche from the original
-video. The point is to show that the STRUCTURE transfers — not to rewrite the same video.
-Never reference the original creator's specific techniques, products, or process.
+CRITICAL: The sample execution can stay in the same niche, but MUST use a different specific
+topic or technique — do NOT copy the original creator's actual content, process, or products.
+The point is to show the STRUCTURE in action with fresh content, not to rewrite their video.
 
-**Concept:** [One line: what this execution does differently — must be a different niche]
+**Concept:** [One line: what this execution does differently — same niche, different topic]
 
 **0-Xs:** [beat] — [why this fixes the original problem]
 **X-Ys:** [beat] — [why]
@@ -2772,13 +2772,13 @@ IMPORTANT: This is ONE way to run the formula at {target_duration}s — an illus
 formula itself. State that explicitly in the first line. A different length would redistribute
 these beats entirely.
 
-CRITICAL: The sample execution MUST use a COMPLETELY DIFFERENT topic/niche from the original
-video. If the original is about hair, use cooking or fitness or productivity. The point is to
-show that the STRUCTURE transfers — not to rewrite the same video. Never reference the
-original creator's specific techniques, products, or process. That is their content, not the
-formula.
+CRITICAL: The sample execution can stay in the same niche, but MUST use a different specific
+topic or technique — do NOT copy the original creator's actual content, process, or products.
+If the original is a sock-curl tutorial, the sample could be a different hair technique using
+the same hook structure. The point is to show the STRUCTURE in action with fresh content, not
+to rewrite the creator's video.
 
-**Concept:** [One line: what this specific execution is about — must be a different niche]
+**Concept:** [One line: what this specific execution is about — same niche is fine, different topic]
 
 **0-Xs:** [beat] — [why this beat is here]
 **X-Ys:** [beat] — [why]
