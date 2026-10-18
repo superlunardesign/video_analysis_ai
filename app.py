@@ -2696,16 +2696,24 @@ works for this goal.]
 sample_execution:
 IMPORTANT: This is ONE way to try the ALTERNATIVE approach at {target_duration}s.
 
-**Concept:** [One line: what this execution does differently]
+CRITICAL: The sample execution MUST use a COMPLETELY DIFFERENT topic/niche from the original
+video. The point is to show that the STRUCTURE transfers — not to rewrite the same video.
+Never reference the original creator's specific techniques, products, or process.
+
+**Concept:** [One line: what this execution does differently — must be a different niche]
 
 **0-Xs:** [beat] — [why this fixes the original problem]
 **X-Ys:** [beat] — [why]
 [continue through {target_duration}s]
 
 text_template:
+Provide the full on-screen text for each beat of the sample execution. Each overlay should
+reinforce the psychological mechanism of that beat.
+
 **Added Text:** "[TEXT OVERLAY]"
 **0-3s:** "[Hook text — must open a curiosity gap, not announce the product]"
-[continue with timestamped overlays]
+**X-Ys:** "[Supporting text — how does this reinforce the beat?]"
+[continue with timestamped overlays for every beat]
 
 why_original_failed: [In 2-3 sentences, what specifically about the original structure,
 hook, or approach caused it to underperform]
@@ -2764,16 +2772,27 @@ IMPORTANT: This is ONE way to run the formula at {target_duration}s — an illus
 formula itself. State that explicitly in the first line. A different length would redistribute
 these beats entirely.
 
-**Concept:** [One line: what this specific execution is about]
+CRITICAL: The sample execution MUST use a COMPLETELY DIFFERENT topic/niche from the original
+video. If the original is about hair, use cooking or fitness or productivity. The point is to
+show that the STRUCTURE transfers — not to rewrite the same video. Never reference the
+original creator's specific techniques, products, or process. That is their content, not the
+formula.
+
+**Concept:** [One line: what this specific execution is about — must be a different niche]
 
 **0-Xs:** [beat] — [why this beat is here]
 **X-Ys:** [beat] — [why]
 [continue through the full {target_duration}s]
 
 text_template:
+Provide the full on-screen text for each beat of the sample execution. These are the exact
+words a viewer would read. Each overlay should reinforce the psychological mechanism of that
+beat (curiosity, pain-stack, payoff, etc.).
+
 **Added Text:** "[TEXT OVERLAY]"
-**0-3s:** "[Hook text]"
-[continue with timestamped overlays matching the sample execution above]
+**0-3s:** "[Hook text — what emotion or question does this open?]"
+**X-Ys:** "[Supporting text — how does this reinforce the beat?]"
+[continue with timestamped overlays for every beat in the sample execution above]
 
 visual_requirements: [2-3 specific visual ideas that serve THIS format's mechanism, with why
 each one works.]'''}
