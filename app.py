@@ -4220,8 +4220,21 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
                 except Exception as e:
                     print(f"[WARNING] {name} failed: {type(e).__name__}: {e}")
                     if name == 'frames':
-                        analysis_results['frames_summaries'] = ""
-                        analysis_results['gallery_urls'] = []
+                        if use_gemini:
+                            print(f"[VISION] Gemini failed, falling back to GPT-4o frame analysis...")
+                            update_progress(current_analysis_id, 'analyzing_frames', 'Gemini unavailable — analyzing frames with GPT-4o...', 32)
+                            try:
+                                frames_summaries_text, gallery_data_urls = analyze_frames_batch(frame_paths, basic_transcript)
+                                analysis_results['frames_summaries'] = frames_summaries_text
+                                analysis_results['gallery_urls'] = gallery_data_urls
+                                print(f"[VISION] GPT-4o fallback complete: {len(frames_summaries_text)} chars")
+                            except Exception as fallback_err:
+                                print(f"[WARNING] GPT-4o fallback also failed: {fallback_err}")
+                                analysis_results['frames_summaries'] = ""
+                                analysis_results['gallery_urls'] = []
+                        else:
+                            analysis_results['frames_summaries'] = ""
+                            analysis_results['gallery_urls'] = []
                     elif name == 'audio_analysis':
                         # Provide safe fallback for audio analysis (timeout or ACRCloud slow)
                         print("[FALLBACK] Using default audio analysis (ACRCloud timeout is normal for slow networks)")
