@@ -1269,14 +1269,14 @@ async def generate_pdf_from_html(html_content, output_path=None):
 
             # Prepare page for PDF: expand tabs, hide UI, force-load images
             await page.evaluate("""() => {
-                // Show all tab content
-                document.querySelectorAll('.tab-content').forEach(el => {
+                // Show all tab content (supports both old .tab-content and new .tab-pane)
+                document.querySelectorAll('.tab-content, .tab-pane').forEach(el => {
                     el.classList.add('active');
                     el.style.display = 'block';
                 });
 
                 // Hide UI-only elements
-                ['.tab-nav', '.results-nav', '.sticky-actions', '#adminLearningSection',
+                ['.tab-nav', '.tab-bar', '.results-nav', '.sticky-actions', '#adminLearningSection',
                  '.download-btn-container', '.btn-download-pdf', '.action-bar'
                 ].forEach(sel => {
                     document.querySelectorAll(sel).forEach(el => el.style.display = 'none');
@@ -4960,6 +4960,7 @@ def view_analysis(analysis_id):
     template_vars.setdefault('replication_formula', {})
     template_vars.setdefault('exact_hook_breakdown', {})
     template_vars.setdefault('all_hooks_identified', {})
+    template_vars.setdefault('simple_view', {})
     template_vars.setdefault('frame_gallery', [])
     template_vars.setdefault('frame_analyses', [])
 
@@ -5387,6 +5388,9 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             'content_goal': template_vars.get('content_goal', {}),
             'performance_section_type': template_vars.get('performance_section_type', 'performed'),
             'replication_section_type': template_vars.get('replication_section_type', 'replication'),
+
+            # Simple view
+            'simple_view': template_vars.get('simple_view', {}),
 
             # Upload flag
             'is_upload': template_vars.get('is_upload', False),
