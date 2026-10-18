@@ -5593,26 +5593,12 @@ def get_user_processing_analysis(user_id):
 def create_processing_analysis(user_id, video_url):
     """Create a new analysis record with status='processing'.
 
-    If a completed analysis already exists for this video URL + user,
-    mark it as 'replaced' so the new one takes its place. The old data
-    stays in the DB (user can still download its PDF) but won't show
-    as a duplicate in the history list.
+    Old completed analyses are NOT marked as 'replaced' here — that happens
+    in complete_analysis() once the new one finishes successfully. This way
+    the old analysis stays visible in history while the new one is processing.
     """
     try:
         normalized_url = normalize_video_url(video_url)
-
-        # Check for existing completed analysis of the same video
-        existing = Analysis.query.filter_by(
-            user_id=user_id,
-            video_url=normalized_url,
-            status='completed'
-        ).order_by(Analysis.created_at.desc()).all()
-
-        if existing:
-            print(f"[DB] Found {len(existing)} prior analysis(es) for this video — marking as replaced")
-            for old in existing:
-                old.status = 'replaced'
-            db.session.flush()
 
         analysis = Analysis(
             user_id=user_id,
@@ -5722,6 +5708,20 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
         analysis.pdf_cache_key = pdf_cache_key
         analysis.status = 'completed'
         analysis.completed_at = datetime.utcnow()
+
+        # Now that the new analysis succeeded, mark older completed analyses
+        # of the same video as 'replaced' so history doesn't show duplicates
+        if analysis.video_url:
+            older = Analysis.query.filter(
+                Analysis.user_id == analysis.user_id,
+                Analysis.video_url == analysis.video_url,
+                Analysis.status == 'completed',
+                Analysis.id != analysis_id,
+            ).all()
+            if older:
+                print(f"[DB] Marking {len(older)} prior analysis(es) as replaced")
+                for old in older:
+                    old.status = 'replaced'
 
         # Debug: Check what's being saved
         print(f"[DB] Saving analysis {analysis_id}")
