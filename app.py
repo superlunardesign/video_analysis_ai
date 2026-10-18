@@ -4118,15 +4118,15 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
         if is_upload:
             video_path = uploaded_file
             if want_gemini:
-                # Gemini mode: just extract audio + a few uniform gallery frames
-                print(f"[UPLOAD] Gemini mode — extracting audio and gallery thumbnails only...")
+                # Gemini mode: extract audio + one thumbnail frame
+                print(f"[UPLOAD] Gemini mode — extracting audio only...")
                 update_progress(current_analysis_id, 'extracting', 'Extracting audio (Gemini will watch the video)...', 10)
-                from processing import extract_audio, extract_frames_uniform, probe_duration
+                from processing import extract_audio, extract_frames_uniform
                 audio_path = extract_audio(uploaded_file)
                 frames_dir = os.path.join("frames", f"gemini_{int(_time.time())}")
                 os.makedirs(frames_dir, exist_ok=True)
-                frame_paths = extract_frames_uniform(uploaded_file, frames_dir, frames_per_minute=8, cap=12)
-                print(f"[GEMINI] Extracted audio + {len(frame_paths)} gallery thumbnails (skipped scene/motion detection)")
+                frame_paths = extract_frames_uniform(uploaded_file, frames_dir, frames_per_minute=4, cap=1)
+                print(f"[GEMINI] Extracted audio + 1 thumbnail (skipped scene/motion detection)")
             else:
                 print(f"[UPLOAD] Extracting audio and frames from uploaded file...")
                 update_progress(current_analysis_id, 'extracting', 'Extracting frames from uploaded video...', 10)
@@ -4139,16 +4139,36 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
                 )
         else:
             if want_gemini:
-                # Gemini mode: download video, extract audio + gallery thumbnails only
+                # Gemini mode: download video, extract audio, use TikTok cover for gallery
                 print("[INFO] Gemini mode — downloading video and extracting audio...")
                 update_progress(current_analysis_id, 'extracting', 'Downloading video (Gemini will watch it)...', 10)
-                from processing import download_video as _dl, extract_audio, extract_frames_uniform
+                from processing import download_video as _dl, extract_audio
                 video_path = _dl(tiktok_url)
                 audio_path = extract_audio(video_path)
                 frames_dir = os.path.join("frames", f"gemini_{int(_time.time())}")
                 os.makedirs(frames_dir, exist_ok=True)
-                frame_paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute=8, cap=12)
-                print(f"[GEMINI] Downloaded + audio + {len(frame_paths)} gallery thumbnails (skipped scene/motion detection)")
+                frame_paths = []
+
+                # Use TikTok cover image instead of extracting frames
+                thumbnail_url = metadata.get('thumbnail', '') if metadata else ''
+                if thumbnail_url:
+                    try:
+                        import requests
+                        resp = requests.get(thumbnail_url, timeout=10)
+                        if resp.status_code == 200:
+                            cover_path = os.path.join(frames_dir, "cover.jpg")
+                            with open(cover_path, 'wb') as f:
+                                f.write(resp.content)
+                            frame_paths = [cover_path]
+                            print(f"[GEMINI] Using TikTok cover image for gallery")
+                    except Exception as e:
+                        print(f"[GEMINI] Could not fetch cover image: {e}")
+
+                if not frame_paths:
+                    from processing import extract_frames_uniform
+                    frame_paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute=4, cap=1)
+
+                print(f"[GEMINI] Downloaded + audio + cover image (skipped scene/motion detection)")
             else:
                 print("[INFO] Extracting audio and frames...")
                 update_progress(current_analysis_id, 'extracting', 'Downloading video and extracting frames...', 10)
