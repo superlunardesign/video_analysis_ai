@@ -481,8 +481,8 @@
 
     <!-- TAB BAR -->
     <div class="tab-bar">
-      <button class="tab-btn active" data-tab="simple">Simple</button>
-      <button class="tab-btn" data-tab="overview">Overview</button>
+      <button class="tab-btn{% if simple_view and simple_view.short_answer %} active{% endif %}" data-tab="simple">Simple</button>
+      <button class="tab-btn{% if not simple_view or not simple_view.short_answer %} active{% endif %}" data-tab="overview">Overview</button>
       <button class="tab-btn" data-tab="hooks">Hook Breakdown</button>
       <button class="tab-btn" data-tab="replication">Replication Formula</button>
       <button class="tab-btn" data-tab="comments">Comments</button>
@@ -492,7 +492,7 @@
     <!-- ===================================================================
          TAB: Simple
          =================================================================== -->
-    <div class="tab-pane active" id="pane-simple">
+    <div class="tab-pane{% if simple_view and simple_view.short_answer %} active{% endif %}" id="pane-simple">
       <div class="pane-simple">
 
         <!-- Header: thumbnail + title + chips -->
@@ -590,7 +590,7 @@
     <!-- ===================================================================
          TAB: Overview
          =================================================================== -->
-    <div class="tab-pane" id="pane-overview">
+    <div class="tab-pane{% if not simple_view or not simple_view.short_answer %} active{% endif %}" id="pane-overview">
       <div class="pane-full">
 
         {% if extraction_only %}
