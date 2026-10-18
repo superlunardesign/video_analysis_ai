@@ -338,21 +338,41 @@ def parse_delimited_response(response_text, transcript=''):
 
     # Parse ALL_HOOKS sections into a combined dict
     all_hooks = {}
+
+    def _parse_hooks_with_suggestions(raw_text):
+        hooks = []
+        suggestions = []
+        in_suggestions = False
+        for line in raw_text.split('\n'):
+            stripped = line.strip()
+            if stripped.lower().startswith('hook_suggestions:'):
+                in_suggestions = True
+                continue
+            if stripped.startswith('-'):
+                item = stripped.lstrip('- ').strip()
+                if in_suggestions:
+                    suggestions.append(item)
+                else:
+                    hooks.append(item)
+        return hooks, suggestions
+
     if 'ALL_HOOKS_TEXT' in sections:
-        hooks = [line.strip('- ').strip() for line in sections['ALL_HOOKS_TEXT'].split('\n') if line.strip().startswith('-')]
-        # Filter out caption text (text that matches transcript)
+        hooks, suggestions = _parse_hooks_with_suggestions(sections['ALL_HOOKS_TEXT'])
         filtered_hooks = _filter_caption_text(hooks, transcript)
         all_hooks['text_hooks'] = filtered_hooks
+        all_hooks['text_hook_suggestions'] = suggestions
         if len(hooks) != len(filtered_hooks):
             print(f"[HOOKS] Filtered {len(hooks) - len(filtered_hooks)} caption texts from text hooks")
 
     if 'ALL_HOOKS_VISUAL' in sections:
-        hooks = [line.strip('- ').strip() for line in sections['ALL_HOOKS_VISUAL'].split('\n') if line.strip().startswith('-')]
+        hooks, suggestions = _parse_hooks_with_suggestions(sections['ALL_HOOKS_VISUAL'])
         all_hooks['visual_hooks'] = hooks
+        all_hooks['visual_hook_suggestions'] = suggestions
 
     if 'ALL_HOOKS_VERBAL' in sections:
-        hooks = [line.strip('- ').strip() for line in sections['ALL_HOOKS_VERBAL'].split('\n') if line.strip().startswith('-')]
+        hooks, suggestions = _parse_hooks_with_suggestions(sections['ALL_HOOKS_VERBAL'])
         all_hooks['verbal_hooks'] = hooks
+        all_hooks['verbal_hook_suggestions'] = suggestions
 
     if 'ALL_HOOKS_PSYCHOLOGICAL' in sections:
         hooks = [line.strip('- ').strip() for line in sections['ALL_HOOKS_PSYCHOLOGICAL'].split('\n') if line.strip().startswith('-')]
@@ -1082,6 +1102,22 @@ def enhanced_transcribe_audio_with_context(audio_path, frames_summaries_text, me
         }
 
 
+def _strip_transcript_timestamps(transcript_text: str) -> str:
+    """Strip timestamp markers and metadata from transcript for user-facing display."""
+    import re
+    if not transcript_text:
+        return ''
+    lines = transcript_text.strip().split('\n')
+    clean = []
+    for line in lines:
+        if line.startswith('[SPEECH PACE:') or line.startswith('[PAUSE:') or line.startswith('[TRANSCRIBE]'):
+            continue
+        stripped = re.sub(r'^\[\d+\.\d+s-\d+\.\d+s\]\s*', '', line).strip()
+        if stripped:
+            clean.append(stripped)
+    return ' '.join(clean)
+
+
 def analyze_satisfaction_elements(frames_summaries_text):
     """Detect satisfaction elements in visual content"""
     frames_lower = frames_summaries_text.lower() if frames_summaries_text else ""
@@ -1746,11 +1782,18 @@ def classify_video_performance(metadata, user_id, creator_note='', goal='viral_r
     if is_sales_goal and any(s in creator_lower for s in ['no sales', 'zero sales', 'didn\'t sell']):
         reasons.append("sales goal with no reported conversions")
 
+    has_reach_problem = view_count_raw < 2000
+    if has_reach_problem:
+        reasons.append(f"low reach ({view_count_raw:,} views) — not enough people seeing the video regardless of engagement quality")
+    result['has_reach_problem'] = has_reach_problem
+
     negative_signals = sum(1 for r in reasons if any(w in r for w in ['below', 'low', 'poor', 'no reported']))
     positive_signals = sum(1 for r in reasons if 'above' in r)
 
     if negative_signals >= 2 or (is_sales_goal and 'no reported' in ' '.join(reasons)):
         result['classification'] = 'underperforming'
+    elif has_reach_problem:
+        result['classification'] = 'mixed'
     elif negative_signals == 1 and positive_signals == 0:
         result['classification'] = 'mixed'
     elif negative_signals == 0 and (positive_signals > 0 or like_rate >= 2.0):
@@ -2086,11 +2129,20 @@ numbers and explain what they reveal about the video's performance."""
         bl = perf_class.get('baseline', {})
         if bl:
             baseline_info = f" Creator's average like rate: {bl.get('avg_like_rate', '?')}%, average views: {bl.get('avg_views', '?'):,} (based on {bl.get('sample_size', 0)} prior analyses)."
+        reach_note = ""
+        if perf_class.get('has_reach_problem'):
+            reach_note = f"""
+REACH PROBLEM: This video has fewer than 2,000 views. Even if engagement quality is good,
+not enough people are seeing the video. You MUST address reach in your analysis — explain
+why the video isn't getting in front of more people and how to fix that WITHOUT diluting the
+video's core goal. Do NOT dismiss low views as "appropriate for the niche." More people
+seeing the video is always better."""
         perf_context = f"""
 PERFORMANCE CLASSIFICATION: {perf_classification.upper()}
 This video's like rate: {perf_class.get('like_rate', '?')}%, comment rate: {perf_class.get('comment_rate', '?')}%.{baseline_info}
 Assessment: {perf_class.get('reasoning', '')}
 {"Data gaps: " + ", ".join(perf_class.get("data_gaps", [])) if perf_class.get("data_gaps") else ""}
+{reach_note}
 """
 
     # Build successful references context for underperforming videos
@@ -2171,75 +2223,52 @@ COMPREHENSIVE ANALYSIS INSTRUCTIONS:
 {f"Since this went VIRAL, identify the EXACT psychological triggers and viral mechanics." if performance_level == 'viral' else f"This is an UNPUBLISHED DRAFT — focus on pre-publish improvements: hook strength, retention structure, pacing, visual flow, and what to change BEFORE posting. Be specific and actionable." if performance_level == 'draft' else "Identify opportunities for this specific video that can help improve based on or inspired by proven patterns. Give 2-3 ideas and examples. Instead of saying something like 'enhance visual storytelling' explain to them how they might do that thing and provide strong examples"}
 
 
-#### View Count Context Matters
-**DO NOT judge sales or conversion videos by entertainment metrics!**
+#### DUAL-AXIS PERFORMANCE ASSESSMENT
+Every video — including sales, B2B, and service videos — benefits from more people seeing it.
+Assess EVERY video on TWO independent axes:
 
-**Entertainment Content:**
-- 10K views = Low
-- 100K views = Moderate  
-- 500K+ views = Good
-- 1M+ views = Viral
+**AXIS 1: REACH EFFICIENCY — Could more people see this?**
+Regardless of the video's goal, low views mean fewer people in the funnel. A sales video with
+300 views is NOT "performing appropriately for its niche" — it means the hook, format, or
+distribution failed to get it in front of enough people. ALWAYS suggest how to widen reach.
+- Under 2,000 views: The video is not reaching enough people. Diagnose WHY (weak hook, narrow
+  framing, no curiosity gap for non-buyers, algorithm signals) and suggest specific fixes.
+- 2,000-10,000 views: Moderate reach. Identify what's limiting it and what could push it further.
+- 10,000+ views: Good reach. Focus on whether the RIGHT people are watching.
 
-**B2B/Service Provider Content:**
-- 10K views = Solid
-- 50K views = Excellent
-- 90K+ views = HIGHLY SUCCESSFUL
-- 200K+ views = Exceptional
+**AXIS 2: GOAL EFFECTIVENESS — Does it accomplish what it's trying to do?**
+Once people watch, does the video achieve its goal?
+- For sales: Does it create desire, handle objections, and drive action?
+- For services: Does it demonstrate expertise and generate inquiries?
+- For entertainment: Does it drive engagement, shares, and follows?
+- For education: Does it deliver value and build authority?
 
-**WHY THE DIFFERENCE:**
-B2B content with 90K views generating multiple inquiries is worth more than entertainment content with 1M views generating nothing. ALWAYS consider:
-- Niche size (designers vs general public)
-- Conversion value (one client = $5-50K)
-- Business impact (inquiries, not just views)
+**NEVER say a low-view video has "appropriate performance" just because it's in a niche.**
+A niche video with 300 views still has a reach problem. It may ALSO have great conversion
+quality — say both things. "The sales structure is strong, but fewer than 300 people saw it.
+Here's how to get this in front of 10x more people without diluting the conversion intent."
 
-BUT there is also a world where a video MEANT to sell only amassed many views and didn't generate sales. We need to explain in the output why this happened and what sales psychology tactics are missing and then HOW to implement them.
+**For sales/service videos specifically:**
+You can widen reach WITHOUT losing conversion quality. Common techniques:
+- Broaden the hook to catch adjacent audiences while keeping the sales structure intact
+- Use a curiosity-gap or story hook that entertains non-buyers but still funnels buyers
+- Make the opening universally interesting, then narrow to the target audience mid-video
+- Add controversy or debate elements that boost algorithm distribution
 
-**IF A VIDEO SEEMS TO BE ABOUT ANY TYPE OF SELLING/SERVICE/PRODUCT**
-Evaluate whether the video SUCCEEDED or FAILED at its sales/service goal.
-- If the performance classification says "underperforming" and the goal was sales, the video
-  FAILED at selling. Do not say it "achieved strong performance." Diagnose what went wrong
-  with the sales psychology: was the hook too product-forward? Was the CTA too early? Was
-  there no compelling reason to buy?
-- If the video performed well AND shows genuine engagement, then analyze what drove success.
+**View count context (for scoring, not for dismissing low views):**
+- Entertainment: 10K low, 100K moderate, 500K+ good, 1M+ viral
+- B2B/Services: 10K solid, 50K excellent, 90K+ outstanding
+- E-commerce: 50K good, 200K excellent, 500K+ outstanding
+These thresholds tell you HOW WELL it did — but even a "solid" B2B video at 10K views should
+get suggestions for reaching 50K. The ceiling is always higher.
 
-For videos with 50K+ views in B2C/B2B/service niches that SUCCEEDED:
-Trust building, objection handling, authority demonstration, problem-solving display.
-THEN SUGGEST amplifications.
-
-For sales videos that UNDERPERFORMED:
-What was the sales structure? Where did viewers likely bounce? Was the hook a curiosity gap
-or did it announce "buy this product" in the first second? Successful sales videos on TikTok
-hook with a problem, question, or story — the product appears as the SOLUTION, not the opening.
-
-### NICHE-SPECIFIC VIEW EXPECTATIONS
-
-**Design/Creative Services:**
-- 20K views = Good
-- 50K views = Excellent
-- 90K+ views = Outstanding
-
-**Consulting/Coaching:**
-- 10K views = Good
-- 30K views = Excellent
-- 50K+ views = Outstanding
-
-**Real Estate/Local Services:**
-- 5K views = Good
-- 20K views = Excellent
-- 40K+ views = Outstanding
-
-**E-commerce/Products:**
-- 50K views = Good
-- 200K views = Excellent
-- 500K+ views = Outstanding
-
-### CRITICAL REMINDERS
-
-1. **90K views generating business = MASSIVE SUCCESS**
-2. **One inquiry worth $10K > 100K views worth $0**
-3. **Trust-building > Entertainment for B2B**
-4. **Process content > Portfolio content for conversion**
-5. **Vulnerability = Relatability = Inquiries**
+**IF A VIDEO IS ABOUT SELLING/SERVICE/PRODUCT:**
+Assess BOTH axes independently:
+1. REACH: Why did it get this many (or few) views? How to get more eyeballs?
+2. CONVERSION: Did it sell effectively? What sales psychology worked or failed?
+A video can have great sales structure but terrible reach (strong axis 2, weak axis 1).
+A video can have huge views but zero conversions (strong axis 1, weak axis 2).
+Diagnose BOTH. Never let one axis excuse the other.
 
 
 1. FIRST 3 SECONDS BREAKDOWN:
@@ -2345,14 +2374,34 @@ ONLY list text that appears in the FIRST 3 SECONDS that STOPS the scroll.
 Not all text is a hook - only attention-grabbing opening text.
 - [Text from first 3 seconds only]
 
+hook_suggestions:
+For each text hook identified above, suggest 1-2 alternative text hooks that could perform
+better for THIS video's format and goal. Explain why each alternative would work.
+If the existing text hook is already strong, say so and suggest a variation that tests a
+different psychological angle (e.g., stakes vs. curiosity vs. controversy).
+- [suggestion]: [why it could work better]
+
 ===ALL_HOOKS_VISUAL===
 ONLY list visual elements in FIRST 3 SECONDS that grabbed attention.
 - [Opening visual hooks only, not all visuals]
+
+hook_suggestions:
+Suggest 1-2 visual hook alternatives or additions. Think about what the creator could
+physically do differently in the first 3 seconds: hand gestures, camera movement, prop
+placement, facial expressions, environment changes, pattern interrupts (like setting a
+phone down, waving a hand, holding an unexpected object). These should be specific and
+doable, not generic advice like "better lighting."
+- [suggestion]: [why it would stop the scroll]
 
 ===ALL_HOOKS_VERBAL===
 ONLY list what's SAID in FIRST 3 SECONDS that grabbed attention.
 Promises, explanations, and body content are NOT hooks - only opening attention-grabbers.
 - [Opening verbal hooks only]
+
+hook_suggestions:
+Suggest 1-2 alternative verbal hooks — different opening lines that would create a stronger
+curiosity gap or pattern interrupt for THIS creator's tone and niche.
+- [suggestion]: [why it would hook better]
 
 ===ALL_HOOKS_PSYCHOLOGICAL===
 What mental trigger(s) in the OPENING caused someone to stop scrolling?
@@ -3241,6 +3290,7 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         
         # Transcript data
         'transcript': transcript_data.get('transcript', ''),
+        'transcript_plain': _strip_transcript_timestamps(transcript_data.get('transcript', '')),
         'transcript_quality': transcript_data,
         'transcript_original': transcript_data.get('transcript', ''),
         'transcript_for_analysis': transcript_data.get('transcript', ''),
@@ -4976,6 +5026,8 @@ def view_analysis(analysis_id):
     template_vars.setdefault('simple_view', {})
     template_vars.setdefault('frame_gallery', [])
     template_vars.setdefault('frame_analyses', [])
+    if not template_vars.get('transcript_plain') and template_vars.get('transcript'):
+        template_vars['transcript_plain'] = _strip_transcript_timestamps(template_vars['transcript'])
 
     # CRITICAL: Set fields needed by results.html template
     # results.html expects 'video_thumbnail' and 'metadata.url'
@@ -5364,6 +5416,7 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
             'music_info': template_vars.get('music_info'),
             'music_artist': template_vars.get('music_artist'),
             'transcript': template_vars.get('transcript', ''),  # CRITICAL: Save transcript text
+            'transcript_plain': template_vars.get('transcript_plain', ''),
 
             # Hook and Loop analysis (for analysis_summary.html)
             'hook': template_vars.get('hook', ''),

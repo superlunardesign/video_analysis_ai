@@ -392,7 +392,7 @@ def build_sampling_times(duration: float, change_times: List[float], max_frames:
     Merge anchors + settle offsets with detected change times.
     Clip to duration and dedupe. Allow ~3x cap for downstream pruning.
     """
-    anchors = [0.0, 0.3, 0.8, 1.0, 1.5, 3.0]  # extra 1.0s helps mid-intro slide-ins
+    anchors = [0.0, 0.5, 1.0, 1.5, 2.0, 3.0]
     outro = max(0.0, duration - 0.8)
     anchors.append(outro)
 
@@ -482,6 +482,8 @@ def extract_frames_uniform(video_path: str, frames_dir: str,
     if total <= 0: total = min(cap, 10)
     step = dur / (total + 1)
     timestamps = [round(step * i, 3) for i in range(1, total + 1)]
+    forced_early = [t for t in [0.0, 0.5, 1.0, 2.0] if t < dur]
+    timestamps = sorted(set(forced_early + timestamps))[:cap]
     return extract_frames_at_times(video_path, frames_dir, timestamps)
 
 
@@ -587,16 +589,33 @@ def extract_audio_and_frames(
         print(f"[smart] timestamps after merge+anchors: {len(ts_list)}")
 
         paths = extract_frames_at_times(video_path, frames_dir, ts_list)
-        paths = [p for p in paths if not is_blurry(p)]
-        paths = dedupe_frames_by_phash(paths, dist=2)
-        paths = keep_text_heavy_frames(paths, min_chars=0)
-        paths = sorted(paths)[:cap]
+
+        early_paths, later_paths = _split_early_frames(paths, cutoff_sec=3.0)
+        later_paths = [p for p in later_paths if not is_blurry(p)]
+        later_paths = dedupe_frames_by_phash(later_paths, dist=2)
+        later_paths = keep_text_heavy_frames(later_paths, min_chars=0)
+        early_paths = dedupe_frames_by_phash(early_paths, dist=6)
+        paths = sorted(set(early_paths + later_paths))[:cap]
+        print(f"[smart] {len(early_paths)} early frames (0-3s) protected, {len(later_paths)} later frames")
 
         if not paths:
             print("[smart] empty after filters → fallback to uniform")
             paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute=18, cap=min(cap, 20))
 
     return audio_path, frames_dir, paths
+
+
+def _split_early_frames(paths: List[str], cutoff_sec: float = 3.0):
+    """Split frame paths into early (0-cutoff) and later, based on timestamp in filename."""
+    import re
+    early, later = [], []
+    for p in paths:
+        m = re.search(r'at(\d+\.\d+)\.jpg$', os.path.basename(p))
+        if m and float(m.group(1)) <= cutoff_sec:
+            early.append(p)
+        else:
+            later.append(p)
+    return early, later
 
 
 def extract_audio_and_frames_from_file(
@@ -635,10 +654,14 @@ def extract_audio_and_frames_from_file(
         print(f"[smart] timestamps after merge+anchors: {len(ts_list)}")
 
         paths = extract_frames_at_times(video_path, frames_dir, ts_list)
-        paths = [p for p in paths if not is_blurry(p)]
-        paths = dedupe_frames_by_phash(paths, dist=2)
-        paths = keep_text_heavy_frames(paths, min_chars=0)
-        paths = sorted(paths)[:cap]
+
+        early_paths, later_paths = _split_early_frames(paths, cutoff_sec=3.0)
+        later_paths = [p for p in later_paths if not is_blurry(p)]
+        later_paths = dedupe_frames_by_phash(later_paths, dist=2)
+        later_paths = keep_text_heavy_frames(later_paths, min_chars=0)
+        early_paths = dedupe_frames_by_phash(early_paths, dist=6)
+        paths = sorted(set(early_paths + later_paths))[:cap]
+        print(f"[smart] {len(early_paths)} early frames (0-3s) protected, {len(later_paths)} later frames")
 
         if not paths:
             print("[smart] empty after filters → fallback to uniform")
@@ -839,11 +862,20 @@ For EACH frame, provide a structured analysis:
 2. VISUAL CONTENT:
    Describe what's happening visually (actions, objects, people, etc.)
 
-3. FRAME PURPOSE:
+3. MOTION & PHYSICAL CUES (especially important for first 3 seconds):
+   Look for pattern interrupts and physical hooks:
+   - Hand gestures (waving, pointing, snapping, counting on fingers)
+   - Camera movement (setting phone down, shaky start, zoom in/out)
+   - Body language (leaning in, dramatic facial expression, turning to camera)
+   - Object interaction (holding something up, placing something down, pointing at product)
+   - Environmental oddities (unusual items in background, props, staging choices)
+   These physical cues can be powerful visual hooks even without text.
+
+4. FRAME PURPOSE:
    What is this frame's role in the video? (establishing shot, reveal, demonstration, etc.)
 
-4. ATTENTION ELEMENTS:
-   What grabs attention? (motion, colors, text placement, visual hooks)
+5. ATTENTION ELEMENTS:
+   What grabs attention? (motion, colors, text placement, visual hooks, physical actions)
 
 FORMAT YOUR RESPONSE EXACTLY LIKE THIS for each frame:
 

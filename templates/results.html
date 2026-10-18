@@ -278,6 +278,9 @@
     }
     .hook-label { font-weight: 700; color: var(--sv-text); margin-bottom: 8px; font-size: 1rem; }
     .hook-element p { color: var(--sv-text-secondary); margin-bottom: 6px; }
+    .hook-suggestions { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--sv-border); }
+    .hook-suggestions-label { font-weight: 600; color: var(--sv-accent); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .hook-suggestions p { color: var(--sv-text-secondary); font-style: italic; margin-bottom: 4px; font-size: 0.95rem; }
 
     /* Formula */
     .formula-box {
@@ -857,6 +860,12 @@
           <div class="hook-element">
             <div class="hook-label">TEXT HOOKS</div>
             {% for hook in all_hooks_identified.text_hooks %}<p>{{ hook }}</p>{% endfor %}
+            {% if all_hooks_identified.text_hook_suggestions %}
+            <div class="hook-suggestions">
+              <div class="hook-suggestions-label">Try Instead</div>
+              {% for sug in all_hooks_identified.text_hook_suggestions %}<p>{{ sug }}</p>{% endfor %}
+            </div>
+            {% endif %}
           </div>
           {% endif %}
 
@@ -864,6 +873,12 @@
           <div class="hook-element">
             <div class="hook-label">VISUAL HOOKS</div>
             {% for hook in all_hooks_identified.visual_hooks %}<p>{{ hook }}</p>{% endfor %}
+            {% if all_hooks_identified.visual_hook_suggestions %}
+            <div class="hook-suggestions">
+              <div class="hook-suggestions-label">Try Instead</div>
+              {% for sug in all_hooks_identified.visual_hook_suggestions %}<p>{{ sug }}</p>{% endfor %}
+            </div>
+            {% endif %}
           </div>
           {% endif %}
 
@@ -871,6 +886,12 @@
           <div class="hook-element">
             <div class="hook-label">VERBAL HOOKS</div>
             {% for hook in all_hooks_identified.verbal_hooks %}<p>{{ hook }}</p>{% endfor %}
+            {% if all_hooks_identified.verbal_hook_suggestions %}
+            <div class="hook-suggestions">
+              <div class="hook-suggestions-label">Try Instead</div>
+              {% for sug in all_hooks_identified.verbal_hook_suggestions %}<p>{{ sug }}</p>{% endfor %}
+            </div>
+            {% endif %}
           </div>
           {% endif %}
 
@@ -1091,7 +1112,7 @@
           <h2>Transcript</h2>
           {% endif %}
           <div style="max-height: 400px; overflow-y: auto; border-radius: 8px;">
-            <pre>{{ transcript or "(No verbal content - visual/ambient audio)" }}</pre>
+            <p style="white-space: pre-wrap; line-height: 1.8; font-size: 1rem;">{{ transcript_plain or transcript or "(No verbal content - visual/ambient audio)" }}</p>
           </div>
         </div>
 
