@@ -1156,7 +1156,12 @@
 
         {% if frame_gallery %}
         <div class="section">
-          <h2>Analyzed Frames</h2>
+          <h2 style="display: flex; align-items: center; gap: 10px;">
+            {% if vision_model_used == 'gemini' %}Cover Image{% else %}Analyzed Frames{% endif %}
+            <span class="meta-tag" style="font-size: 0.7rem; padding: 2px 8px;">
+              {% if vision_model_used == 'gemini' %}Gemini Vision{% else %}GPT-4o Frames{% endif %}
+            </span>
+          </h2>
           <div class="frame-gallery">
             {% for img in frame_gallery %}
             <div class="frame-item"><img src="{{ img }}" alt="Frame {{ loop.index }}" loading="lazy"></div>

@@ -3518,6 +3518,7 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'simple_view': gpt_result.get('simple_view', {}),
         
         # Frame and file data
+        'vision_model_used': form_data.get('vision_model_used', 'frames'),
         'frames_count': len(frame_paths) if frame_paths else 0,
         'frame_gallery': gallery_data_urls if gallery_data_urls else [],
         'frames_dir': frames_dir if frames_dir else "",
@@ -4245,6 +4246,7 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
             if use_gemini and video_path:
                 update_progress(current_analysis_id, 'analyzing_frames', 'Analyzing full video with Gemini...', 30)
                 print(f"[VISION] Using Gemini full-video analysis")
+                form_data['vision_model_used'] = 'gemini'
                 from gemini_video import analyze_video_with_gemini
                 futures['frames'] = executor.submit(
                     analyze_video_with_gemini, video_path, frame_paths, basic_transcript
@@ -4252,6 +4254,7 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
             else:
                 update_progress(current_analysis_id, 'analyzing_frames', f'Analyzing {len(frame_paths)} frames with AI vision...', 30)
                 print(f"[VISION] Using GPT-4o frame analysis ({len(frame_paths)} frames)")
+                form_data['vision_model_used'] = 'frames'
                 futures['frames'] = executor.submit(analyze_frames_batch, frame_paths, basic_transcript)
 
             # Collect remaining results
@@ -4278,6 +4281,7 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
                     if name == 'frames':
                         if use_gemini:
                             print(f"[VISION] Gemini failed, falling back to GPT-4o frame analysis...")
+                            form_data['vision_model_used'] = 'frames'
                             update_progress(current_analysis_id, 'analyzing_frames', 'Gemini unavailable — analyzing frames with GPT-4o...', 32)
                             try:
                                 frames_summaries_text, gallery_data_urls = analyze_frames_batch(frame_paths, basic_transcript)
