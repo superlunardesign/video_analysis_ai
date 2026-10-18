@@ -3775,6 +3775,12 @@ def process():
         if processing_record:
             current_analysis_id = processing_record.id
 
+    # Guard against duplicate submissions — if this analysis is already running, don't spawn another thread
+    existing_progress = analysis_progress.get(current_analysis_id)
+    if existing_progress and existing_progress.get('stage') not in (None, 'starting', 'failed'):
+        print(f"[INFO] Analysis {current_analysis_id} already in progress (stage: {existing_progress.get('stage')}), skipping duplicate")
+        return jsonify({'started': True, 'analysis_id': current_analysis_id, 'already_running': True})
+
     update_progress(current_analysis_id, 'starting', 'Initializing analysis...', 0)
 
     thread = threading.Thread(
@@ -3856,6 +3862,11 @@ def process_upload():
         processing_record = create_processing_analysis(user_id, form_data.get('uploaded_filename', 'upload'))
         if processing_record:
             current_analysis_id = processing_record.id
+
+    existing_progress = analysis_progress.get(current_analysis_id)
+    if existing_progress and existing_progress.get('stage') not in (None, 'starting', 'failed'):
+        print(f"[INFO] Upload analysis {current_analysis_id} already in progress, skipping duplicate")
+        return jsonify({'started': True, 'analysis_id': current_analysis_id, 'already_running': True})
 
     update_progress(current_analysis_id, 'starting', 'Initializing upload analysis...', 0)
 
@@ -4091,28 +4102,63 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
         print(f"[INFO] Results Speed: {results_speed} (cap={cap}, threshold={scene_threshold})")
 
         # 3. VIDEO EXTRACTION
+        # Determine vision model early so we can skip expensive frame extraction for Gemini
+        vision_model = form_data.get('vision_model', 'auto')
+        want_gemini = False
+        if vision_model == 'gemini':
+            want_gemini = True
+        elif vision_model == 'auto':
+            try:
+                from gemini_video import is_gemini_available
+                want_gemini = is_gemini_available()
+            except ImportError:
+                want_gemini = False
+
         video_path = None
         if is_upload:
-            print(f"[UPLOAD] Extracting audio and frames from uploaded file...")
-            update_progress(current_analysis_id, 'extracting', 'Extracting frames from uploaded video...', 10)
-            audio_path, frames_dir, frame_paths = extract_audio_and_frames_from_file(
-                uploaded_file,
-                strategy=form_data['strategy'],
-                frames_per_minute=frames_per_minute,
-                cap=cap,
-                scene_threshold=scene_threshold,
-            )
             video_path = uploaded_file
+            if want_gemini:
+                # Gemini mode: just extract audio + a few uniform gallery frames
+                print(f"[UPLOAD] Gemini mode — extracting audio and gallery thumbnails only...")
+                update_progress(current_analysis_id, 'extracting', 'Extracting audio (Gemini will watch the video)...', 10)
+                from processing import extract_audio, extract_frames_uniform, probe_duration
+                audio_path = extract_audio(uploaded_file)
+                frames_dir = os.path.join("frames", f"gemini_{int(_time.time())}")
+                os.makedirs(frames_dir, exist_ok=True)
+                frame_paths = extract_frames_uniform(uploaded_file, frames_dir, frames_per_minute=8, cap=12)
+                print(f"[GEMINI] Extracted audio + {len(frame_paths)} gallery thumbnails (skipped scene/motion detection)")
+            else:
+                print(f"[UPLOAD] Extracting audio and frames from uploaded file...")
+                update_progress(current_analysis_id, 'extracting', 'Extracting frames from uploaded video...', 10)
+                audio_path, frames_dir, frame_paths = extract_audio_and_frames_from_file(
+                    uploaded_file,
+                    strategy=form_data['strategy'],
+                    frames_per_minute=frames_per_minute,
+                    cap=cap,
+                    scene_threshold=scene_threshold,
+                )
         else:
-            print("[INFO] Extracting audio and frames...")
-            update_progress(current_analysis_id, 'extracting', 'Downloading video and extracting frames...', 10)
-            audio_path, frames_dir, frame_paths, video_path = enhanced_extract_audio_and_frames(
-                tiktok_url,
-                strategy=form_data['strategy'],
-                frames_per_minute=frames_per_minute,
-                cap=cap,
-                scene_threshold=scene_threshold,
-            )
+            if want_gemini:
+                # Gemini mode: download video, extract audio + gallery thumbnails only
+                print("[INFO] Gemini mode — downloading video and extracting audio...")
+                update_progress(current_analysis_id, 'extracting', 'Downloading video (Gemini will watch it)...', 10)
+                from processing import download_video as _dl, extract_audio, extract_frames_uniform
+                video_path = _dl(tiktok_url)
+                audio_path = extract_audio(video_path)
+                frames_dir = os.path.join("frames", f"gemini_{int(_time.time())}")
+                os.makedirs(frames_dir, exist_ok=True)
+                frame_paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute=8, cap=12)
+                print(f"[GEMINI] Downloaded + audio + {len(frame_paths)} gallery thumbnails (skipped scene/motion detection)")
+            else:
+                print("[INFO] Extracting audio and frames...")
+                update_progress(current_analysis_id, 'extracting', 'Downloading video and extracting frames...', 10)
+                audio_path, frames_dir, frame_paths, video_path = enhanced_extract_audio_and_frames(
+                    tiktok_url,
+                    strategy=form_data['strategy'],
+                    frames_per_minute=frames_per_minute,
+                    cap=cap,
+                    scene_threshold=scene_threshold,
+                )
         print(f"[SUCCESS] Extracted {len(frame_paths)} frames")
 
         # Validate audio file
@@ -4174,17 +4220,7 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
                 basic_transcript = ""
 
             # Now start visual analysis — either Gemini (full video) or GPT-4o (frames)
-            vision_model = form_data.get('vision_model', 'auto')
-            use_gemini = False
-
-            if vision_model == 'gemini':
-                use_gemini = True
-            elif vision_model == 'auto':
-                try:
-                    from gemini_video import is_gemini_available
-                    use_gemini = is_gemini_available()
-                except ImportError:
-                    use_gemini = False
+            use_gemini = want_gemini
 
             if use_gemini and video_path:
                 update_progress(current_analysis_id, 'analyzing_frames', 'Analyzing full video with Gemini...', 30)
