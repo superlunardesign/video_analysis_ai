@@ -3200,6 +3200,20 @@ manufacturing a fix — fewer real improvements beat three invented ones.
             "template_formula": parsed.get("formulas", {}).get("platform_formula", ""),
             "knowledge_insights": " | ".join(parsed.get("knowledge_patterns_applied", [])),
             
+            # Simple view
+            "simple_view": parsed.get("simple_view", {}),
+
+            # Format fingerprint and matching
+            "format_fingerprint": parsed.get("format_fingerprint", {}),
+            "format_match": parsed.get("format_match"),
+            "hook_mechanisms": parsed.get("hook_mechanisms", {}),
+            "content_goal": parsed.get("content_goal", {}),
+            "follow_up_ideas": parsed.get("follow_up_ideas", ""),
+
+            # Section type indicators
+            "performance_section_type": parsed.get("performance_section_type", "performed"),
+            "replication_section_type": parsed.get("replication_section_type", "replication"),
+
             # Meta information
             "knowledge_context_used": bool(knowledge_context.strip()),
             "overall_quality": "strong" if performance_level == 'viral' else "moderate" if performance_level in ['good', 'moderate'] else "needs_work",
