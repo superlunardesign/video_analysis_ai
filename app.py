@@ -2643,6 +2643,45 @@ hook_strength: 8
 promise_clarity: 7
 (Just the number, no extra text)
 
+===SIMPLE_VIEW===
+Write a plain-language breakdown that anyone can understand — not just content creators.
+
+WRITING RULES:
+- Never address the reader as "you." Write "the creator" and "the viewer."
+- Plain words first. If a psychology term helps, put it after the plain explanation, never instead of it.
+- Say where a claim comes from: the transcript, comments, the creator's note, or inferred. Do not present guesses as facts.
+- Unclear moments are often features, not flaws. Before calling something vague, explain what the ambiguity might be doing for retention. Only suggest replacing it as a test to compare.
+
+Output these fields exactly (use the key: value format, one field per line, keep each value on ONE line):
+
+short_answer: [One sentence: why this video worked (or did not). Be specific — name the mechanism, not just "good hook."]
+explanation_p1: [First paragraph. Set up what this video does and why it catches attention. 3-5 sentences, ALL ON ONE LINE.]
+explanation_p2: [Second paragraph. Walk through the structure — what happens and why each part holds the viewer. 3-5 sentences, ALL ON ONE LINE.]
+explanation_p3: [Third paragraph. What the creator did well and what could be tested differently. 3-5 sentences, ALL ON ONE LINE.]
+moment_1_ts: [timestamp like "0:00-0:03"]
+moment_1_quote: [exact text, visual description, or audio from this moment]
+moment_1_job: [what this moment does for the viewer — plain language, one sentence]
+moment_2_ts: [timestamp]
+moment_2_quote: [quote or description]
+moment_2_job: [what it does]
+moment_3_ts: [timestamp]
+moment_3_quote: [quote or description]
+moment_3_job: [what it does]
+moment_4_ts: [timestamp]
+moment_4_quote: [quote or description]
+moment_4_job: [what it does]
+script_template: [A reusable template the creator can fill in with their own topic. Use [BRACKETS] for variables. Include timing markers. Keep it in the same format and structure as the original video. This should be copy-pasteable. ALL ON ONE LINE — use | to separate timing sections.]
+keep_vs_change: [One or two sentences: what to keep doing and what to experiment with changing. Be specific.]
+test_1_title: [Short title for a test the creator could try]
+test_1_why: [Why this test is worth running — what signal would it give?]
+test_1_example: [A specific example of how to run this test with the creator's content]
+test_2_title: [title]
+test_2_why: [why]
+test_2_example: [example]
+test_3_title: [title]
+test_3_why: [why]
+test_3_example: [example]
+
 ===TIMING_MASTERY===
 Analyze what happens at each key moment through the FULL {target_duration}s video.
 Provide specific observations for each time interval below:
@@ -2686,55 +2725,6 @@ Explain the expected effect of the improvements already listed, PER GOAL:
 
 State which goal the changes serve most, and name any tradeoff (e.g. added sales mechanics may
 reduce raw reach). Be honest when a change helps one goal and does nothing for another.
-
-===SIMPLE_VIEW===
-Write a plain-language breakdown that anyone can understand — not just content creators.
-
-WRITING RULES:
-- Never address the reader as "you." Write "the creator" and "the viewer."
-- Plain words first. If a psychology term helps, put it after the plain explanation, never instead of it.
-- Say where a claim comes from: the transcript, comments, the creator's note, or inferred. Do not present guesses as facts.
-- Unclear moments are often features, not flaws. Before calling something vague, explain what the ambiguity might be doing for retention. Only suggest replacing it as a test to compare.
-
-Output these fields exactly (use the key: value format, one field per line):
-
-short_answer: [One sentence: why this video worked (or did not). Be specific — name the mechanism, not just "good hook."]
-
-explanation_p1: [First paragraph. Set up what this video does and why it catches attention. 3-5 sentences.]
-explanation_p2: [Second paragraph. Walk through the structure — what happens and why each part holds the viewer. 3-5 sentences.]
-explanation_p3: [Third paragraph. What the creator did well and what could be tested differently. 3-5 sentences. If the video underperformed, focus on what specifically did not land.]
-
-moment_1_ts: [timestamp like "0:00-0:03"]
-moment_1_quote: [exact text, visual description, or audio from this moment]
-moment_1_job: [what this moment does for the viewer — plain language, one sentence]
-
-moment_2_ts: [timestamp]
-moment_2_quote: [quote or description]
-moment_2_job: [what it does]
-
-moment_3_ts: [timestamp]
-moment_3_quote: [quote or description]
-moment_3_job: [what it does]
-
-moment_4_ts: [timestamp]
-moment_4_quote: [quote or description]
-moment_4_job: [what it does]
-
-script_template: [A reusable template the creator can fill in with their own topic. Use [BRACKETS] for variables. Include timing markers. Keep it in the same format and structure as the original video. This should be copy-pasteable.]
-
-keep_vs_change: [One or two sentences: what to keep doing and what to experiment with changing. Be specific.]
-
-test_1_title: [Short title for a test the creator could try]
-test_1_why: [Why this test is worth running — what signal would it give?]
-test_1_example: [A specific example of how to run this test with the creator's content]
-
-test_2_title: [title]
-test_2_why: [why]
-test_2_example: [example]
-
-test_3_title: [title]
-test_3_why: [why]
-test_3_example: [example]
 
 ===KNOWLEDGE_PATTERNS_APPLIED===
 - [Pattern from knowledge base]: [How it applies to this video]
@@ -2846,7 +2836,7 @@ manufacturing a fix — fewer real improvements beat three invented ones.
         gpt_response = _api_retry(
             claude_client.messages.create,
             model="claude-sonnet-4-5-20250929",
-            max_tokens=6000,
+            max_tokens=12000,
             system="You are an expert in video structure, retention psychology, and content strategy. You identify what a video IS before judging it — its format, its likely goal, and how well it executes on its own terms. You analyze the specific psychological mechanisms at work: curiosity gaps, tension loops, promise/payoff timing. You never default to generic viral advice or one-size-fits-all hook templates. Your suggestions respect the creator's voice, niche, and format — you improve their video, not replace it with a different one. Correctly interpret audio based on visual context - if someone is drawing, sounds are likely marker/pen sounds, not animal noises.",
             messages=[
                 {"role": "user", "content": prompt}
