@@ -67,6 +67,15 @@ try:
 except Exception as e:
     print(f"[CLEANUP] Startup purge failed: {e}")
 
+try:
+    from gemini_video import is_gemini_available
+    if is_gemini_available():
+        print("[STARTUP] Gemini video analysis: AVAILABLE")
+    else:
+        print("[STARTUP] Gemini video analysis: not configured (no GOOGLE_API_KEY)")
+except ImportError:
+    print("[STARTUP] Gemini video analysis: not available (missing google-generativeai)")
+
 # In-memory progress tracker: {analysis_id: {stage, detail, percent, updated_at, preview}}
 analysis_progress = {}
 
@@ -1096,7 +1105,7 @@ def enhanced_extract_audio_and_frames(tiktok_url, strategy, frames_per_minute, c
             raise ValueError("No valid frame files found")
 
         print(f"[SUCCESS] Extraction complete: audio={'yes' if audio_path else 'no'} + {len(valid_frames)} frames")
-        return audio_path, frames_dir, valid_frames
+        return audio_path, frames_dir, valid_frames, video_path
 
     except Exception as e:
         print(f"[ERROR] Enhanced extraction failed: {e}")
@@ -3744,6 +3753,7 @@ def process():
         'analysis_depth': request.form.get("analysis_depth", "standard").strip(),
         'force_refresh': request.form.get('force_refresh', 'false').lower() == 'true',
         'results_speed': request.form.get('results_speed', 'standard').strip(),
+        'vision_model': request.form.get('vision_model', 'auto').strip(),
     }
     user_id = current_user.id
 
@@ -3814,6 +3824,7 @@ def analyze_upload():
         'analysis_depth': request.form.get("analysis_depth", "standard").strip(),
         'force_refresh': False,
         'results_speed': request.form.get('results_speed', 'standard').strip(),
+        'vision_model': request.form.get('vision_model', 'auto').strip(),
         'is_upload': True,
     }
 
@@ -4080,6 +4091,7 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
         print(f"[INFO] Results Speed: {results_speed} (cap={cap}, threshold={scene_threshold})")
 
         # 3. VIDEO EXTRACTION
+        video_path = None
         if is_upload:
             print(f"[UPLOAD] Extracting audio and frames from uploaded file...")
             update_progress(current_analysis_id, 'extracting', 'Extracting frames from uploaded video...', 10)
@@ -4090,10 +4102,11 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
                 cap=cap,
                 scene_threshold=scene_threshold,
             )
+            video_path = uploaded_file
         else:
             print("[INFO] Extracting audio and frames...")
             update_progress(current_analysis_id, 'extracting', 'Downloading video and extracting frames...', 10)
-            audio_path, frames_dir, frame_paths = enhanced_extract_audio_and_frames(
+            audio_path, frames_dir, frame_paths, video_path = enhanced_extract_audio_and_frames(
                 tiktok_url,
                 strategy=form_data['strategy'],
                 frames_per_minute=frames_per_minute,
@@ -4160,9 +4173,30 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
             else:
                 basic_transcript = ""
 
-            # Now start frame analysis with transcript context
-            update_progress(current_analysis_id, 'analyzing_frames', f'Analyzing {len(frame_paths)} frames with AI vision...', 30)
-            futures['frames'] = executor.submit(analyze_frames_batch, frame_paths, basic_transcript)
+            # Now start visual analysis — either Gemini (full video) or GPT-4o (frames)
+            vision_model = form_data.get('vision_model', 'auto')
+            use_gemini = False
+
+            if vision_model == 'gemini':
+                use_gemini = True
+            elif vision_model == 'auto':
+                try:
+                    from gemini_video import is_gemini_available
+                    use_gemini = is_gemini_available()
+                except ImportError:
+                    use_gemini = False
+
+            if use_gemini and video_path:
+                update_progress(current_analysis_id, 'analyzing_frames', 'Analyzing full video with Gemini...', 30)
+                print(f"[VISION] Using Gemini full-video analysis")
+                from gemini_video import analyze_video_with_gemini
+                futures['frames'] = executor.submit(
+                    analyze_video_with_gemini, video_path, frame_paths, basic_transcript
+                )
+            else:
+                update_progress(current_analysis_id, 'analyzing_frames', f'Analyzing {len(frame_paths)} frames with AI vision...', 30)
+                print(f"[VISION] Using GPT-4o frame analysis ({len(frame_paths)} frames)")
+                futures['frames'] = executor.submit(analyze_frames_batch, frame_paths, basic_transcript)
 
             # Collect remaining results
             for name, future in futures.items():

@@ -725,6 +725,16 @@
                                 </div>
 
                                 <div class="field-group">
+                                    <label for="vision_model">Vision Model</label>
+                                    <select id="vision_model" name="vision_model">
+                                        <option value="auto" selected>Auto (best available)</option>
+                                        <option value="frames">Frames (GPT-4o)</option>
+                                        <option value="gemini">Gemini (full video)</option>
+                                    </select>
+                                    <span class="helper-text">Gemini watches the whole video natively</span>
+                                </div>
+
+                                <div class="field-group">
                                     <label for="results_speed">Speed</label>
                                     <select id="results_speed" name="results_speed">
                                         <option value="transcript_only">Transcript Only (~30s)</option>
