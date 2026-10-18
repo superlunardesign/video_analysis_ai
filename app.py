@@ -60,6 +60,13 @@ cache = AnalysisCache()
 tracker = AnalysisPerformanceTracker()
 pdf_cache = PdfCache()  # Persistent PDF cache that survives server restarts
 
+# Purge media files older than 24 hours on startup
+try:
+    from processing import purge_old_media
+    purge_old_media(max_age_hours=24)
+except Exception as e:
+    print(f"[CLEANUP] Startup purge failed: {e}")
+
 # In-memory progress tracker: {analysis_id: {stage, detail, percent, updated_at, preview}}
 analysis_progress = {}
 

@@ -8,6 +8,7 @@ import cv2
 import math
 import time              # for time.time()
 import time as _time     # for retry helper
+import hashlib
 import base64
 import ffmpeg
 import subprocess
@@ -36,6 +37,44 @@ def _ensure_dirs():
     Path("frames").mkdir(exist_ok=True)
 
 
+def _url_hash(url: str) -> str:
+    """Stable short hash of a URL for cache filenames."""
+    cleaned = url.split('?')[0].strip().rstrip('/')
+    return hashlib.sha256(cleaned.encode()).hexdigest()[:16]
+
+
+def purge_old_media(max_age_hours: int = 24):
+    """Delete downloaded videos, audio, and frame dirs older than max_age_hours."""
+    cutoff = time.time() - (max_age_hours * 3600)
+    removed = 0
+
+    for folder in ('downloads', 'audio'):
+        folder_path = Path(folder)
+        if not folder_path.exists():
+            continue
+        for f in folder_path.iterdir():
+            if f.is_file() and f.stat().st_mtime < cutoff:
+                try:
+                    f.unlink()
+                    removed += 1
+                except OSError:
+                    pass
+
+    frames_path = Path('frames')
+    if frames_path.exists():
+        import shutil
+        for d in frames_path.iterdir():
+            if d.is_dir() and d.stat().st_mtime < cutoff:
+                try:
+                    shutil.rmtree(d)
+                    removed += 1
+                except OSError:
+                    pass
+
+    if removed:
+        print(f"[CLEANUP] Purged {removed} media files/dirs older than {max_age_hours}h")
+
+
 def _api_retry(callable_fn, *args, **kwargs):
     """Retry wrapper for OpenAI calls: 4 tries, exponential backoff with jitter."""
     max_tries = 4
@@ -58,10 +97,26 @@ def _api_retry(callable_fn, *args, **kwargs):
 def download_video(tiktok_url: str) -> str:
     """
     Download social video using yt-dlp. Returns absolute mp4 path.
+    Caches by URL hash — re-downloading the same video returns the cached file.
     """
     _ensure_dirs()
-    stamp = str(int(time.time()))
-    out_tmpl = os.path.abspath(os.path.join("downloads", f"vid_{stamp}.%(ext)s"))
+    url_id = _url_hash(tiktok_url)
+
+    # Check for cached download
+    cached = sorted(Path("downloads").glob(f"vid_{url_id}*.mp4"))
+    if cached:
+        cached_path = str(cached[-1])
+        if os.path.exists(cached_path) and os.path.getsize(cached_path) > 10000:
+            try:
+                ffmpeg.probe(cached_path)
+                print(f"[DOWNLOAD] Cache hit: {cached_path}")
+                # Touch the file so purge doesn't delete it
+                os.utime(cached_path)
+                return cached_path
+            except Exception:
+                print(f"[DOWNLOAD] Cached file corrupt, re-downloading")
+
+    out_tmpl = os.path.abspath(os.path.join("downloads", f"vid_{url_id}.%(ext)s"))
 
     ydl_opts = {
         "outtmpl": out_tmpl,
@@ -101,11 +156,11 @@ def download_video(tiktok_url: str) -> str:
             # Re-raise original error if not a known case
             raise
 
-    mp4s = sorted(Path("downloads").glob(f"vid_{stamp}*.mp4"))
+    mp4s = sorted(Path("downloads").glob(f"vid_{url_id}*.mp4"))
     if mp4s:
         video_path = str(mp4s[-1])
     else:
-        candidates = sorted(Path("downloads").glob(f"vid_{stamp}*.*"))
+        candidates = sorted(Path("downloads").glob(f"vid_{url_id}*.*"))
         if not candidates:
             raise FileNotFoundError("Video download failed.")
         video_path = str(candidates[-1])
@@ -164,7 +219,7 @@ def download_video(tiktok_url: str) -> str:
                   f"channels: {audio_streams[0].get('channels', '?')}")
         elif video_streams:
             print(f"[DOWNLOAD] WARNING: No audio stream found — re-downloading with audio-priority format...")
-            redownload_tmpl = os.path.abspath(os.path.join("downloads", f"vid_{stamp}_retry.%(ext)s"))
+            redownload_tmpl = os.path.abspath(os.path.join("downloads", f"vid_{url_id}_retry.%(ext)s"))
             retry_opts = {
                 "outtmpl": redownload_tmpl,
                 "format": "best[acodec!=none]/bestaudio+bestvideo/best",
@@ -176,7 +231,7 @@ def download_video(tiktok_url: str) -> str:
             try:
                 with YoutubeDL(retry_opts) as ydl:
                     ydl.download([tiktok_url])
-                retry_files = sorted(Path("downloads").glob(f"vid_{stamp}_retry*.mp4"))
+                retry_files = sorted(Path("downloads").glob(f"vid_{url_id}_retry*.mp4"))
                 if retry_files:
                     retry_path = str(retry_files[-1])
                     retry_info = ffmpeg.probe(retry_path)
@@ -627,13 +682,51 @@ def extract_audio_and_frames_from_file(
 ) -> Tuple[str, str, List[str]]:
     """
     Same as extract_audio_and_frames but takes a local file path instead of a URL.
-    Skips the download step.
+    Skips the download step. Caches audio and frames by video file identity.
     """
     _ensure_dirs()
-    audio_path = extract_audio(video_path)
+
+    # Extract cache key from the video filename (vid_<hash>.mp4 → <hash>)
+    vid_basename = os.path.basename(video_path)
+    cache_id = None
+    if vid_basename.startswith('vid_'):
+        cache_id = vid_basename.split('.')[0].replace('vid_', '').split('_')[0]
+
+    # Check for cached audio
+    audio_path = None
+    if cache_id:
+        cached_audio = sorted(Path("audio").glob(f"aud_{cache_id}*.mp3"))
+        if cached_audio and os.path.getsize(str(cached_audio[-1])) > 1000:
+            audio_path = str(cached_audio[-1])
+            os.utime(audio_path)
+            print(f"[AUDIO] Cache hit: {audio_path}")
+
+    if not audio_path:
+        audio_path = extract_audio(video_path)
+        # Rename to use cache_id if we have one
+        if cache_id and audio_path and os.path.exists(audio_path):
+            cached_name = os.path.join("audio", f"aud_{cache_id}.mp3")
+            cached_name = os.path.abspath(cached_name)
+            if audio_path != cached_name:
+                try:
+                    os.rename(audio_path, cached_name)
+                    audio_path = cached_name
+                except OSError:
+                    pass
+
     dur = probe_duration(video_path)
 
-    frames_dir = os.path.join("frames", f"set_{int(time.time())}")
+    # Check for cached frames
+    if cache_id:
+        cached_frames_dir = os.path.join("frames", f"set_{cache_id}")
+        if os.path.isdir(cached_frames_dir):
+            cached_frames = sorted(Path(cached_frames_dir).glob("*.jpg"))
+            if cached_frames:
+                os.utime(cached_frames_dir)
+                print(f"[FRAMES] Cache hit: {len(cached_frames)} frames in {cached_frames_dir}")
+                return audio_path, cached_frames_dir, [str(p) for p in cached_frames]
+
+    frames_dir = os.path.join("frames", f"set_{cache_id or int(time.time())}")
     os.makedirs(frames_dir, exist_ok=True)
 
     if strategy == "uniform":
