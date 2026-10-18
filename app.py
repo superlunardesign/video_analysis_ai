@@ -4282,8 +4282,17 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
                         if use_gemini:
                             print(f"[VISION] Gemini failed, falling back to GPT-4o frame analysis...")
                             form_data['vision_model_used'] = 'frames'
-                            update_progress(current_analysis_id, 'analyzing_frames', 'Gemini unavailable — analyzing frames with GPT-4o...', 32)
+                            update_progress(current_analysis_id, 'analyzing_frames', 'Gemini unavailable — extracting frames for GPT-4o...', 32)
                             try:
+                                # Re-extract frames for GPT-4o since Gemini mode only grabbed cover image
+                                if len(frame_paths) < 5 and video_path:
+                                    print(f"[VISION] Only {len(frame_paths)} frames — re-extracting for GPT-4o fallback...")
+                                    from processing import extract_frames_uniform
+                                    fallback_dir = os.path.join("frames", f"fallback_{int(_time.time())}")
+                                    os.makedirs(fallback_dir, exist_ok=True)
+                                    frame_paths = extract_frames_uniform(video_path, fallback_dir, frames_per_minute=18, cap=30)
+                                    print(f"[VISION] Re-extracted {len(frame_paths)} frames for fallback")
+
                                 frames_summaries_text, gallery_data_urls = analyze_frames_batch(frame_paths, basic_transcript)
                                 analysis_results['frames_summaries'] = frames_summaries_text
                                 analysis_results['gallery_urls'] = gallery_data_urls
