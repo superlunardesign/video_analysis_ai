@@ -856,6 +856,35 @@
         <div class="section">
           <h2>All Hooks Identified</h2>
 
+          {% if replication_formula and replication_formula.hook_formula %}
+          <div class="hook-element" style="border-left: 3px solid var(--sv-accent); padding-left: 12px;">
+            <div class="hook-label">CORE HOOK</div>
+            <p style="font-family: monospace; font-size: 1.05rem; color: var(--sv-text);">{{ replication_formula.hook_formula }}</p>
+            {% if replication_formula.formula_name %}
+            <p style="font-size: 0.85rem; color: var(--sv-text-secondary); margin-top: 4px;">{{ replication_formula.formula_name }}</p>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          {% if all_hooks_identified.verbal_hooks %}
+          <div class="hook-element">
+            <div class="hook-label">VERBAL HOOKS</div>
+            {% for hook in all_hooks_identified.verbal_hooks %}<p>{{ hook }}</p>{% endfor %}
+            {% if all_hooks_identified.verbal_hook_formula %}
+            <div style="margin-top: 8px; padding: 6px 10px; background: var(--sv-template-bg); border-radius: 6px; border-left: 3px solid var(--sv-accent);">
+              <span style="font-size: 0.8rem; color: var(--sv-accent); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Formula</span>
+              <p style="font-family: monospace; margin-top: 4px; color: var(--sv-text);">{{ all_hooks_identified.verbal_hook_formula }}</p>
+            </div>
+            {% endif %}
+            {% if all_hooks_identified.verbal_hook_suggestions %}
+            <div class="hook-suggestions">
+              <div class="hook-suggestions-label">Try Instead</div>
+              {% for sug in all_hooks_identified.verbal_hook_suggestions %}<p>{{ sug }}</p>{% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+
           {% if all_hooks_identified.text_hooks %}
           <div class="hook-element">
             <div class="hook-label">TEXT HOOKS</div>
@@ -889,25 +918,6 @@
             <div class="hook-suggestions">
               <div class="hook-suggestions-label">Try Instead</div>
               {% for sug in all_hooks_identified.visual_hook_suggestions %}<p>{{ sug }}</p>{% endfor %}
-            </div>
-            {% endif %}
-          </div>
-          {% endif %}
-
-          {% if all_hooks_identified.verbal_hooks %}
-          <div class="hook-element">
-            <div class="hook-label">VERBAL HOOKS</div>
-            {% for hook in all_hooks_identified.verbal_hooks %}<p>{{ hook }}</p>{% endfor %}
-            {% if all_hooks_identified.verbal_hook_formula %}
-            <div style="margin-top: 8px; padding: 6px 10px; background: var(--sv-template-bg); border-radius: 6px; border-left: 3px solid var(--sv-accent);">
-              <span style="font-size: 0.8rem; color: var(--sv-accent); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Formula</span>
-              <p style="font-family: monospace; margin-top: 4px; color: var(--sv-text);">{{ all_hooks_identified.verbal_hook_formula }}</p>
-            </div>
-            {% endif %}
-            {% if all_hooks_identified.verbal_hook_suggestions %}
-            <div class="hook-suggestions">
-              <div class="hook-suggestions-label">Try Instead</div>
-              {% for sug in all_hooks_identified.verbal_hook_suggestions %}<p>{{ sug }}</p>{% endfor %}
             </div>
             {% endif %}
           </div>

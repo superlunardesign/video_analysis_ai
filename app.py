@@ -2714,15 +2714,15 @@ The point is to show the STRUCTURE in action with fresh content, not to rewrite 
 [continue through {target_duration}s]
 
 text_template:
-Write the on-screen text overlays that would appear at each beat of the sample execution.
-Every beat MUST have text — this is a text template, not a description of when text appears.
-Never write "No text" or "verbal hook does the work." Each overlay should be the actual words
-a viewer reads, reinforcing the psychological mechanism of that beat.
+Write a GENERIC, niche-agnostic on-screen text overlay template using [BRACKETS] for all
+topic-specific words. This template should work for ANY creator in ANY niche. Do NOT write
+specific words from the sample execution or original video. Every beat must have a text
+overlay. Think of this as a Mad Libs-style overlay script.
 
-**0-3s:** "[Hook text — must open a curiosity gap, not announce the product]"
-**X-Ys:** "[Text that builds tension or shows the problem]"
-**X-Ys:** "[Text that delivers the reveal or CTA]"
-[continue with timestamped overlays for every beat — no gaps]
+**0-3s:** "[HOOK TEXT — e.g. '[SHORTCUT] for [COMMON STRUGGLE]']"
+**X-Ys:** "[SETUP TEXT — reinforces the promise]"
+**X-Ys:** "[PROCESS/REVEAL TEXT — key action or payoff]"
+[continue with timestamped overlays for every beat — all in [BRACKETS], no niche-specific words]
 
 why_original_failed: [In 2-3 sentences, what specifically about the original structure,
 hook, or approach caused it to underperform]
@@ -2794,16 +2794,16 @@ to rewrite the creator's video.
 [continue through the full {target_duration}s]
 
 text_template:
-Write the on-screen text overlays that would appear at each beat of the sample execution.
-Every beat MUST have text — this is a text template, not a description of when text appears.
-Never write "No text" or "verbal hook does the work" — that defeats the purpose of a text
-template. Each overlay should be the actual words a viewer reads, written to reinforce the
-psychological mechanism of that beat. Think of this as the full caption/overlay script.
+Write a GENERIC, niche-agnostic on-screen text overlay template using [BRACKETS] for all
+topic-specific words. This template should work for ANY creator in ANY niche — someone in
+cooking, fitness, productivity, or beauty should all be able to fill in the brackets with
+their own content. Do NOT write specific words from the sample execution or original video.
+Every beat must have a text overlay. Think of this as a Mad Libs-style overlay script.
 
-**0-3s:** "[Hook text that opens a curiosity gap or pain-stack]"
-**X-Ys:** "[Text that builds tension, shows the problem, or teases the payoff]"
-**X-Ys:** "[Text that delivers the reveal or CTA]"
-[continue with timestamped overlays for every beat in the sample execution above — no gaps]
+**0-3s:** "[HOOK TEXT — e.g. 'CHEATING [TASK]' or '[SHORTCUT] for [COMMON STRUGGLE]']"
+**X-Ys:** "[SETUP TEXT — reinforces the promise or names the method]"
+**X-Ys:** "[PROCESS TEXT — key step label or instruction]"
+[continue with timestamped overlays for every beat — all in [BRACKETS], no niche-specific words]
 
 visual_requirements: [2-3 specific visual ideas that serve THIS format's mechanism, with why
 each one works.]'''}
@@ -5745,6 +5745,8 @@ def complete_analysis(analysis_id, video_title, thumbnail_url, template_vars, pd
         print(f"[DB] Has replication_formula: {'replication_formula' in lightweight_data}")
         print(f"[DB] Has scores: {'scores' in lightweight_data}")
         print(f"[DB] Replication formula type: {type(lightweight_data.get('replication_formula'))}")
+        sv = lightweight_data.get('simple_view', {})
+        print(f"[DB] Simple view: {len(sv)} keys, short_answer={bool(sv.get('short_answer'))}")
 
         db.session.commit()
 
