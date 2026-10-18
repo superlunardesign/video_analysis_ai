@@ -2707,13 +2707,15 @@ The point is to show the STRUCTURE in action with fresh content, not to rewrite 
 [continue through {target_duration}s]
 
 text_template:
-Provide the full on-screen text for each beat of the sample execution. Each overlay should
-reinforce the psychological mechanism of that beat.
+Write the on-screen text overlays that would appear at each beat of the sample execution.
+Every beat MUST have text — this is a text template, not a description of when text appears.
+Never write "No text" or "verbal hook does the work." Each overlay should be the actual words
+a viewer reads, reinforcing the psychological mechanism of that beat.
 
-**Added Text:** "[TEXT OVERLAY]"
 **0-3s:** "[Hook text — must open a curiosity gap, not announce the product]"
-**X-Ys:** "[Supporting text — how does this reinforce the beat?]"
-[continue with timestamped overlays for every beat]
+**X-Ys:** "[Text that builds tension or shows the problem]"
+**X-Ys:** "[Text that delivers the reveal or CTA]"
+[continue with timestamped overlays for every beat — no gaps]
 
 why_original_failed: [In 2-3 sentences, what specifically about the original structure,
 hook, or approach caused it to underperform]
@@ -2785,14 +2787,16 @@ to rewrite the creator's video.
 [continue through the full {target_duration}s]
 
 text_template:
-Provide the full on-screen text for each beat of the sample execution. These are the exact
-words a viewer would read. Each overlay should reinforce the psychological mechanism of that
-beat (curiosity, pain-stack, payoff, etc.).
+Write the on-screen text overlays that would appear at each beat of the sample execution.
+Every beat MUST have text — this is a text template, not a description of when text appears.
+Never write "No text" or "verbal hook does the work" — that defeats the purpose of a text
+template. Each overlay should be the actual words a viewer reads, written to reinforce the
+psychological mechanism of that beat. Think of this as the full caption/overlay script.
 
-**Added Text:** "[TEXT OVERLAY]"
-**0-3s:** "[Hook text — what emotion or question does this open?]"
-**X-Ys:** "[Supporting text — how does this reinforce the beat?]"
-[continue with timestamped overlays for every beat in the sample execution above]
+**0-3s:** "[Hook text that opens a curiosity gap or pain-stack]"
+**X-Ys:** "[Text that builds tension, shows the problem, or teases the payoff]"
+**X-Ys:** "[Text that delivers the reveal or CTA]"
+[continue with timestamped overlays for every beat in the sample execution above — no gaps]
 
 visual_requirements: [2-3 specific visual ideas that serve THIS format's mechanism, with why
 each one works.]'''}
