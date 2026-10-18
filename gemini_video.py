@@ -1,12 +1,14 @@
 """
 Gemini video analysis — sends the full video to Gemini for native visual understanding.
 Returns the same (frames_summaries_text, gallery_data_urls) format as the frame-based pipeline.
+
+Uses the google-genai package (successor to the deprecated google-generativeai).
 """
 
 import os
 import time
 import base64
-from pathlib import Path
+
 
 def is_gemini_available():
     return bool(os.environ.get('GOOGLE_API_KEY'))
@@ -16,41 +18,42 @@ def analyze_video_with_gemini(video_path, frame_paths=None, transcript=None):
     """
     Upload the full video to Gemini and get a comprehensive visual analysis.
 
-    Args:
-        video_path: Path to the video file
-        frame_paths: Optional list of extracted frame paths (used for gallery thumbnails only)
-        transcript: Optional transcript for context
-
     Returns:
         Tuple of (detailed_analysis_text, gallery_data_urls)
     """
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types
 
     api_key = os.environ.get('GOOGLE_API_KEY')
     if not api_key:
         raise RuntimeError("GOOGLE_API_KEY not set")
 
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 
     # Upload video file
-    print(f"[GEMINI] Uploading video: {video_path} ({os.path.getsize(video_path) / 1024 / 1024:.1f} MB)")
-    video_file = genai.upload_file(path=video_path)
+    file_size_mb = os.path.getsize(video_path) / 1024 / 1024
+    print(f"[GEMINI] Uploading video: {video_path} ({file_size_mb:.1f} MB)")
+
+    video_file = client.files.upload(file=video_path)
 
     # Wait for Gemini to process the video
     max_wait = 120
     waited = 0
-    while video_file.state.name == "PROCESSING" and waited < max_wait:
+    while video_file.state == "PROCESSING" and waited < max_wait:
         time.sleep(3)
         waited += 3
-        video_file = genai.get_file(video_file.name)
+        video_file = client.files.get(name=video_file.name)
         if waited % 15 == 0:
             print(f"[GEMINI] Still processing video... ({waited}s)")
 
-    if video_file.state.name == "FAILED":
-        raise RuntimeError(f"Gemini video processing failed: {video_file.state.name}")
+    if video_file.state == "FAILED":
+        raise RuntimeError(f"Gemini video processing failed")
 
-    if video_file.state.name != "ACTIVE":
-        raise RuntimeError(f"Gemini video not ready after {max_wait}s: {video_file.state.name}")
+    if video_file.state not in ("ACTIVE", "active"):
+        # Also check string representation for newer SDK versions
+        state_str = str(video_file.state)
+        if "ACTIVE" not in state_str.upper():
+            raise RuntimeError(f"Gemini video not ready after {max_wait}s: {video_file.state}")
 
     print(f"[GEMINI] Video processed, running analysis...")
 
@@ -97,14 +100,23 @@ IMPORTANT GUIDELINES:
 FORMAT: Organize chronologically with clear timestamps. Be thorough — this analysis
 replaces frame-by-frame extraction, so every visual detail matters."""
 
-    model = genai.GenerativeModel('gemini-2.0-flash')
-
-    response = model.generate_content(
-        [video_file, prompt],
-        generation_config=genai.types.GenerationConfig(
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=[
+            types.Content(
+                parts=[
+                    types.Part.from_uri(
+                        file_uri=video_file.uri,
+                        mime_type=video_file.mime_type,
+                    ),
+                    types.Part.from_text(text=prompt),
+                ]
+            )
+        ],
+        config=types.GenerateContentConfig(
             max_output_tokens=4000,
-            temperature=0.3
-        )
+            temperature=0.3,
+        ),
     )
 
     analysis_text = response.text
@@ -112,7 +124,7 @@ replaces frame-by-frame extraction, so every visual detail matters."""
 
     # Clean up the uploaded file
     try:
-        genai.delete_file(video_file.name)
+        client.files.delete(name=video_file.name)
         print(f"[GEMINI] Cleaned up uploaded video")
     except Exception as e:
         print(f"[GEMINI] Warning: could not delete uploaded file: {e}")

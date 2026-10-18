@@ -6,7 +6,7 @@ psycopg2-binary>=2.9.9
 gunicorn==22.0.0
 openai>=1.40.0
 anthropic>=0.39.0
-google-generativeai>=0.8.0
+google-genai>=1.0.0
 yt-dlp>=2025.1.0
 curl_cffi>=0.5.10
 ffmpeg-python==0.2.0
