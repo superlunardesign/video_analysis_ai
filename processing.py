@@ -444,14 +444,15 @@ def motion_event_times(video_path: str, window_sec: float = 0.3,
 
 def build_sampling_times(duration: float, change_times: List[float], max_frames: int) -> List[float]:
     """
-    Merge anchors + settle offsets with detected change times.
-    Clip to duration and dedupe. Allow ~3x cap for downstream pruning.
+    Merge anchors + settle offsets with detected change times, then guarantee
+    uniform coverage across the full video duration so mid-video content is
+    never dropped.
     """
-    anchors = [0.0, 0.5, 1.0, 1.5, 2.0, 3.0]
+    anchors = [0.0, 1.0, 2.0, 3.0]
     outro = max(0.0, duration - 0.8)
     anchors.append(outro)
 
-    settle_offsets = [0.3, 0.6]
+    settle_offsets = [0.4]
 
     ts = []
     for t in change_times:
@@ -459,18 +460,75 @@ def build_sampling_times(duration: float, change_times: List[float], max_frames:
         for off in settle_offsets: ts.append(t + off)
     for a in anchors:
         ts.append(a)
-        for off in settle_offsets: ts.append(a + off)
+
+    # Guarantee uniform coverage: place frames every few seconds across the
+    # full duration so mid-video process content is never missed
+    uniform_interval = max(2.0, duration / max_frames)
+    t = uniform_interval
+    while t < duration - 1.0:
+        ts.append(t)
+        t += uniform_interval
 
     ts = [round(max(0.0, min(duration - 0.05, x)), 3) for x in ts]
     ts = sorted(set(ts))
 
     if not ts:
-        # fallback to uniform N points if nothing detected
         N = max_frames
         step = duration / (N + 1)
         ts = [round(step * i, 3) for i in range(1, N + 1)]
 
-    return ts[: max_frames * 3]
+    # Instead of simple truncation (which drops late timestamps), distribute
+    # the budget across the full duration
+    budget = max_frames * 3
+    if len(ts) > budget:
+        ts = _distribute_across_duration(ts, budget, duration)
+
+    return ts
+
+
+def _distribute_across_duration(timestamps: List[float], budget: int, duration: float) -> List[float]:
+    """
+    Select `budget` timestamps from a sorted list, ensuring every segment of
+    the video gets representation. Divides the video into equal segments and
+    picks proportionally from each, so mid-video content isn't dropped.
+    """
+    if len(timestamps) <= budget:
+        return timestamps
+
+    n_segments = min(20, budget // 3)
+    seg_len = duration / n_segments
+    per_segment = max(1, budget // n_segments)
+
+    buckets: List[List[float]] = [[] for _ in range(n_segments)]
+    for t in timestamps:
+        idx = min(int(t / seg_len), n_segments - 1)
+        buckets[idx].append(t)
+
+    selected: List[float] = []
+    remaining_budget = budget
+
+    # First pass: give each segment its share
+    for bucket in buckets:
+        if not bucket:
+            continue
+        take = min(len(bucket), per_segment)
+        step = max(1, len(bucket) // take)
+        picked = bucket[::step][:take]
+        selected.extend(picked)
+        remaining_budget -= len(picked)
+
+    # Second pass: fill remaining budget from segments with extra candidates
+    if remaining_budget > 0:
+        for bucket in buckets:
+            already = set(selected)
+            extras = [t for t in bucket if t not in already]
+            take = min(len(extras), remaining_budget)
+            selected.extend(extras[:take])
+            remaining_budget -= take
+            if remaining_budget <= 0:
+                break
+
+    return sorted(set(selected))
 
 
 # ------------------------------------------------------------------------------
@@ -647,17 +705,45 @@ def extract_audio_and_frames(
 
         early_paths, later_paths = _split_early_frames(paths, cutoff_sec=3.0)
         later_paths = [p for p in later_paths if not is_blurry(p)]
-        later_paths = dedupe_frames_by_phash(later_paths, dist=2)
+        later_paths = dedupe_frames_by_phash(later_paths, dist=5)
         later_paths = keep_text_heavy_frames(later_paths, min_chars=0)
         early_paths = dedupe_frames_by_phash(early_paths, dist=6)
+
+        # Log coverage diagnostics
+        _log_frame_coverage(early_paths + later_paths, dur)
+
         paths = sorted(set(early_paths + later_paths))[:cap]
-        print(f"[smart] {len(early_paths)} early frames (0-3s) protected, {len(later_paths)} later frames")
+        print(f"[smart] {len(early_paths)} early frames (0-3s), {len(later_paths)} later frames, {len(paths)} total")
 
         if not paths:
             print("[smart] empty after filters → fallback to uniform")
             paths = extract_frames_uniform(video_path, frames_dir, frames_per_minute=18, cap=min(cap, 20))
 
     return audio_path, frames_dir, paths
+
+
+def _log_frame_coverage(paths: List[str], duration: float):
+    """Log which portions of the video have frame coverage."""
+    import re
+    timestamps = []
+    for p in paths:
+        m = re.search(r'at(\d+\.\d+)\.jpg$', os.path.basename(p))
+        if m:
+            timestamps.append(float(m.group(1)))
+    if not timestamps or duration <= 0:
+        return
+    timestamps.sort()
+    n_quarters = 4
+    seg_len = duration / n_quarters
+    coverage = []
+    for i in range(n_quarters):
+        lo = i * seg_len
+        hi = (i + 1) * seg_len
+        count = sum(1 for t in timestamps if lo <= t < hi)
+        pct = int(lo)
+        coverage.append(f"{pct}-{int(hi)}s:{count}")
+    max_gap = max((timestamps[i+1] - timestamps[i] for i in range(len(timestamps)-1)), default=0)
+    print(f"[smart] coverage: {', '.join(coverage)} | max gap: {max_gap:.1f}s | span: {timestamps[0]:.1f}-{timestamps[-1]:.1f}s/{duration:.1f}s")
 
 
 def _split_early_frames(paths: List[str], cutoff_sec: float = 3.0):
@@ -750,11 +836,14 @@ def extract_audio_and_frames_from_file(
 
         early_paths, later_paths = _split_early_frames(paths, cutoff_sec=3.0)
         later_paths = [p for p in later_paths if not is_blurry(p)]
-        later_paths = dedupe_frames_by_phash(later_paths, dist=2)
+        later_paths = dedupe_frames_by_phash(later_paths, dist=5)
         later_paths = keep_text_heavy_frames(later_paths, min_chars=0)
         early_paths = dedupe_frames_by_phash(early_paths, dist=6)
+
+        _log_frame_coverage(early_paths + later_paths, dur)
+
         paths = sorted(set(early_paths + later_paths))[:cap]
-        print(f"[smart] {len(early_paths)} early frames (0-3s) protected, {len(later_paths)} later frames")
+        print(f"[smart] {len(early_paths)} early frames (0-3s), {len(later_paths)} later frames, {len(paths)} total")
 
         if not paths:
             print("[smart] empty after filters → fallback to uniform")

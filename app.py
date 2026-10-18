@@ -2714,15 +2714,18 @@ The point is to show the STRUCTURE in action with fresh content, not to rewrite 
 [continue through {target_duration}s]
 
 text_template:
-Write a GENERIC, niche-agnostic on-screen text overlay template using [BRACKETS] for all
-topic-specific words. This template should work for ANY creator in ANY niche. Do NOT write
-specific words from the sample execution or original video. Every beat must have a text
-overlay. Think of this as a Mad Libs-style overlay script.
+Take the sample execution you just wrote above and rewrite it as a fill-in-the-blank text
+overlay script. Keep the SAME structure, SAME number of beats, SAME flow — but replace every
+specific topic, technique, product, niche term, or result with a [BRACKETED VARIABLE].
 
-**0-3s:** "[HOOK TEXT — e.g. '[SHORTCUT] for [COMMON STRUGGLE]']"
-**X-Ys:** "[SETUP TEXT — reinforces the promise]"
-**X-Ys:** "[PROCESS/REVEAL TEXT — key action or payoff]"
-[continue with timestamped overlays for every beat — all in [BRACKETS], no niche-specific words]
+Use directional timing guidance instead of exact timestamps — e.g. "Open with [HOOK TEXT that
+names a SHORTCUT or HACK]" or "In the first few seconds, show [PAIN POINT or COMMON STRUGGLE]"
+or "Save [FINAL RESULT / PAYOFF] for the last shot."
+
+Every beat from your sample execution MUST have a matching text overlay here. Someone in
+cooking, fitness, tech, or ANY other niche should be able to fill in the brackets and have a
+complete on-screen text plan. Do NOT write new content or restructure — literally transform
+YOUR sample execution into a reusable template.
 
 why_original_failed: [In 2-3 sentences, what specifically about the original structure,
 hook, or approach caused it to underperform]
@@ -2794,16 +2797,18 @@ to rewrite the creator's video.
 [continue through the full {target_duration}s]
 
 text_template:
-Write a GENERIC, niche-agnostic on-screen text overlay template using [BRACKETS] for all
-topic-specific words. This template should work for ANY creator in ANY niche — someone in
-cooking, fitness, productivity, or beauty should all be able to fill in the brackets with
-their own content. Do NOT write specific words from the sample execution or original video.
-Every beat must have a text overlay. Think of this as a Mad Libs-style overlay script.
+Take the sample execution you just wrote above and rewrite it as a fill-in-the-blank text
+overlay script. Keep the SAME structure, SAME number of beats, SAME flow — but replace every
+specific topic, technique, product, niche term, or result with a [BRACKETED VARIABLE].
 
-**0-3s:** "[HOOK TEXT — e.g. 'CHEATING [TASK]' or '[SHORTCUT] for [COMMON STRUGGLE]']"
-**X-Ys:** "[SETUP TEXT — reinforces the promise or names the method]"
-**X-Ys:** "[PROCESS TEXT — key step label or instruction]"
-[continue with timestamped overlays for every beat — all in [BRACKETS], no niche-specific words]
+Use directional timing guidance instead of exact timestamps — e.g. "Open with [HOOK TEXT that
+names a SHORTCUT or HACK]" or "In the first few seconds, show [PAIN POINT or COMMON STRUGGLE]"
+or "Save [FINAL RESULT / PAYOFF] for the last shot."
+
+Every beat from your sample execution MUST have a matching text overlay here. Someone in
+cooking, fitness, tech, or ANY other niche should be able to fill in the brackets and have a
+complete on-screen text plan. Do NOT write new content or restructure — literally transform
+YOUR sample execution into a reusable template.
 
 visual_requirements: [2-3 specific visual ideas that serve THIS format's mechanism, with why
 each one works.]'''}
