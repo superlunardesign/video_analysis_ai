@@ -228,6 +228,15 @@ def parse_delimited_response(response_text, transcript=''):
     if current_section and current_section != 'END':
         sections[current_section] = '\n'.join(current_content).strip()
 
+    # Log all parsed sections for debugging
+    print(f"[PARSER] Parsed {len(sections)} sections: {list(sections.keys())}")
+    if 'SIMPLE_VIEW' in sections:
+        sv_content = sections['SIMPLE_VIEW']
+        print(f"[SIMPLE_VIEW] Section found ({len(sv_content)} chars)")
+        print(f"[SIMPLE_VIEW] First 200 chars: {sv_content[:200]}")
+    else:
+        print(f"[SIMPLE_VIEW] Section NOT found in response")
+
     # Parse SCORES section specially (convert to dict with integers)
     scores = {}
     if 'SCORES' in sections:
@@ -547,6 +556,12 @@ def parse_delimited_response(response_text, transcript=''):
             if title:
                 tests.append({'title': title, 'why': why, 'example': example})
         simple_view_data['tests'] = tests
+        print(f"[SIMPLE_VIEW] Parsed fields: short_answer={bool(simple_view_data.get('short_answer'))}, "
+              f"explanation_count={len(simple_view_data.get('explanation', []))}, "
+              f"moments={len(simple_view_data.get('moments', []))}, "
+              f"script_template={bool(simple_view_data.get('script_template'))}, "
+              f"tests={len(simple_view_data.get('tests', []))}")
+        print(f"[SIMPLE_VIEW] Raw sv_fields keys: {list(sv_fields.keys())}")
 
     # Determine which section types were used (underperforming vs standard)
     is_underperforming = 'WHY_IT_UNDERPERFORMED' in sections
@@ -2489,6 +2504,46 @@ You can use quotes "like this" freely, write multiple paragraphs, and format nat
 
 Use this EXACT format with === delimiters:
 
+===SIMPLE_VIEW===
+Write a plain-language breakdown that anyone can understand — not just content creators.
+Generate this FIRST, before the detailed analysis sections below.
+
+WRITING RULES:
+- Never address the reader as "you." Write "the creator" and "the viewer."
+- Plain words first. If a psychology term helps, put it after the plain explanation, never instead of it.
+- Say where a claim comes from: the transcript, comments, the creator's note, or inferred. Do not present guesses as facts.
+- Unclear moments are often features, not flaws. Before calling something vague, explain what the ambiguity might be doing for retention. Only suggest replacing it as a test to compare.
+
+Output these fields exactly (use the key: value format, one field per line, keep each value on ONE line):
+
+short_answer: [One sentence: why this video worked (or did not). Be specific — name the mechanism, not just "good hook."]
+explanation_p1: [First paragraph. Set up what this video does and why it catches attention. 3-5 sentences, ALL ON ONE LINE.]
+explanation_p2: [Second paragraph. Walk through the structure — what happens and why each part holds the viewer. 3-5 sentences, ALL ON ONE LINE.]
+explanation_p3: [Third paragraph. What the creator did well and what could be tested differently. 3-5 sentences, ALL ON ONE LINE.]
+moment_1_ts: [timestamp like "0:00-0:03"]
+moment_1_quote: [exact text, visual description, or audio from this moment]
+moment_1_job: [what this moment does for the viewer — plain language, one sentence]
+moment_2_ts: [timestamp]
+moment_2_quote: [quote or description]
+moment_2_job: [what it does]
+moment_3_ts: [timestamp]
+moment_3_quote: [quote or description]
+moment_3_job: [what it does]
+moment_4_ts: [timestamp]
+moment_4_quote: [quote or description]
+moment_4_job: [what it does]
+script_template: [A reusable template the creator can fill in with their own topic. Use [BRACKETS] for variables. Include timing markers. Keep it in the same format and structure as the original video. This should be copy-pasteable. ALL ON ONE LINE — use | to separate timing sections.]
+keep_vs_change: [One or two sentences: what to keep doing and what to experiment with changing. Be specific.]
+test_1_title: [Short title for a test the creator could try]
+test_1_why: [Why this test is worth running — what signal would it give?]
+test_1_example: [A specific example of how to run this test with the creator's content]
+test_2_title: [title]
+test_2_why: [why]
+test_2_example: [example]
+test_3_title: [title]
+test_3_why: [why]
+test_3_example: [example]
+
 ===CONTENT_GOAL===
 Detect what this video is trying to achieve. Look at ALL available signals — selling happens
 across multiple channels simultaneously, not just in spoken words:
@@ -2817,45 +2872,6 @@ Example format:
 hook_strength: 8
 promise_clarity: 7
 (Just the number, no extra text)
-
-===SIMPLE_VIEW===
-Write a plain-language breakdown that anyone can understand — not just content creators.
-
-WRITING RULES:
-- Never address the reader as "you." Write "the creator" and "the viewer."
-- Plain words first. If a psychology term helps, put it after the plain explanation, never instead of it.
-- Say where a claim comes from: the transcript, comments, the creator's note, or inferred. Do not present guesses as facts.
-- Unclear moments are often features, not flaws. Before calling something vague, explain what the ambiguity might be doing for retention. Only suggest replacing it as a test to compare.
-
-Output these fields exactly (use the key: value format, one field per line, keep each value on ONE line):
-
-short_answer: [One sentence: why this video worked (or did not). Be specific — name the mechanism, not just "good hook."]
-explanation_p1: [First paragraph. Set up what this video does and why it catches attention. 3-5 sentences, ALL ON ONE LINE.]
-explanation_p2: [Second paragraph. Walk through the structure — what happens and why each part holds the viewer. 3-5 sentences, ALL ON ONE LINE.]
-explanation_p3: [Third paragraph. What the creator did well and what could be tested differently. 3-5 sentences, ALL ON ONE LINE.]
-moment_1_ts: [timestamp like "0:00-0:03"]
-moment_1_quote: [exact text, visual description, or audio from this moment]
-moment_1_job: [what this moment does for the viewer — plain language, one sentence]
-moment_2_ts: [timestamp]
-moment_2_quote: [quote or description]
-moment_2_job: [what it does]
-moment_3_ts: [timestamp]
-moment_3_quote: [quote or description]
-moment_3_job: [what it does]
-moment_4_ts: [timestamp]
-moment_4_quote: [quote or description]
-moment_4_job: [what it does]
-script_template: [A reusable template the creator can fill in with their own topic. Use [BRACKETS] for variables. Include timing markers. Keep it in the same format and structure as the original video. This should be copy-pasteable. ALL ON ONE LINE — use | to separate timing sections.]
-keep_vs_change: [One or two sentences: what to keep doing and what to experiment with changing. Be specific.]
-test_1_title: [Short title for a test the creator could try]
-test_1_why: [Why this test is worth running — what signal would it give?]
-test_1_example: [A specific example of how to run this test with the creator's content]
-test_2_title: [title]
-test_2_why: [why]
-test_2_example: [example]
-test_3_title: [title]
-test_3_why: [why]
-test_3_example: [example]
 
 ===TIMING_MASTERY===
 Analyze what happens at each key moment through the FULL {target_duration}s video.
