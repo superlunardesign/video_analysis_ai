@@ -356,22 +356,32 @@ def parse_delimited_response(response_text, transcript=''):
         in_suggestions = False
         for line in raw_text.split('\n'):
             stripped = line.strip()
+            if not stripped:
+                continue
             if stripped.lower().startswith('hook_suggestions:'):
                 in_suggestions = True
                 continue
+            # Check for formula lines
+            is_formula = False
             for prefix in ('text_hook_formula:', 'visual_hook_formula:', 'verbal_hook_formula:'):
                 if stripped.lower().startswith(prefix):
                     val = stripped[len(prefix):].strip()
                     if val.lower() not in ('none', 'none.', 'n/a', ''):
                         formula = val
+                    is_formula = True
                     break
-            else:
-                if stripped.startswith('-'):
-                    item = stripped.lstrip('- ').strip()
-                    if in_suggestions:
-                        suggestions.append(item)
-                    else:
-                        hooks.append(item)
+            if is_formula:
+                continue
+            # Skip instruction/label lines from the prompt
+            if stripped.lower().startswith('only list') or stripped.lower().startswith('not all text') or stripped.lower().startswith('do not') or stripped.lower().startswith('weight check') or stripped.lower().startswith('promises,'):
+                continue
+            # Capture hook/suggestion content (with or without dash prefix)
+            item = stripped.lstrip('- ').strip()
+            if item and len(item) > 2:
+                if in_suggestions:
+                    suggestions.append(item)
+                else:
+                    hooks.append(item)
         return hooks, suggestions, formula
 
     if 'ALL_HOOKS_TEXT' in sections:
@@ -381,8 +391,11 @@ def parse_delimited_response(response_text, transcript=''):
         all_hooks['text_hook_suggestions'] = suggestions
         if formula:
             all_hooks['text_hook_formula'] = formula
+        print(f"[HOOKS] Text: {len(filtered_hooks)} hooks, {len(suggestions)} suggestions, formula={'yes' if formula else 'no'}")
         if len(hooks) != len(filtered_hooks):
             print(f"[HOOKS] Filtered {len(hooks) - len(filtered_hooks)} caption texts from text hooks")
+    else:
+        print(f"[HOOKS] ALL_HOOKS_TEXT section not found in response")
 
     if 'ALL_HOOKS_VISUAL' in sections:
         hooks, suggestions, formula = _parse_hooks_with_suggestions(sections['ALL_HOOKS_VISUAL'])
@@ -390,6 +403,9 @@ def parse_delimited_response(response_text, transcript=''):
         all_hooks['visual_hook_suggestions'] = suggestions
         if formula:
             all_hooks['visual_hook_formula'] = formula
+        print(f"[HOOKS] Visual: {len(hooks)} hooks, {len(suggestions)} suggestions, formula={'yes' if formula else 'no'}")
+    else:
+        print(f"[HOOKS] ALL_HOOKS_VISUAL section not found in response")
 
     if 'ALL_HOOKS_VERBAL' in sections:
         hooks, suggestions, formula = _parse_hooks_with_suggestions(sections['ALL_HOOKS_VERBAL'])
@@ -397,6 +413,9 @@ def parse_delimited_response(response_text, transcript=''):
         all_hooks['verbal_hook_suggestions'] = suggestions
         if formula:
             all_hooks['verbal_hook_formula'] = formula
+        print(f"[HOOKS] Verbal: {len(hooks)} hooks, {len(suggestions)} suggestions, formula={'yes' if formula else 'no'}")
+    else:
+        print(f"[HOOKS] ALL_HOOKS_VERBAL section not found in response")
 
     if 'ALL_HOOKS_PSYCHOLOGICAL' in sections:
         hooks = [line.strip('- ').strip() for line in sections['ALL_HOOKS_PSYCHOLOGICAL'].split('\n') if line.strip().startswith('-')]
@@ -2714,8 +2733,9 @@ and describe the visual structure instead. This template should be usable by a c
 niche, not just this video's topic.]
 
 hook_format_context: [What type of video is this hook being used in here (tutorial, sales,
-storytelling, etc.)? Then name 1-2 other video types where this same hook structure would
-work well and why. The hook formula is transferable — don't limit it to this format.]
+storytelling, etc.)? Then name 1-2 other video types where this same hook structure could
+also work well and why. Use "could work well" language — no implied guarantees that a
+formula will perform. The hook formula is transferable — don't limit it to this format.]
 
 auto_question: [The question this frame opens in the viewer's head for free, the moment they
 see it. What does their brain automatically start wondering?]

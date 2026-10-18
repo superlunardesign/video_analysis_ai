@@ -860,6 +860,12 @@
           <div class="hook-element">
             <div class="hook-label">TEXT HOOKS</div>
             {% for hook in all_hooks_identified.text_hooks %}<p>{{ hook }}</p>{% endfor %}
+            {% if all_hooks_identified.text_hook_formula %}
+            <div style="margin-top: 8px; padding: 6px 10px; background: var(--sv-template-bg); border-radius: 6px; border-left: 3px solid var(--sv-accent);">
+              <span style="font-size: 0.8rem; color: var(--sv-accent); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Formula</span>
+              <p style="font-family: monospace; margin-top: 4px; color: var(--sv-text);">{{ all_hooks_identified.text_hook_formula }}</p>
+            </div>
+            {% endif %}
             {% if all_hooks_identified.text_hook_suggestions %}
             <div class="hook-suggestions">
               <div class="hook-suggestions-label">Try Instead</div>
@@ -873,6 +879,12 @@
           <div class="hook-element">
             <div class="hook-label">VISUAL HOOKS</div>
             {% for hook in all_hooks_identified.visual_hooks %}<p>{{ hook }}</p>{% endfor %}
+            {% if all_hooks_identified.visual_hook_formula %}
+            <div style="margin-top: 8px; padding: 6px 10px; background: var(--sv-template-bg); border-radius: 6px; border-left: 3px solid var(--sv-accent);">
+              <span style="font-size: 0.8rem; color: var(--sv-accent); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Formula</span>
+              <p style="font-family: monospace; margin-top: 4px; color: var(--sv-text);">{{ all_hooks_identified.visual_hook_formula }}</p>
+            </div>
+            {% endif %}
             {% if all_hooks_identified.visual_hook_suggestions %}
             <div class="hook-suggestions">
               <div class="hook-suggestions-label">Try Instead</div>
@@ -886,6 +898,12 @@
           <div class="hook-element">
             <div class="hook-label">VERBAL HOOKS</div>
             {% for hook in all_hooks_identified.verbal_hooks %}<p>{{ hook }}</p>{% endfor %}
+            {% if all_hooks_identified.verbal_hook_formula %}
+            <div style="margin-top: 8px; padding: 6px 10px; background: var(--sv-template-bg); border-radius: 6px; border-left: 3px solid var(--sv-accent);">
+              <span style="font-size: 0.8rem; color: var(--sv-accent); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Formula</span>
+              <p style="font-family: monospace; margin-top: 4px; color: var(--sv-text);">{{ all_hooks_identified.verbal_hook_formula }}</p>
+            </div>
+            {% endif %}
             {% if all_hooks_identified.verbal_hook_suggestions %}
             <div class="hook-suggestions">
               <div class="hook-suggestions-label">Try Instead</div>
