@@ -472,6 +472,47 @@ def parse_delimited_response(response_text, transcript=''):
                            'audio_approach', 'content_format', 'payoff_type', 'format_summary'):
                     format_fingerprint[key] = value
 
+    # Parse SIMPLE_VIEW into structured dict
+    simple_view_data = {}
+    if 'SIMPLE_VIEW' in sections:
+        sv_fields = {}
+        for line in sections['SIMPLE_VIEW'].split('\n'):
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key = key.strip()
+                value = value.strip()
+                if value:
+                    sv_fields[key] = value
+
+        simple_view_data['short_answer'] = sv_fields.get('short_answer', '')
+        simple_view_data['explanation'] = [
+            sv_fields.get('explanation_p1', ''),
+            sv_fields.get('explanation_p2', ''),
+            sv_fields.get('explanation_p3', ''),
+        ]
+        simple_view_data['explanation'] = [p for p in simple_view_data['explanation'] if p]
+
+        moments = []
+        for i in range(1, 10):
+            ts = sv_fields.get(f'moment_{i}_ts', '')
+            quote = sv_fields.get(f'moment_{i}_quote', '')
+            job = sv_fields.get(f'moment_{i}_job', '')
+            if ts or quote:
+                moments.append({'timestamp': ts, 'quote_or_text': quote, 'job': job})
+        simple_view_data['moments'] = moments
+
+        simple_view_data['script_template'] = sv_fields.get('script_template', '')
+        simple_view_data['keep_vs_change'] = sv_fields.get('keep_vs_change', '')
+
+        tests = []
+        for i in range(1, 10):
+            title = sv_fields.get(f'test_{i}_title', '')
+            why = sv_fields.get(f'test_{i}_why', '')
+            example = sv_fields.get(f'test_{i}_example', '')
+            if title:
+                tests.append({'title': title, 'why': why, 'example': example})
+        simple_view_data['tests'] = tests
+
     # Determine which section types were used (underperforming vs standard)
     is_underperforming = 'WHY_IT_UNDERPERFORMED' in sections
     has_what_to_try = 'WHAT_TO_TRY_INSTEAD' in sections
@@ -496,6 +537,7 @@ def parse_delimited_response(response_text, transcript=''):
         'format_match': format_match if format_match else None,
         'hook_mechanisms': hook_mechanisms,
         'content_goal': content_goal,
+        'simple_view': simple_view_data,
 
         # Also include as single field for compatibility
         'analysis': sections.get('WHAT_THIS_VIDEO_IS', ''),
@@ -2583,6 +2625,55 @@ Explain the expected effect of the improvements already listed, PER GOAL:
 State which goal the changes serve most, and name any tradeoff (e.g. added sales mechanics may
 reduce raw reach). Be honest when a change helps one goal and does nothing for another.
 
+===SIMPLE_VIEW===
+Write a plain-language breakdown that anyone can understand — not just content creators.
+
+WRITING RULES:
+- Never address the reader as "you." Write "the creator" and "the viewer."
+- Plain words first. If a psychology term helps, put it after the plain explanation, never instead of it.
+- Say where a claim comes from: the transcript, comments, the creator's note, or inferred. Do not present guesses as facts.
+- Unclear moments are often features, not flaws. Before calling something vague, explain what the ambiguity might be doing for retention. Only suggest replacing it as a test to compare.
+
+Output these fields exactly (use the key: value format, one field per line):
+
+short_answer: [One sentence: why this video worked (or did not). Be specific — name the mechanism, not just "good hook."]
+
+explanation_p1: [First paragraph. Set up what this video does and why it catches attention. 3-5 sentences.]
+explanation_p2: [Second paragraph. Walk through the structure — what happens and why each part holds the viewer. 3-5 sentences.]
+explanation_p3: [Third paragraph. What the creator did well and what could be tested differently. 3-5 sentences. If the video underperformed, focus on what specifically did not land.]
+
+moment_1_ts: [timestamp like "0:00-0:03"]
+moment_1_quote: [exact text, visual description, or audio from this moment]
+moment_1_job: [what this moment does for the viewer — plain language, one sentence]
+
+moment_2_ts: [timestamp]
+moment_2_quote: [quote or description]
+moment_2_job: [what it does]
+
+moment_3_ts: [timestamp]
+moment_3_quote: [quote or description]
+moment_3_job: [what it does]
+
+moment_4_ts: [timestamp]
+moment_4_quote: [quote or description]
+moment_4_job: [what it does]
+
+script_template: [A reusable template the creator can fill in with their own topic. Use [BRACKETS] for variables. Include timing markers. Keep it in the same format and structure as the original video. This should be copy-pasteable.]
+
+keep_vs_change: [One or two sentences: what to keep doing and what to experiment with changing. Be specific.]
+
+test_1_title: [Short title for a test the creator could try]
+test_1_why: [Why this test is worth running — what signal would it give?]
+test_1_example: [A specific example of how to run this test with the creator's content]
+
+test_2_title: [title]
+test_2_why: [why]
+test_2_example: [example]
+
+test_3_title: [title]
+test_3_why: [why]
+test_3_example: [example]
+
 ===KNOWLEDGE_PATTERNS_APPLIED===
 - [Pattern from knowledge base]: [How it applies to this video]
 - [Another pattern]: [Implementation example]
@@ -2894,7 +2985,8 @@ def create_raw_text_fallback(raw_response_text, view_count, performance_level, a
 
         # Template compatibility
         "overall_quality": "strong" if performance_level == 'viral' else "moderate" if performance_level in ['good', 'moderate'] else "needs_work",
-        "knowledge_context_used": False
+        "knowledge_context_used": False,
+        "simple_view": {},
     }
 
 
@@ -3057,7 +3149,8 @@ To improve: Strengthen the opening hook, enhance the visual pacing, and ensure c
         "overall_quality": "strong" if performance_level == 'viral' else "moderate" if performance_level in ['good', 'moderate'] else "needs_work",
         "video_has_speech": has_speech,
         "actual_view_count": view_count,
-        "performance_level": performance_level
+        "performance_level": performance_level,
+        "simple_view": {},
     }
 
 
@@ -3101,6 +3194,7 @@ def prepare_template_variables(gpt_result, transcript_data, frames_summaries_tex
         'improvements': gpt_result.get('improvements', gpt_result.get('improvement_opportunities', '')),
         'content_goal': gpt_result.get('content_goal', {}),
         'performance_classification': gpt_result.get('performance_classification', {}),
+        'simple_view': gpt_result.get('simple_view', {}),
         
         # Frame and file data
         'frames_count': len(frame_paths) if frame_paths else 0,
@@ -5378,6 +5472,7 @@ def save_analysis_to_db(user_id, video_url, video_title, thumbnail_url, template
             'content_goal': template_vars.get('content_goal', {}),
             'performance_section_type': template_vars.get('performance_section_type', 'performed'),
             'replication_section_type': template_vars.get('replication_section_type', 'replication'),
+            'simple_view': template_vars.get('simple_view', {}),
         }
 
         # Create analysis record
