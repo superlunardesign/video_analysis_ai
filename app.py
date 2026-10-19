@@ -5133,6 +5133,29 @@ def admin_patterns():
     return render_template("patterns.html", patterns=patterns)
 
 
+@app.route("/admin/hooks")
+@login_required
+def admin_hooks():
+    """View stored hook formulas (admin only)."""
+    if not current_user.is_authenticated or current_user.email.lower() != 'christina@superlunardesign.com':
+        return "Access denied", 403
+    from models import HookFormula
+    formulas = HookFormula.query.order_by(HookFormula.created_at.desc()).all()
+
+    type_filter = request.args.get('type', 'all')
+    if type_filter != 'all':
+        formulas = [f for f in formulas if f.hook_types and type_filter in f.hook_types]
+
+    unique_videos = len(set(f.video_url for f in formulas if f.video_url))
+    type_counts = {}
+    for f in formulas:
+        for t in (f.hook_types or []):
+            type_counts[t] = type_counts.get(t, 0) + 1
+
+    return render_template("hooks.html", formulas=formulas, unique_videos=unique_videos,
+                           type_counts=type_counts, type_filter=type_filter)
+
+
 @app.route("/admin/patterns/<int:pattern_id>", methods=["DELETE"])
 @login_required
 def delete_pattern(pattern_id):

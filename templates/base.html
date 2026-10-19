@@ -344,6 +344,7 @@
                     <a href="/" class="nav-link">Analyze</a>
                     <a href="/history" class="nav-link">History</a>
                     {% if current_user.email.lower() == 'christina@superlunardesign.com' %}
+                    <a href="/admin/hooks" class="nav-link">Hooks</a>
                     <a href="/admin/patterns" class="nav-link">Patterns</a>
                     {% endif %}
                     <span class="user-email">{{ current_user.email }}</span>

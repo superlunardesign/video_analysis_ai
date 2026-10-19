@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}Hook Library{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .page-header {
+        margin-bottom: var(--space-lg);
+    }
+
+    .page-header h1 {
+        font-size: 1.8rem;
+        color: var(--solar-lime);
+        margin-bottom: var(--space-xs);
+    }
+
+    .page-header p {
+        color: var(--celestial-lavender);
+        opacity: 0.8;
+    }
+
+    .stats-row {
+        display: flex;
+        gap: var(--space-sm);
+        flex-wrap: wrap;
+        margin-bottom: var(--space-md);
+    }
+
+    .stat-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 6px 14px;
+        border-radius: var(--radius-full);
+        font-size: 0.85rem;
+        color: var(--stellar-cream);
+    }
+
+    .stat-chip strong {
+        color: var(--solar-lime);
+    }
+
+    .filter-row {
+        display: flex;
+        gap: var(--space-xs);
+        flex-wrap: wrap;
+        margin-bottom: var(--space-md);
+    }
+
+    .filter-btn {
+        padding: 5px 14px;
+        border-radius: var(--radius-full);
+        font-size: 0.8rem;
+        font-weight: 500;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: transparent;
+        color: var(--stellar-cream);
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .filter-btn:hover {
+        border-color: var(--celestial-lavender);
+        color: var(--celestial-lavender);
+    }
+
+    .filter-btn.active {
+        background: var(--lunar-blush);
+        border-color: var(--lunar-blush);
+        color: white;
+    }
+
+    .formula-count {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 10px;
+        border-radius: var(--radius-full);
+        font-size: 0.85rem;
+        color: var(--celestial-lavender);
+        margin-left: 0.5rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: var(--space-xl) var(--space-lg);
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px dashed rgba(255, 255, 255, 0.15);
+        border-radius: var(--radius-lg);
+        color: var(--celestial-lavender);
+    }
+
+    .formula-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+    }
+
+    .formula-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-lg);
+        padding: var(--space-md);
+        transition: border-color 0.3s ease;
+    }
+
+    .formula-card:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .formula-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-xs);
+    }
+
+    .formula-id {
+        font-size: 0.75rem;
+        color: var(--lunar-blush);
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .formula-date {
+        font-size: 0.75rem;
+        color: var(--celestial-lavender);
+        opacity: 0.7;
+        white-space: nowrap;
+    }
+
+    .formula-name {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--solar-lime);
+        margin-bottom: 6px;
+    }
+
+    .formula-text {
+        font-size: 0.95rem;
+        color: var(--stellar-cream);
+        line-height: 1.6;
+        margin-bottom: var(--space-sm);
+        white-space: pre-wrap;
+    }
+
+    .formula-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-xs);
+        margin-bottom: var(--space-xs);
+    }
+
+    .hook-type-tag {
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .hook-type-tag.text {
+        background: rgba(245, 255, 160, 0.2);
+        color: var(--solar-lime);
+    }
+
+    .hook-type-tag.visual {
+        background: rgba(106, 116, 207, 0.25);
+        color: var(--celestial-lavender);
+    }
+
+    .hook-type-tag.verbal {
+        background: rgba(183, 180, 237, 0.2);
+        color: #d4d1f9;
+    }
+
+    .hook-type-tag.structural {
+        background: rgba(240, 234, 224, 0.15);
+        color: var(--stellar-cream);
+    }
+
+    .meta-tag {
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--celestial-lavender);
+    }
+
+    .formula-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--space-xs);
+        padding-top: var(--space-xs);
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        margin-top: var(--space-xs);
+    }
+
+    .video-link {
+        color: var(--celestial-lavender);
+        text-decoration: none;
+        font-size: 0.8rem;
+        max-width: 60%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .video-link:hover {
+        color: var(--solar-lime);
+        text-decoration: underline;
+    }
+
+    .views-badge {
+        font-size: 0.75rem;
+        color: var(--stellar-cream);
+        opacity: 0.8;
+    }
+
+    .format-context {
+        font-size: 0.8rem;
+        color: var(--celestial-lavender);
+        opacity: 0.7;
+        margin-top: 4px;
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Hook Library <span class="formula-count">{{ formulas|length }}</span></h1>
+    <p>Hook formulas extracted from video analyses. These are injected into future analyses as reference patterns.</p>
+</div>
+
+<div class="stats-row">
+    <span class="stat-chip"><strong>{{ formulas|length }}</strong> formulas</span>
+    <span class="stat-chip"><strong>{{ unique_videos }}</strong> videos</span>
+    {% for tname, tcount in type_counts.items()|sort %}
+    <span class="stat-chip"><strong>{{ tcount }}</strong> {{ tname }}</span>
+    {% endfor %}
+</div>
+
+<div class="filter-row">
+    <a href="/admin/hooks" class="filter-btn {{ 'active' if type_filter == 'all' }}">All</a>
+    {% for tname in type_counts.keys()|sort %}
+    <a href="/admin/hooks?type={{ tname }}" class="filter-btn {{ 'active' if type_filter == tname }}">{{ tname|capitalize }}</a>
+    {% endfor %}
+</div>
+
+{% if formulas %}
+<div class="formula-list">
+    {% for formula in formulas %}
+    <div class="formula-card">
+        <div class="formula-header">
+            <span class="formula-id">#{{ formula.id }}</span>
+            <span class="formula-date">{{ formula.created_at.strftime('%b %d, %Y') if formula.created_at else 'Unknown' }}</span>
+        </div>
+
+        {% if formula.formula_name %}
+        <div class="formula-name">{{ formula.formula_name }}</div>
+        {% endif %}
+
+        <div class="formula-text">{{ formula.formula_template }}</div>
+
+        <div class="formula-meta">
+            {% for htype in (formula.hook_types or []) %}
+            <span class="hook-type-tag {{ htype }}">{{ htype }}</span>
+            {% endfor %}
+            {% if formula.content_format %}
+            <span class="meta-tag">{{ formula.content_format }}</span>
+            {% endif %}
+            {% if formula.goal_type %}
+            <span class="meta-tag">{{ formula.goal_type }}</span>
+            {% endif %}
+            {% if formula.performance_level %}
+            <span class="meta-tag">{{ formula.performance_level }}</span>
+            {% endif %}
+        </div>
+
+        {% if formula.format_context %}
+        <div class="format-context">{{ formula.format_context }}</div>
+        {% endif %}
+
+        <div class="formula-footer">
+            {% if formula.video_title and formula.video_url %}
+            <a href="{{ formula.video_url }}" target="_blank" class="video-link" title="{{ formula.video_title }}">{{ formula.video_title }}</a>
+            {% elif formula.video_url %}
+            <a href="{{ formula.video_url }}" target="_blank" class="video-link">{{ formula.video_url }}</a>
+            {% else %}
+            <span></span>
+            {% endif %}
+
+            {% if formula.view_count_raw and formula.view_count_raw > 0 %}
+            <span class="views-badge">
+                {% if formula.view_count_raw >= 1000000 %}
+                {{ "%.1f"|format(formula.view_count_raw / 1000000) }}M views
+                {% elif formula.view_count_raw >= 1000 %}
+                {{ "%.0f"|format(formula.view_count_raw / 1000) }}k views
+                {% else %}
+                {{ formula.view_count_raw }} views
+                {% endif %}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>No hook formulas stored yet. Formulas are automatically extracted when videos are analyzed.</p>
+</div>
+{% endif %}
+{% endblock %}
