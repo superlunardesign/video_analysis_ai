@@ -5156,6 +5156,173 @@ def admin_hooks():
                            type_counts=type_counts, type_filter=type_filter)
 
 
+@app.route("/admin/migrate-db")
+@login_required
+def migrate_db():
+    """One-time migration from Neon to Render Postgres (admin only)."""
+    if not current_user.is_authenticated or current_user.email.lower() != 'christina@superlunardesign.com':
+        return {"status": "error", "message": "Access denied"}, 403
+
+    new_url = os.environ.get('NEW_DATABASE_URL', '').strip()
+    if not new_url:
+        return {"status": "error", "message": "NEW_DATABASE_URL not set"}, 400
+
+    if new_url.startswith('postgres://'):
+        new_url = new_url.replace('postgres://', 'postgresql+psycopg2://', 1)
+    elif new_url.startswith('postgresql://') and '+' not in new_url.split('://')[0]:
+        new_url = new_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+
+    from sqlalchemy import create_engine, text, MetaData
+    from models import User, Analysis, KnowledgePattern, HookPattern, HookFormula, ReviewFeedback
+
+    try:
+        new_engine = create_engine(new_url, pool_pre_ping=True)
+
+        with new_engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        print("[MIGRATE] Connected to new database")
+
+        db.metadata.create_all(new_engine)
+        print("[MIGRATE] Tables created in new database")
+
+        results = {}
+
+        users = User.query.all()
+        with new_engine.begin() as conn:
+            for u in users:
+                conn.execute(text(
+                    "INSERT INTO users (id, email, password_hash, created_at) "
+                    "VALUES (:id, :email, :password_hash, :created_at) "
+                    "ON CONFLICT (id) DO NOTHING"
+                ), {"id": u.id, "email": u.email, "password_hash": u.password_hash,
+                    "created_at": u.created_at})
+        results['users'] = len(users)
+        print(f"[MIGRATE] Users: {len(users)}")
+
+        analyses = Analysis.query.all()
+        with new_engine.begin() as conn:
+            for a in analyses:
+                conn.execute(text(
+                    "INSERT INTO analyses (id, user_id, video_url, video_title, thumbnail_url, "
+                    "status, analysis_data, pdf_cache_key, format_fingerprint, created_at, completed_at) "
+                    "VALUES (:id, :user_id, :video_url, :video_title, :thumbnail_url, "
+                    ":status, :analysis_data, :pdf_cache_key, :format_fingerprint, :created_at, :completed_at) "
+                    "ON CONFLICT (id) DO NOTHING"
+                ), {"id": a.id, "user_id": a.user_id, "video_url": a.video_url,
+                    "video_title": a.video_title, "thumbnail_url": a.thumbnail_url,
+                    "status": a.status,
+                    "analysis_data": json.dumps(a.analysis_data) if a.analysis_data else None,
+                    "pdf_cache_key": a.pdf_cache_key,
+                    "format_fingerprint": json.dumps(a.format_fingerprint) if a.format_fingerprint else None,
+                    "created_at": a.created_at, "completed_at": a.completed_at})
+        results['analyses'] = len(analyses)
+        print(f"[MIGRATE] Analyses: {len(analyses)}")
+
+        patterns = KnowledgePattern.query.all()
+        with new_engine.begin() as conn:
+            for p in patterns:
+                conn.execute(text(
+                    "INSERT INTO knowledge_patterns (id, pattern_summary, key_insights, context, "
+                    "when_to_apply, cautions, curator_notes, video_url, metrics, submitted_by, created_at) "
+                    "VALUES (:id, :pattern_summary, :key_insights, :context, "
+                    ":when_to_apply, :cautions, :curator_notes, :video_url, :metrics, :submitted_by, :created_at) "
+                    "ON CONFLICT (id) DO NOTHING"
+                ), {"id": p.id, "pattern_summary": p.pattern_summary,
+                    "key_insights": json.dumps(p.key_insights) if p.key_insights else None,
+                    "context": json.dumps(p.context) if p.context else None,
+                    "when_to_apply": json.dumps(p.when_to_apply) if p.when_to_apply else None,
+                    "cautions": json.dumps(p.cautions) if p.cautions else None,
+                    "curator_notes": p.curator_notes, "video_url": p.video_url,
+                    "metrics": json.dumps(p.metrics) if p.metrics else None,
+                    "submitted_by": p.submitted_by, "created_at": p.created_at})
+        results['knowledge_patterns'] = len(patterns)
+        print(f"[MIGRATE] Knowledge patterns: {len(patterns)}")
+
+        hook_pats = HookPattern.query.all()
+        with new_engine.begin() as conn:
+            for hp in hook_pats:
+                conn.execute(text(
+                    "INSERT INTO hook_patterns (id, analysis_id, hooks_classified, format_hook_fit, "
+                    "content_format, hook_type_category, structure, content_type, "
+                    "view_count_raw, performance_level, engagement_rate, comment_count, created_at) "
+                    "VALUES (:id, :analysis_id, :hooks_classified, :format_hook_fit, "
+                    ":content_format, :hook_type_category, :structure, :content_type, "
+                    ":view_count_raw, :performance_level, :engagement_rate, :comment_count, :created_at) "
+                    "ON CONFLICT (id) DO NOTHING"
+                ), {"id": hp.id, "analysis_id": hp.analysis_id,
+                    "hooks_classified": json.dumps(hp.hooks_classified) if hp.hooks_classified else None,
+                    "format_hook_fit": hp.format_hook_fit,
+                    "content_format": hp.content_format, "hook_type_category": hp.hook_type_category,
+                    "structure": hp.structure, "content_type": hp.content_type,
+                    "view_count_raw": hp.view_count_raw, "performance_level": hp.performance_level,
+                    "engagement_rate": hp.engagement_rate, "comment_count": hp.comment_count,
+                    "created_at": hp.created_at})
+        results['hook_patterns'] = len(hook_pats)
+        print(f"[MIGRATE] Hook patterns: {len(hook_pats)}")
+
+        hook_forms = HookFormula.query.all()
+        with new_engine.begin() as conn:
+            for hf in hook_forms:
+                conn.execute(text(
+                    "INSERT INTO hook_formulas (id, analysis_id, formula_template, formula_name, "
+                    "hook_types, format_context, category, video_url, video_title, "
+                    "content_format, goal_type, view_count_raw, performance_level, created_at) "
+                    "VALUES (:id, :analysis_id, :formula_template, :formula_name, "
+                    ":hook_types, :format_context, :category, :video_url, :video_title, "
+                    ":content_format, :goal_type, :view_count_raw, :performance_level, :created_at) "
+                    "ON CONFLICT (id) DO NOTHING"
+                ), {"id": hf.id, "analysis_id": hf.analysis_id,
+                    "formula_template": hf.formula_template, "formula_name": hf.formula_name,
+                    "hook_types": json.dumps(hf.hook_types) if hf.hook_types else None,
+                    "format_context": hf.format_context, "category": hf.category,
+                    "video_url": hf.video_url, "video_title": hf.video_title,
+                    "content_format": hf.content_format, "goal_type": hf.goal_type,
+                    "view_count_raw": hf.view_count_raw, "performance_level": hf.performance_level,
+                    "created_at": hf.created_at})
+        results['hook_formulas'] = len(hook_forms)
+        print(f"[MIGRATE] Hook formulas: {len(hook_forms)}")
+
+        reviews = ReviewFeedback.query.all()
+        with new_engine.begin() as conn:
+            for r in reviews:
+                conn.execute(text(
+                    "INSERT INTO review_feedback (id, analysis_id, section_name, rating, "
+                    "original_text, correction, video_context, created_at) "
+                    "VALUES (:id, :analysis_id, :section_name, :rating, "
+                    ":original_text, :correction, :video_context, :created_at) "
+                    "ON CONFLICT (id) DO NOTHING"
+                ), {"id": r.id, "analysis_id": r.analysis_id,
+                    "section_name": r.section_name, "rating": r.rating,
+                    "original_text": r.original_text, "correction": r.correction,
+                    "video_context": json.dumps(r.video_context) if r.video_context else None,
+                    "created_at": r.created_at})
+        results['review_feedback'] = len(reviews)
+        print(f"[MIGRATE] Review feedback: {len(reviews)}")
+
+        tables_with_ids = ['users', 'analyses', 'knowledge_patterns',
+                           'hook_patterns', 'hook_formulas', 'review_feedback']
+        with new_engine.begin() as conn:
+            for table in tables_with_ids:
+                conn.execute(text(
+                    f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
+                    f"COALESCE((SELECT MAX(id) FROM {table}), 0) + 1, false)"
+                ))
+        print("[MIGRATE] Sequences reset")
+
+        new_engine.dispose()
+
+        results['status'] = 'success'
+        results['message'] = 'Migration complete. Now swap DATABASE_URL to the Render Postgres Internal URL and remove NEW_DATABASE_URL.'
+        print(f"[MIGRATE] Complete: {results}")
+        return results
+
+    except Exception as e:
+        print(f"[MIGRATE ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}, 500
+
+
 @app.route("/admin/patterns/<int:pattern_id>", methods=["DELETE"])
 @login_required
 def delete_pattern(pattern_id):
