@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.typekit.net/sgz4hah.css">
     <style>
         :root {
             /* Superlunar Design Colors */
@@ -23,6 +24,7 @@
 
             /* Typography */
             --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-heading: 'p22-mackinac-pro', Georgia, serif;
 
             /* Spacing */
             --space-xs: 0.5rem;
@@ -66,8 +68,9 @@
         }
 
         .header h1 {
+            font-family: var(--font-heading);
             font-size: clamp(2rem, 5vw, 3.5rem);
-            font-weight: 700;
+            font-weight: 400;
             margin-bottom: var(--space-sm);
             background: linear-gradient(45deg, var(--solar-lime), var(--celestial-lavender));
             -webkit-background-clip: text;

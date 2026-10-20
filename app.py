@@ -4230,7 +4230,7 @@ def _run_analysis_background(form_data, user_id, current_analysis_id):
                     else:
                         print(f"[WARNING] Transcription returned empty string")
                     update_progress(current_analysis_id, 'transcribing', 'Transcript ready!', 28, preview_data={
-                        'transcript': basic_transcript[:2000] if basic_transcript else None
+                        'transcript': _strip_transcript_timestamps(basic_transcript)[:2000] if basic_transcript else None
                     })
                 except Exception as e:
                     print(f"[WARNING] Transcription failed: {type(e).__name__}: {e}")
