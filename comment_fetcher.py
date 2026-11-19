@@ -242,19 +242,102 @@ class CommentFetcher:
             traceback.print_exc()
             return []
 
+    def _extract_instagram_shortcode(self, url: str) -> Optional[str]:
+        """Extract Instagram shortcode from URL (reel, post, or tv)"""
+        patterns = [
+            r'instagram\.com/(?:reel|p|tv)/([A-Za-z0-9_-]+)',
+            r'instagram\.com/reels?/([A-Za-z0-9_-]+)',
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, url)
+            if match:
+                return match.group(1)
+        return None
+
     def _fetch_instagram_comments(self, video_url: str, max_comments: int) -> List[Dict]:
         """
-        Fetch Instagram comments.
+        Fetch Instagram comments using RapidAPI Instagram Scraper.
 
-        Instagram requires Graph API with proper authentication.
-        This is a placeholder - implementation depends on your IG setup.
+        Uses the same RAPIDAPI_KEY as TikTok comments.
+        Requires: RAPIDAPI_KEY environment variable
         """
-        print("[WARNING] Instagram comment fetching not fully implemented")
-        print("  Requires: Instagram Graph API with Business Account")
-        print("  See: https://developers.facebook.com/docs/instagram-api/reference/ig-media/comments")
+        if not self.rapidapi_key:
+            print("[WARNING] RAPIDAPI_KEY not set. Cannot fetch Instagram comments.")
+            print("  Get API key at: https://rapidapi.com/")
+            return []
 
-        # Placeholder for Instagram implementation
-        return []
+        shortcode = self._extract_instagram_shortcode(video_url)
+        if not shortcode:
+            print(f"[ERROR] Could not extract Instagram shortcode from URL: {video_url}")
+            return []
+
+        print(f"[COMMENTS] Instagram shortcode: {shortcode}")
+
+        try:
+            all_comments = []
+            end_cursor = None
+
+            while len(all_comments) < max_comments:
+                api_url = "https://instagram-scraper-api2.p.rapidapi.com/v1/comments"
+                params = {"code_or_id_or_url": shortcode}
+                if end_cursor:
+                    params["end_cursor"] = end_cursor
+
+                headers = {
+                    "x-rapidapi-key": self.rapidapi_key,
+                    "x-rapidapi-host": "instagram-scraper-api2.p.rapidapi.com"
+                }
+
+                for attempt in range(3):
+                    try:
+                        response = requests.get(api_url, headers=headers, params=params, timeout=30)
+                        response.raise_for_status()
+                        break
+                    except requests.exceptions.ReadTimeout:
+                        if attempt < 2:
+                            print(f"[COMMENTS] Instagram API timeout (attempt {attempt + 1}/3), retrying...")
+                            import time as _time
+                            _time.sleep(2 * (attempt + 1))
+                        else:
+                            raise
+
+                data = response.json()
+
+                comments_data = data.get('data', {}).get('items', [])
+                if not comments_data:
+                    break
+
+                for comment in comments_data:
+                    text = comment.get('text', '')
+                    if not text:
+                        continue
+                    all_comments.append({
+                        'text': text,
+                        'likes': comment.get('comment_like_count', 0),
+                        'author': comment.get('user', {}).get('username', 'Unknown'),
+                        'timestamp': comment.get('created_at', ''),
+                        'replies': comment.get('child_comment_count', 0),
+                    })
+
+                pagination = data.get('pagination_token') or data.get('data', {}).get('next_max_id')
+                if not pagination or len(all_comments) >= max_comments:
+                    break
+                end_cursor = pagination
+
+            print(f"[SUCCESS] Fetched {len(all_comments)} Instagram comments")
+            return all_comments[:max_comments]
+
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code if e.response is not None else 'unknown'
+            print(f"[ERROR] Instagram API HTTP error ({status}): {e}")
+            if status == 403:
+                print("  Check that your RapidAPI key is subscribed to instagram-scraper-api2")
+            return []
+        except Exception as e:
+            print(f"[ERROR] Failed to fetch Instagram comments: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
 
 
 # Example usage:
