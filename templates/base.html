@@ -345,6 +345,7 @@
             <div class="nav-links">
                 {% if current_user.is_authenticated %}
                     <a href="/" class="nav-link">Analyze</a>
+                    <a href="/dashboard" class="nav-link">Planner</a>
                     <a href="/history" class="nav-link">History</a>
                     {% if current_user.email.lower() == 'christina@superlunardesign.com' %}
                     <a href="/admin/hooks" class="nav-link">Hooks</a>

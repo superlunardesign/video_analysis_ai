@@ -5133,6 +5133,110 @@ def admin_patterns():
     return render_template("patterns.html", patterns=patterns)
 
 
+## ── Content Planner Dashboard ──
+
+@app.route("/dashboard")
+@app.route("/dashboard/<int:plan_id>")
+@login_required
+def dashboard(plan_id=None):
+    from models import VideoPlan
+    plan = None
+    if plan_id:
+        plan = VideoPlan.query.get_or_404(plan_id)
+        if plan.user_id != current_user.id:
+            return "Access denied", 403
+    return render_template("dashboard.html", plan=plan)
+
+
+@app.route("/api/plans", methods=["GET"])
+@login_required
+def api_list_plans():
+    from models import VideoPlan
+    q = request.args.get("q", "").strip()
+    query = VideoPlan.query.filter_by(user_id=current_user.id, is_archived=False)
+    if q:
+        query = query.filter(VideoPlan.title.ilike(f"%{q}%"))
+    plans = query.order_by(VideoPlan.updated_at.desc()).all()
+    return jsonify([p.to_dict() for p in plans])
+
+
+@app.route("/api/plans", methods=["POST"])
+@login_required
+def api_create_plan():
+    from models import VideoPlan, db
+    data = request.json or {}
+    plan = VideoPlan(
+        user_id=current_user.id,
+        title=data.get("title", "Untitled"),
+        text_hook=data.get("text_hook"),
+        visual_hook=data.get("visual_hook"),
+        unexplained_curiosity=data.get("unexplained_curiosity"),
+        setting=data.get("setting"),
+        ongoing_satisfying_process=data.get("ongoing_satisfying_process"),
+        script=data.get("script"),
+        script_tags=data.get("script_tags"),
+        selected_formula=data.get("selected_formula"),
+    )
+    db.session.add(plan)
+    db.session.commit()
+    return jsonify(plan.to_dict()), 201
+
+
+@app.route("/api/plans/<int:plan_id>", methods=["GET"])
+@login_required
+def api_get_plan(plan_id):
+    from models import VideoPlan
+    plan = VideoPlan.query.get_or_404(plan_id)
+    if plan.user_id != current_user.id:
+        return jsonify({"error": "Access denied"}), 403
+    return jsonify(plan.to_dict())
+
+
+@app.route("/api/plans/<int:plan_id>", methods=["PUT"])
+@login_required
+def api_update_plan(plan_id):
+    from models import VideoPlan, db
+    plan = VideoPlan.query.get_or_404(plan_id)
+    if plan.user_id != current_user.id:
+        return jsonify({"error": "Access denied"}), 403
+    data = request.json or {}
+    plan.title = data.get("title", plan.title)
+    plan.text_hook = data.get("text_hook", plan.text_hook)
+    plan.visual_hook = data.get("visual_hook", plan.visual_hook)
+    plan.unexplained_curiosity = data.get("unexplained_curiosity", plan.unexplained_curiosity)
+    plan.setting = data.get("setting", plan.setting)
+    plan.ongoing_satisfying_process = data.get("ongoing_satisfying_process", plan.ongoing_satisfying_process)
+    plan.script = data.get("script", plan.script)
+    plan.script_tags = data.get("script_tags", plan.script_tags)
+    plan.selected_formula = data.get("selected_formula", plan.selected_formula)
+    db.session.commit()
+    return jsonify(plan.to_dict())
+
+
+@app.route("/api/plans/<int:plan_id>", methods=["DELETE"])
+@login_required
+def api_delete_plan(plan_id):
+    from models import VideoPlan, db
+    plan = VideoPlan.query.get_or_404(plan_id)
+    if plan.user_id != current_user.id:
+        return jsonify({"error": "Access denied"}), 403
+    db.session.delete(plan)
+    db.session.commit()
+    return jsonify({"status": "deleted"})
+
+
+@app.route("/api/plans/<int:plan_id>/archive", methods=["POST"])
+@login_required
+def api_archive_plan(plan_id):
+    from models import VideoPlan, db
+    plan = VideoPlan.query.get_or_404(plan_id)
+    if plan.user_id != current_user.id:
+        return jsonify({"error": "Access denied"}), 403
+    plan.is_archived = True
+    db.session.commit()
+    return jsonify({"status": "archived"})
+
+
 @app.route("/admin/hooks")
 @login_required
 def admin_hooks():

@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Planner - Superlunar Design Co.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'TikTok Sans';
+            src: url('https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/fonts/TikTokSans-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'TikTok Sans';
+            src: url('https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/fonts/TikTokSans-Medium.woff2') format('woff2');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'TikTok Sans';
+            src: url('https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/fonts/TikTokSans-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --font: 'TikTok Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --bg: #ECEAF5;
+            --card: #FFFFFF;
+            --border: #D5D2E5;
+            --text-dark: #1A1832;
+            --text-medium: #33316D;
+            --text-light: #7A778E;
+            --accent: #33316D;
+            --purple: #7B6FCE;
+            --preview-border: #A599D4;
+            --preview-bg: #1E1B3A;
+            --tag-hook-bg: #FFF3CD;
+            --tag-hook-text: #664D03;
+            --tag-promise-bg: #D1E7DD;
+            --tag-promise-text: #0F5132;
+            --tag-tension-bg: #E2D1F0;
+            --tag-tension-text: #59287A;
+            --tag-payoff-bg: #D5F5E3;
+            --tag-payoff-text: #1E8449;
+            --library-bg: #2D2B55;
+            --library-search: #242244;
+            --library-btn: #4B45A0;
+            --concept-bg: #F0EEF8;
+            --formula-video: #6B5CE7;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font);
+            font-weight: 500;
+            background: var(--bg);
+            color: var(--text-dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Top Bar ── */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 24px 32px 8px;
+        }
+        .title-area { position: relative; }
+        .title-input {
+            font-family: var(--font);
+            font-size: 1.5rem;
+            font-weight: 500;
+            border: none;
+            background: transparent;
+            color: var(--text-dark);
+            outline: none;
+            padding: 4px 8px;
+            border-bottom: 2px solid transparent;
+            min-width: 300px;
+        }
+        .title-input:hover,
+        .title-input:focus { border-bottom: 2px dashed var(--border); }
+        .edit-icon {
+            position: absolute;
+            right: -28px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+            font-size: 0.85rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        .title-area:hover .edit-icon { opacity: 1; }
+        .edit-hint {
+            font-size: 0.65rem;
+            color: var(--text-light);
+            font-weight: 400;
+            opacity: 0;
+            transition: opacity 0.2s;
+            margin-top: 2px;
+            padding-left: 8px;
+        }
+        .title-area:hover .edit-hint { opacity: 1; }
+        .top-actions { display: flex; gap: 12px; align-items: center; }
+        .save-btn {
+            font-family: var(--font);
+            font-weight: 500;
+            font-size: 0.95rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 24px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .save-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(45,43,85,0.3);
+        }
+        .save-btn:active { transform: translateY(0); }
+        .library-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .library-toggle span {
+            display: block;
+            width: 24px;
+            height: 2.5px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        /* ── Main Grid ── */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 260px 1fr 1.1fr;
+            gap: 28px;
+            padding: 16px 32px 0;
+            align-items: start;
+        }
+        .section-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            margin-bottom: 10px;
+            text-transform: capitalize;
+        }
+
+        /* ── Preview Column ── */
+        .phone-frame {
+            border: 2px solid var(--preview-border);
+            border-radius: 16px;
+            overflow: hidden;
+            aspect-ratio: 9/16;
+            max-height: 520px;
+        }
+        .phone-screen {
+            background: var(--preview-bg);
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 24px 16px;
+            position: relative;
+        }
+        .text-hook-preview {
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 6px;
+            padding: 10px 14px;
+            color: white;
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-align: center;
+            text-transform: uppercase;
+            max-width: 88%;
+            word-wrap: break-word;
+            line-height: 1.35;
+            min-height: 36px;
+        }
+        .text-hook-preview:empty::after {
+            content: 'TEXT HOOK';
+            opacity: 0.3;
+        }
+        .caption-preview {
+            position: absolute;
+            bottom: 20px;
+            left: 14px;
+            right: 14px;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.72rem;
+            font-weight: 400;
+            line-height: 1.45;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+
+        /* ── Fields Column ── */
+        .col-fields { display: flex; flex-direction: column; gap: 16px; }
+        .field-group {}
+        .field-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            margin-bottom: 6px;
+        }
+        .field-input-wrap {
+            display: flex;
+            align-items: center;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .field-input-wrap:focus-within { border-color: var(--purple); }
+        .field-input {
+            font-family: var(--font);
+            font-size: 0.88rem;
+            font-weight: 500;
+            border: none;
+            outline: none;
+            padding: 11px 14px;
+            flex: 1;
+            background: transparent;
+            color: var(--text-dark);
+        }
+        .field-input::placeholder { color: var(--text-light); font-weight: 400; }
+        .ai-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px 12px;
+            color: var(--text-dark);
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .ai-btn:hover { color: var(--purple); }
+        .ai-btn svg { width: 18px; height: 18px; }
+
+        /* ── Script Column ── */
+        .col-script { display: flex; flex-direction: column; }
+        .script-tags { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .script-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .script-tag .check { font-size: 0.7rem; }
+        .script-tag.active { border-color: currentColor; }
+        .script-tag.hook { background: var(--tag-hook-bg); color: var(--tag-hook-text); }
+        .script-tag.promise { background: var(--tag-promise-bg); color: var(--tag-promise-text); }
+        .script-tag.tension { background: var(--tag-tension-bg); color: var(--tag-tension-text); }
+        .script-tag.payoff { background: var(--tag-payoff-bg); color: var(--tag-payoff-text); }
+
+        .script-editor {
+            font-family: var(--font);
+            font-size: 0.92rem;
+            font-weight: 500;
+            line-height: 1.7;
+            color: var(--text-dark);
+            min-height: 440px;
+            padding: 16px;
+            outline: none;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--card);
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .script-editor:focus { border-color: var(--purple); }
+        .script-editor:empty::before {
+            content: 'Start writing your script here...';
+            color: var(--text-light);
+            font-weight: 400;
+        }
+        .script-editor [data-tag="hook"] { background: var(--tag-hook-bg); border-radius: 2px; padding: 1px 0; }
+        .script-editor [data-tag="promise"] { background: var(--tag-promise-bg); border-radius: 2px; padding: 1px 0; }
+        .script-editor [data-tag="tension"] { background: var(--tag-tension-bg); border-radius: 2px; padding: 1px 0; }
+        .script-editor [data-tag="payoff"] { background: var(--tag-payoff-bg); border-radius: 2px; padding: 1px 0; }
+
+        /* ── Formulas Bar ── */
+        .formulas-bar {
+            padding: 20px 32px 28px;
+            border-top: 1px solid var(--border);
+            margin-top: 20px;
+        }
+        .formulas-bar .section-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+        .formula-chips { display: flex; gap: 12px; flex-wrap: wrap; }
+        .formula-chip {
+            font-family: var(--font);
+            font-weight: 500;
+            font-size: 0.88rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-dark);
+            flex: 1;
+            text-align: center;
+            min-width: 150px;
+        }
+        .formula-chip:hover {
+            border-color: var(--purple);
+            box-shadow: 0 2px 10px rgba(123,111,206,0.15);
+        }
+
+        /* ── Formula Modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.3);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .formula-modal {
+            background: white;
+            border-radius: 16px;
+            padding: 28px 32px;
+            max-width: 560px;
+            width: 92%;
+            max-height: 82vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 22px;
+        }
+        .modal-title { font-size: 1.25rem; font-weight: 500; }
+        .modal-actions { display: flex; gap: 10px; align-items: center; }
+        .apply-btn {
+            font-family: var(--font);
+            font-weight: 500;
+            font-size: 0.82rem;
+            background: white;
+            border: 1.5px solid var(--text-dark);
+            border-radius: 20px;
+            padding: 6px 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .apply-btn:hover { background: var(--text-dark); color: white; }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--text-dark);
+            padding: 4px 8px;
+        }
+        .modal-section { margin-bottom: 18px; }
+        .modal-section:last-child { margin-bottom: 0; }
+        .modal-section-title { font-size: 0.88rem; font-weight: 500; margin-bottom: 8px; }
+        .concept-block {
+            background: var(--concept-bg);
+            border-radius: 10px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+        .hook-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+        .hook-chip {
+            background: var(--concept-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 0.84rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .hook-chip:hover { border-color: var(--purple); background: #E8E4F5; }
+        .hook-chip.selected { border-color: var(--purple); background: #DDD8F0; }
+        .example-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 8px;
+        }
+        .example-subtitle {
+            font-size: 0.78rem;
+            color: var(--text-light);
+            font-weight: 400;
+            font-style: italic;
+        }
+        .example-block {
+            background: var(--concept-bg);
+            border-radius: 10px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+        .example-block p { margin-bottom: 14px; }
+        .example-block p:last-child { margin-bottom: 0; }
+        .video-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+        .video-chip {
+            background: var(--formula-video);
+            color: white;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.84rem;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: transform 0.15s, opacity 0.15s;
+        }
+        .video-chip:hover { transform: translateY(-1px); opacity: 0.9; }
+        .video-chip .arrow { font-size: 0.65rem; }
+
+        /* ── Library Drawer ── */
+        .library-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 200;
+        }
+        .library-overlay.active { display: block; }
+        .library-drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 400px;
+            max-width: 92vw;
+            background: var(--library-bg);
+            padding: 32px 24px;
+            overflow-y: auto;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 201;
+        }
+        .library-overlay.active .library-drawer { transform: translateX(0); }
+        .library-heading {
+            font-size: 2rem;
+            font-weight: 500;
+            color: white;
+            margin-bottom: 20px;
+        }
+        .library-search { display: flex; gap: 8px; margin-bottom: 24px; }
+        .library-search-input {
+            font-family: var(--font);
+            font-weight: 400;
+            font-size: 0.88rem;
+            flex: 1;
+            background: var(--library-search);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: white;
+            outline: none;
+        }
+        .library-search-input::placeholder { color: rgba(255,255,255,0.35); }
+        .library-search-input:focus { border-color: rgba(255,255,255,0.3); }
+        .library-search-btn {
+            font-family: var(--font);
+            font-weight: 500;
+            font-size: 0.88rem;
+            background: var(--library-btn);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .library-search-btn:hover { background: #5B54B0; }
+        .library-list { display: flex; flex-direction: column; }
+        .library-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .library-item-info { flex: 1; min-width: 0; cursor: pointer; }
+        .library-item-title {
+            font-weight: 500;
+            color: white;
+            font-size: 0.92rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .library-item-date {
+            font-weight: 400;
+            color: #9B95C8;
+            font-size: 0.78rem;
+            margin-top: 2px;
+        }
+        .library-item-actions { display: flex; gap: 6px; align-items: center; }
+        .lib-action-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.5);
+            cursor: pointer;
+            padding: 4px 6px;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+        .lib-action-btn:hover { color: white; }
+        .item-menu { position: relative; }
+        .item-menu-drop {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            min-width: 130px;
+            z-index: 10;
+            overflow: hidden;
+        }
+        .item-menu-drop.active { display: block; }
+        .menu-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            font-size: 0.84rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            font-family: var(--font);
+            transition: background 0.15s;
+        }
+        .menu-option:hover { background: #f5f5f5; }
+
+        .library-empty {
+            text-align: center;
+            color: #9B95C8;
+            padding: 32px 0;
+            font-weight: 400;
+            font-size: 0.9rem;
+        }
+
+        .library-new-btn {
+            font-family: var(--font);
+            font-weight: 500;
+            font-size: 0.88rem;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px dashed rgba(255,255,255,0.25);
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 16px;
+            transition: background 0.2s;
+        }
+        .library-new-btn:hover { background: rgba(255,255,255,0.15); }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--accent);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 24px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            z-index: 300;
+            transition: transform 0.3s ease;
+            pointer-events: none;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* ── Responsive ── */
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            .col-preview { grid-column: 1 / -1; }
+            .phone-frame { max-height: 350px; max-width: 200px; }
+        }
+        @media (max-width: 640px) {
+            .main-grid { grid-template-columns: 1fr; padding: 12px 16px 0; }
+            .top-bar { padding: 16px; }
+            .formulas-bar { padding: 16px; }
+            .title-input { min-width: 200px; font-size: 1.2rem; }
+            .formula-chip { min-width: 120px; padding: 10px 16px; font-size: 0.82rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Dashboard ── -->
+<div class="top-bar">
+    <div class="title-area">
+        <input type="text" class="title-input" id="videoTitle" placeholder="Video Title" value="{{ plan.title if plan else '' }}">
+        <span class="edit-icon">&#9998;</span>
+        <div class="edit-hint">(Colored box &amp; dashed line and pencil only show on hover)</div>
+    </div>
+    <div class="top-actions">
+        <button class="save-btn" id="saveBtn">Save</button>
+        <button class="library-toggle" id="libraryToggle" title="Library">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+</div>
+
+<div class="main-grid">
+    <!-- Preview -->
+    <div class="col-preview">
+        <div class="section-label">Layout Preview</div>
+        <div class="phone-frame">
+            <div class="phone-screen">
+                <div class="text-hook-preview" id="previewHook">{{ plan.text_hook|upper if plan and plan.text_hook else '' }}</div>
+                <div class="caption-preview" id="previewCaption"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fields -->
+    <div class="col-fields">
+        <div class="field-group">
+            <div class="field-label">Text Hook</div>
+            <div class="field-input-wrap">
+                <input type="text" class="field-input" id="textHook" placeholder="Enter text hook..." value="{{ plan.text_hook if plan else '' }}">
+                <button class="ai-btn" title="AI Ideate" data-field="textHook">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8 2.4-7.2-6-4.8h7.6z" opacity="0"/><path d="M12 1l1.5 4.5L18 4l-2.5 4L20 10.5l-4.5 1L17 16l-4-2.5L11 18l-1.5-4.5L5 15l2.5-4L3 8.5l4.5-1L6 3l4 2.5L12 1z"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Visual Hook</div>
+            <div class="field-input-wrap">
+                <input type="text" class="field-input" id="visualHook" placeholder="What viewers see first..." value="{{ plan.visual_hook if plan else '' }}">
+                <button class="ai-btn" title="AI Ideate" data-field="visualHook">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1l1.5 4.5L18 4l-2.5 4L20 10.5l-4.5 1L17 16l-4-2.5L11 18l-1.5-4.5L5 15l2.5-4L3 8.5l4.5-1L6 3l4 2.5L12 1z"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Unexplained Curiosity?</div>
+            <div class="field-input-wrap">
+                <input type="text" class="field-input" id="unexplainedCuriosity" placeholder="Something odd in the background..." value="{{ plan.unexplained_curiosity if plan else '' }}">
+                <button class="ai-btn" title="AI Ideate" data-field="unexplainedCuriosity">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1l1.5 4.5L18 4l-2.5 4L20 10.5l-4.5 1L17 16l-4-2.5L11 18l-1.5-4.5L5 15l2.5-4L3 8.5l4.5-1L6 3l4 2.5L12 1z"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Setting</div>
+            <div class="field-input-wrap">
+                <input type="text" class="field-input" id="setting" placeholder="Where you're filming..." value="{{ plan.setting if plan else '' }}">
+            </div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Ongoing Satisfying Process</div>
+            <div class="field-input-wrap">
+                <input type="text" class="field-input" id="ongoingSatisfyingProcess" placeholder="Background activity..." value="{{ plan.ongoing_satisfying_process if plan else '' }}">
+                <button class="ai-btn" title="AI Ideate" data-field="ongoingSatisfyingProcess">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1l1.5 4.5L18 4l-2.5 4L20 10.5l-4.5 1L17 16l-4-2.5L11 18l-1.5-4.5L5 15l2.5-4L3 8.5l4.5-1L6 3l4 2.5L12 1z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script -->
+    <div class="col-script">
+        <div class="section-label">Script</div>
+        <div class="script-tags">
+            <span class="script-tag hook" data-tag="hook"><span class="check">&#10003;</span> Hook</span>
+            <span class="script-tag promise" data-tag="promise"><span class="check">&#10003;</span> Promise/Gap</span>
+            <span class="script-tag tension" data-tag="tension"><span class="check">&#10003;</span> Tension</span>
+            <span class="script-tag payoff" data-tag="payoff"><span class="check">&#10003;</span> Payoff</span>
+        </div>
+        <div class="script-editor" contenteditable="true" id="scriptEditor">{{ plan.script|safe if plan and plan.script else '' }}</div>
+    </div>
+</div>
+
+<!-- Formulas Bar -->
+<div class="formulas-bar">
+    <div class="section-label">Video Formulas</div>
+    <div class="formula-chips" id="formulaChips"></div>
+</div>
+
+<!-- Formula Modal -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="formula-modal" id="formulaModal"></div>
+</div>
+
+<!-- Library Drawer -->
+<div class="library-overlay" id="libraryOverlay">
+    <div class="library-drawer" id="libraryDrawer">
+        <div class="library-heading">Library</div>
+        <div class="library-search">
+            <input type="text" class="library-search-input" id="librarySearch" placeholder="Search videos...">
+            <button class="library-search-btn" id="librarySearchBtn">Search</button>
+        </div>
+        <button class="library-new-btn" id="newPlanBtn">+ New Video Plan</button>
+        <div class="library-list" id="libraryList"></div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── State ── */
+let currentPlanId = {{ plan.id if plan else 'null' }};
+let activeTag = null;
+let openMenuId = null;
+
+/* ── Video Formulas ── */
+const FORMULAS = [
+    {
+        id: 'this-vs-that',
+        name: 'This vs. That',
+        concept: 'A This vs. That video is designed to compare two of anything. A concept, an object, a person, a theory. This is simply formula that can be used in a variety of ways. Most successfully done with a Text Hook on screen that displays either “Thing vs. Thing” or “Thing vs …” relying heavily on the text hook to help the viewer understand the context while the video starts straight away into the first thing being compared',
+        bestTextHooks: ['Thing vs. Thing', 'Thing vs...'],
+        exampleScript: {
+            subtitle: 'Amateur vs. Professional Designers',
+            lines: [
+                '“Oh no problem – what colors do you like? I can send you come color palettes?”',
+                '“Thanks so much for telling me – I want to make sure we’re focusing on the strategy when we make changes like this – do you feel this is more of a personal preference or do you feel these colors fail at communicating the strategy we developed?”'
+            ]
+        },
+        exampleVideos: [
+            {handle: '@alixearle', url: '#'},
+            {handle: '@superlunardesign', url: '#'},
+            {handle: '@chris', url: '#'}
+        ],
+        applies: {text_hook: 'Thing vs. Thing'}
+    },
+    {
+        id: 'before-after',
+        name: 'Before & After',
+        concept: 'A Before & After video showcases a transformation. The power is in the contrast — the viewer needs to clearly see the “before” state to appreciate the “after.” Works best when the transformation is dramatic and the text hook sets up what changed. Can be done as a side-by-side, a reveal, or a timeline.',
+        bestTextHooks: ['Watch this transformation', 'The glow up is real', 'Before vs. After'],
+        exampleScript: {
+            subtitle: 'Website Redesign Reveal',
+            lines: [
+                '“So this client came to us with a website that looked like it was built in 2015…”',
+                '“And after 6 weeks of strategic design work, here’s what we delivered — a site that actually converts visitors into clients.”'
+            ]
+        },
+        exampleVideos: [
+            {handle: '@superlunardesign', url: '#'},
+            {handle: '@designjoy', url: '#'}
+        ],
+        applies: {text_hook: 'Before vs. After'}
+    },
+    {
+        id: 'dont-do-that',
+        name: "Don't do that, Do this",
+        concept: 'This format positions the creator as an authority by correcting a common mistake. The “don’t” creates tension and the “do this” provides the resolution. The text hook is critical — it needs to call out the mistake clearly. Works best when the mistake is something the viewer is probably doing right now.',
+        bestTextHooks: ['Stop doing this', "Don't make this mistake", 'Do this instead'],
+        exampleScript: {
+            subtitle: 'Website Navigation Mistake',
+            lines: [
+                '“If your website menu has more than 5 items, you’re overwhelming your visitors. Don’t do that.”',
+                '“Instead, do this — prioritize your top 3 pages and put everything else in a simple footer. Your bounce rate will thank you.”'
+            ]
+        },
+        exampleVideos: [
+            {handle: '@superlunardesign', url: '#'},
+            {handle: '@jasonfns', url: '#'}
+        ],
+        applies: {text_hook: "Don't do that, Do this"}
+    },
+    {
+        id: 'let-me-show-you',
+        name: 'Let me show you',
+        concept: 'A tutorial or demonstration format where the creator walks the viewer through a process step by step. The hook creates curiosity about the outcome, then the video delivers the “how.” Works best when the process is visual and the result is satisfying. The text hook should promise the outcome, not describe the process.',
+        bestTextHooks: ["Here's how", 'Let me show you', 'Watch me do this'],
+        exampleScript: {
+            subtitle: 'Design Tool Tutorial',
+            lines: [
+                '“Everyone asks how I make these animations — let me show you the exact process.”',
+                '“Step one, grab your reference. Step two, block out the layout. Step three, animate. That’s it. 3 steps.”'
+            ]
+        },
+        exampleVideos: [
+            {handle: '@rifruf', url: '#'},
+            {handle: '@figma', url: '#'}
+        ],
+        applies: {text_hook: 'Let me show you'}
+    },
+    {
+        id: 'youre-doing-this-wrong',
+        name: "You're doing this wrong",
+        concept: 'This format leads with a bold claim that the viewer is making a mistake. It creates immediate curiosity and slight defensiveness, which keeps people watching to find out what they’re doing wrong. The text hook is the entire opener — it needs to be specific enough to feel personal but broad enough to apply to most viewers.',
+        bestTextHooks: ["You're doing this wrong", 'Everyone makes this mistake', "This is why it's not working"],
+        exampleScript: {
+            subtitle: 'Website Selling Mistakes',
+            lines: [
+                '“So many of you are ruining your website experience because you are doing the selling part wrong.”',
+                '“If you want to actually grow your email list or get inquiries through your website that aren’t bullshit — you need to optimize your site to sell and I’m going to tell you how to do that.”'
+            ]
+        },
+        exampleVideos: [
+            {handle: '@superlunardesign', url: '#'},
+            {handle: '@garyvee', url: '#'}
+        ],
+        applies: {text_hook: "You're doing this wrong"}
+    }
+];
+
+/* ── DOM Refs ── */
+const $title = document.getElementById('videoTitle');
+const $textHook = document.getElementById('textHook');
+const $visualHook = document.getElementById('visualHook');
+const $curiosity = document.getElementById('unexplainedCuriosity');
+const $setting = document.getElementById('setting');
+const $process = document.getElementById('ongoingSatisfyingProcess');
+const $editor = document.getElementById('scriptEditor');
+const $previewHook = document.getElementById('previewHook');
+const $previewCaption = document.getElementById('previewCaption');
+const $formulaChips = document.getElementById('formulaChips');
+const $modalOverlay = document.getElementById('modalOverlay');
+const $modal = document.getElementById('formulaModal');
+const $libraryOverlay = document.getElementById('libraryOverlay');
+const $libraryList = document.getElementById('libraryList');
+const $librarySearch = document.getElementById('librarySearch');
+const $toast = document.getElementById('toast');
+
+/* ── Init ── */
+function init() {
+    renderFormulaChips();
+    updatePreview();
+    bindEvents();
+}
+
+function renderFormulaChips() {
+    $formulaChips.innerHTML = FORMULAS.map(f =>
+        `<button class="formula-chip" data-id="${f.id}">${f.name}</button>`
+    ).join('');
+}
+
+function bindEvents() {
+    // Text hook → preview
+    $textHook.addEventListener('input', updatePreview);
+    $editor.addEventListener('input', updatePreview);
+
+    // Paste plain text in script editor
+    $editor.addEventListener('paste', e => {
+        e.preventDefault();
+        const text = e.clipboardData.getData('text/plain');
+        document.execCommand('insertText', false, text);
+    });
+
+    // Script tags
+    document.querySelectorAll('.script-tag').forEach(tag => {
+        tag.addEventListener('click', () => onTagClick(tag));
+    });
+
+    // Formula chips
+    $formulaChips.addEventListener('click', e => {
+        const chip = e.target.closest('.formula-chip');
+        if (chip) openFormula(chip.dataset.id);
+    });
+
+    // Modal close on overlay click
+    $modalOverlay.addEventListener('click', e => {
+        if (e.target === $modalOverlay) closeModal();
+    });
+
+    // Library
+    document.getElementById('libraryToggle').addEventListener('click', openLibrary);
+    $libraryOverlay.addEventListener('click', e => {
+        if (e.target === $libraryOverlay) closeLibrary();
+    });
+    document.getElementById('newPlanBtn').addEventListener('click', () => {
+        currentPlanId = null;
+        clearFields();
+        closeLibrary();
+    });
+    document.getElementById('librarySearchBtn').addEventListener('click', () => loadLibrary($librarySearch.value));
+    $librarySearch.addEventListener('keydown', e => {
+        if (e.key === 'Enter') loadLibrary($librarySearch.value);
+    });
+
+    // Save
+    document.getElementById('saveBtn').addEventListener('click', savePlan);
+
+    // AI buttons (placeholder)
+    document.querySelectorAll('.ai-btn').forEach(btn => {
+        btn.addEventListener('click', () => showToast('AI ideation coming soon'));
+    });
+
+    // Close menus on outside click
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.item-menu')) closeAllMenus();
+    });
+
+    // Escape key
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            closeModal();
+            closeLibrary();
+        }
+    });
+}
+
+/* ── Preview ── */
+function updatePreview() {
+    const hookText = $textHook.value.trim();
+    $previewHook.textContent = hookText ? hookText.toUpperCase() : '';
+
+    const scriptText = $editor.innerText.trim();
+    $previewCaption.textContent = scriptText ? scriptText.substring(0, 200) : '';
+}
+
+/* ── Script Tagging ── */
+function onTagClick(tagEl) {
+    const tag = tagEl.dataset.tag;
+    const sel = window.getSelection();
+
+    if (!sel.rangeCount || sel.isCollapsed) {
+        // Toggle active state
+        if (activeTag === tag) {
+            activeTag = null;
+            tagEl.classList.remove('active');
+        } else {
+            document.querySelectorAll('.script-tag').forEach(t => t.classList.remove('active'));
+            activeTag = tag;
+            tagEl.classList.add('active');
+        }
+        return;
+    }
+
+    const range = sel.getRangeAt(0);
+    if (!$editor.contains(range.commonAncestorContainer)) return;
+
+    // Check if selection is inside an existing tag span
+    const parentSpan = range.startContainer.parentElement?.closest('[data-tag]');
+    if (parentSpan && parentSpan.dataset.tag === tag) {
+        // Remove tag: unwrap
+        const text = document.createTextNode(parentSpan.textContent);
+        parentSpan.replaceWith(text);
+        sel.removeAllRanges();
+        return;
+    }
+
+    // Wrap selection in tag span
+    const span = document.createElement('span');
+    span.dataset.tag = tag;
+    try {
+        range.surroundContents(span);
+    } catch (e) {
+        // If selection crosses element boundaries, extract and wrap
+        const fragment = range.extractContents();
+        span.appendChild(fragment);
+        range.insertNode(span);
+    }
+    sel.removeAllRanges();
+    updateTagChecks();
+}
+
+function updateTagChecks() {
+    ['hook', 'promise', 'tension', 'payoff'].forEach(tag => {
+        const exists = $editor.querySelector(`[data-tag="${tag}"]`);
+        const btn = document.querySelector(`.script-tag.${tag}`);
+        if (btn) btn.style.opacity = exists ? '1' : '0.6';
+    });
+}
+
+/* ── Formula Modal ── */
+function openFormula(id) {
+    const f = FORMULAS.find(x => x.id === id);
+    if (!f) return;
+
+    let selectedHook = f.applies.text_hook || '';
+
+    function renderModal() {
+        $modal.innerHTML = `
+            <div class="modal-header">
+                <div class="modal-title">${f.name}</div>
+                <div class="modal-actions">
+                    <button class="apply-btn" id="applyFormulaBtn">Apply Formula</button>
+                    <button class="close-btn" id="closeModalBtn">X</button>
+                </div>
+            </div>
+            <div class="modal-section">
+                <div class="modal-section-title">Concept</div>
+                <div class="concept-block">${f.concept}</div>
+            </div>
+            <div class="modal-section">
+                <div class="modal-section-title">Best Text Hooks</div>
+                <div class="hook-chips">
+                    ${f.bestTextHooks.map(h => `<span class="hook-chip${h === selectedHook ? ' selected' : ''}" data-hook="${h}">${h}</span>`).join('')}
+                </div>
+            </div>
+            <div class="modal-section">
+                <div class="example-header">
+                    <div class="modal-section-title">Example Script</div>
+                    <span class="example-subtitle">${f.exampleScript.subtitle}</span>
+                </div>
+                <div class="example-block">
+                    ${f.exampleScript.lines.map(l => `<p>${l}</p>`).join('')}
+                </div>
+            </div>
+            <div class="modal-section">
+                <div class="modal-section-title">Example Videos</div>
+                <div class="video-chips">
+                    ${f.exampleVideos.map(v => `<a href="${v.url}" target="_blank" class="video-chip">${v.handle} <span class="arrow">&#8599;</span></a>`).join('')}
+                </div>
+            </div>
+        `;
+
+        // Hook chip selection
+        $modal.querySelectorAll('.hook-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                selectedHook = chip.dataset.hook;
+                $modal.querySelectorAll('.hook-chip').forEach(c => c.classList.remove('selected'));
+                chip.classList.add('selected');
+            });
+        });
+
+        // Apply
+        document.getElementById('applyFormulaBtn').addEventListener('click', () => {
+            if (selectedHook) {
+                $textHook.value = selectedHook;
+                updatePreview();
+            }
+            closeModal();
+            showToast(`Applied: ${f.name}`);
+        });
+
+        // Close
+        document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+    }
+
+    renderModal();
+    $modalOverlay.classList.add('active');
+}
+
+function closeModal() {
+    $modalOverlay.classList.remove('active');
+}
+
+/* ── Library ── */
+function openLibrary() {
+    loadLibrary();
+    $libraryOverlay.classList.add('active');
+}
+
+function closeLibrary() {
+    $libraryOverlay.classList.remove('active');
+}
+
+async function loadLibrary(search) {
+    try {
+        let url = '/api/plans';
+        if (search) url += '?q=' + encodeURIComponent(search);
+        const resp = await fetch(url);
+        const plans = await resp.json();
+        renderLibrary(plans);
+    } catch (e) {
+        $libraryList.innerHTML = '<div class="library-empty">Could not load plans</div>';
+    }
+}
+
+function renderLibrary(plans) {
+    if (!plans.length) {
+        $libraryList.innerHTML = '<div class="library-empty">No saved plans yet</div>';
+        return;
+    }
+    $libraryList.innerHTML = plans.map(p => `
+        <div class="library-item" data-id="${p.id}">
+            <div class="library-item-info" onclick="loadPlan(${p.id})">
+                <div class="library-item-title">${p.title || 'Untitled'}</div>
+                <div class="library-item-date">${p.updated_at || p.created_at || ''}</div>
+            </div>
+            <div class="library-item-actions">
+                <div class="item-menu">
+                    <button class="lib-action-btn" onclick="toggleMenu(event, ${p.id})">&#8943;</button>
+                    <div class="item-menu-drop" id="menu-${p.id}">
+                        <button class="menu-option" onclick="deletePlan(${p.id})">&#128465; Delete</button>
+                        <button class="menu-option" onclick="archivePlan(${p.id})">&#128278; Archive</button>
+                    </div>
+                </div>
+                <button class="lib-action-btn" onclick="loadPlan(${p.id})" title="Open">&#8599;</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleMenu(e, id) {
+    e.stopPropagation();
+    closeAllMenus();
+    const menu = document.getElementById('menu-' + id);
+    if (menu) menu.classList.add('active');
+    openMenuId = id;
+}
+
+function closeAllMenus() {
+    document.querySelectorAll('.item-menu-drop').forEach(m => m.classList.remove('active'));
+    openMenuId = null;
+}
+
+/* ── CRUD ── */
+function getFormData() {
+    return {
+        title: $title.value || 'Untitled',
+        text_hook: $textHook.value,
+        visual_hook: $visualHook.value,
+        unexplained_curiosity: $curiosity.value,
+        setting: $setting.value,
+        ongoing_satisfying_process: $process.value,
+        script: $editor.innerHTML,
+    };
+}
+
+function clearFields() {
+    $title.value = '';
+    $textHook.value = '';
+    $visualHook.value = '';
+    $curiosity.value = '';
+    $setting.value = '';
+    $process.value = '';
+    $editor.innerHTML = '';
+    updatePreview();
+}
+
+async function savePlan() {
+    const data = getFormData();
+    try {
+        let resp;
+        if (currentPlanId) {
+            resp = await fetch('/api/plans/' + currentPlanId, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+        } else {
+            resp = await fetch('/api/plans', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+        }
+        const result = await resp.json();
+        if (result.id) currentPlanId = result.id;
+        showToast('Saved!');
+    } catch (e) {
+        showToast('Error saving');
+    }
+}
+
+async function loadPlan(id) {
+    try {
+        const resp = await fetch('/api/plans/' + id);
+        const plan = await resp.json();
+        currentPlanId = plan.id;
+        $title.value = plan.title || '';
+        $textHook.value = plan.text_hook || '';
+        $visualHook.value = plan.visual_hook || '';
+        $curiosity.value = plan.unexplained_curiosity || '';
+        $setting.value = plan.setting || '';
+        $process.value = plan.ongoing_satisfying_process || '';
+        $editor.innerHTML = plan.script || '';
+        updatePreview();
+        updateTagChecks();
+        closeLibrary();
+    } catch (e) {
+        showToast('Error loading plan');
+    }
+}
+
+async function deletePlan(id) {
+    if (!confirm('Delete this plan?')) return;
+    try {
+        await fetch('/api/plans/' + id, {method: 'DELETE'});
+        if (currentPlanId === id) { currentPlanId = null; clearFields(); }
+        loadLibrary($librarySearch.value);
+        showToast('Deleted');
+    } catch (e) {
+        showToast('Error deleting');
+    }
+}
+
+async function archivePlan(id) {
+    try {
+        await fetch('/api/plans/' + id + '/archive', {method: 'POST'});
+        loadLibrary($librarySearch.value);
+        showToast('Archived');
+    } catch (e) {
+        showToast('Error archiving');
+    }
+}
+
+/* ── Toast ── */
+function showToast(msg) {
+    $toast.textContent = msg;
+    $toast.classList.add('show');
+    setTimeout(() => $toast.classList.remove('show'), 2000);
+}
+
+/* ── Go ── */
+init();
+</script>
+</body>
+</html>

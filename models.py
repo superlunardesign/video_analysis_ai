@@ -160,6 +160,44 @@ class HookFormula(db.Model):
         return f'<HookFormula {self.id}: {self.formula_template[:60] if self.formula_template else ""}>'
 
 
+class VideoPlan(db.Model):
+    __tablename__ = 'video_plans'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    title = db.Column(db.String(500), default='Untitled')
+    text_hook = db.Column(db.Text)
+    visual_hook = db.Column(db.Text)
+    unexplained_curiosity = db.Column(db.Text)
+    setting = db.Column(db.Text)
+    ongoing_satisfying_process = db.Column(db.Text)
+    script = db.Column(db.Text)
+    script_tags = db.Column(db.JSON)
+    selected_formula = db.Column(db.String(200))
+    is_archived = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('video_plans', lazy='dynamic'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'text_hook': self.text_hook,
+            'visual_hook': self.visual_hook,
+            'unexplained_curiosity': self.unexplained_curiosity,
+            'setting': self.setting,
+            'ongoing_satisfying_process': self.ongoing_satisfying_process,
+            'script': self.script,
+            'script_tags': self.script_tags,
+            'selected_formula': self.selected_formula,
+            'is_archived': self.is_archived,
+            'created_at': self.created_at.strftime('%m/%d/%Y %I:%M%p') if self.created_at else None,
+            'updated_at': self.updated_at.strftime('%m/%d/%Y %I:%M%p') if self.updated_at else None,
+        }
+
+
 class ReviewFeedback(db.Model):
     """Per-section review feedback on analyses — builds fine-tuning training data."""
     __tablename__ = 'review_feedback'
@@ -330,6 +368,31 @@ def _run_migrations(app, database_url):
             db.session.execute(text("CREATE INDEX ix_hook_patterns_content_type ON hook_patterns(content_type)"))
             db.session.commit()
             print("[DB MIGRATION] Created 'hook_patterns' table with indexes")
+
+        # Migration: Create 'video_plans' table if it doesn't exist
+        if not inspector.has_table('video_plans'):
+            print("[DB MIGRATION] Creating 'video_plans' table...")
+            db.session.execute(text("""
+                CREATE TABLE video_plans (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id),
+                    title VARCHAR(500) DEFAULT 'Untitled',
+                    text_hook TEXT,
+                    visual_hook TEXT,
+                    unexplained_curiosity TEXT,
+                    setting TEXT,
+                    ongoing_satisfying_process TEXT,
+                    script TEXT,
+                    script_tags JSONB,
+                    selected_formula VARCHAR(200),
+                    is_archived BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW()
+                )
+            """))
+            db.session.execute(text("CREATE INDEX ix_video_plans_user_id ON video_plans(user_id)"))
+            db.session.commit()
+            print("[DB MIGRATION] Created 'video_plans' table")
 
     except Exception as e:
         print(f"[DB MIGRATION ERROR] {e}")
