@@ -182,7 +182,7 @@
             grid-template-columns: 260px 1fr 1.1fr;
             gap: 28px;
             padding: 16px 32px 0;
-            align-items: start;
+            align-items: stretch;
         }
         .section-label {
             font-size: 0.8rem;
@@ -340,6 +340,7 @@
         }
 
         /* ── Fields Column ── */
+        .col-preview { align-self: start; }
         .col-fields { display: flex; flex-direction: column; gap: 16px; }
         .field-group {}
         .field-label {
@@ -402,7 +403,7 @@
         .ai-btn svg { width: 18px; height: 18px; }
 
         /* ── Script Column ── */
-        .col-script { display: flex; flex-direction: column; }
+        .col-script { display: flex; flex-direction: column; min-height: 0; }
         .script-tags { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
         .script-tag {
             display: inline-flex;
@@ -430,7 +431,8 @@
             font-weight: 500;
             line-height: 1.7;
             color: var(--text-dark);
-            min-height: 440px;
+            flex: 1;
+            min-height: 200px;
             padding: 16px;
             outline: none;
             border: 1px solid var(--border);
