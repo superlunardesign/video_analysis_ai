@@ -1212,9 +1212,12 @@ function onTagClick(tagEl) {
     if (!$editor.contains(range.commonAncestorContainer)) return;
 
     const parentSpan = range.startContainer.parentElement?.closest('[data-tag]');
+    const parentTag = parentSpan?.dataset.tag;
+    const parentIsSell = parentTag && isSellTag(parentTag);
+    const parentIsStructure = parentTag && !parentIsSell;
 
-    if (sell && parentSpan && parentSpan.dataset.tag && !isSellTag(parentSpan.dataset.tag)) {
-        // Selling tag on a structural span: toggle underline
+    if (sell && parentSpan && parentIsStructure) {
+        // Selling tag on a structural span: toggle/replace underline
         if (parentSpan.dataset.sell === tag) {
             delete parentSpan.dataset.sell;
         } else {
@@ -1226,6 +1229,7 @@ function onTagClick(tagEl) {
     }
 
     if (parentSpan && parentSpan.dataset.tag === tag) {
+        // Same tag: remove it
         const text = document.createTextNode(parentSpan.textContent);
         parentSpan.replaceWith(text);
         sel.removeAllRanges();
@@ -1233,8 +1237,19 @@ function onTagClick(tagEl) {
         return;
     }
 
-    if (sell && parentSpan && parentSpan.dataset.sell === tag) {
-        delete parentSpan.dataset.sell;
+    if (!sell && parentSpan && parentIsStructure) {
+        // Different structural tag: replace it, preserve any selling underline
+        const existingSell = parentSpan.dataset.sell;
+        parentSpan.dataset.tag = tag;
+        if (existingSell) parentSpan.dataset.sell = existingSell;
+        sel.removeAllRanges();
+        updateTagChecks();
+        return;
+    }
+
+    if (sell && parentSpan && parentIsSell) {
+        // Different selling tag on existing selling span: replace it
+        parentSpan.dataset.tag = tag;
         sel.removeAllRanges();
         updateTagChecks();
         return;
