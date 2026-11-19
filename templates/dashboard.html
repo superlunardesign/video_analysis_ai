@@ -766,7 +766,7 @@
                     <div class="preview-search-icon"></div>
                 </div>
                 <div class="text-hook-zone">
-                    <div class="text-hook-preview" id="previewHook">{{ plan.text_hook|upper if plan and plan.text_hook else '' }}</div>
+                    <div class="text-hook-preview" id="previewHook">{{ plan.text_hook if plan and plan.text_hook else '' }}</div>
                 </div>
                 <div class="preview-middle"></div>
                 <div class="preview-actions">
@@ -775,7 +775,7 @@
                     <div class="preview-action-dot"></div>
                     <div class="preview-action-dot small"></div>
                 </div>
-                <div class="caption-preview" id="previewCaption"></div>
+                <div class="caption-preview" id="previewCaption">{{ plan.captions[:120] if plan and plan.captions else '' }}</div>
                 <div class="preview-nav">
                     <div class="preview-nav-dot active"></div>
                     <div class="preview-nav-dot"></div>
@@ -1002,7 +1002,7 @@ function bindEvents() {
 /* ── Preview ── */
 function updatePreview() {
     const hookText = $textHook.value.trim();
-    $previewHook.textContent = hookText ? hookText.toUpperCase() : '';
+    $previewHook.textContent = hookText || '';
 
     const captionText = $captions.value.trim();
     $previewCaption.textContent = captionText ? captionText.substring(0, 120) : '';
