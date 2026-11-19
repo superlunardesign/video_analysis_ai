@@ -58,6 +58,7 @@
             --tag-plug-text: #0E6B30;
             --tag-cta-bg: #BB8FCE;
             --tag-cta-text: #6C3483;
+            --tag-objection-text: #D4AC0D;
             --library-bg: #2D2B55;
             --library-search: #242244;
             --library-btn: #4B45A0;
@@ -436,6 +437,7 @@
         .script-tag.desire { background: transparent; color: var(--tag-desire-text); border: 2px solid var(--tag-desire-text); }
         .script-tag.plug { background: transparent; color: var(--tag-plug-text); border: 2px solid var(--tag-plug-text); }
         .script-tag.cta { background: transparent; color: var(--tag-cta-text); border: 2px solid var(--tag-cta-text); }
+        .script-tag.objection { background: transparent; color: var(--tag-objection-text); border: 2px solid var(--tag-objection-text); }
 
         .tags-row-toggle {
             font-family: var(--font);
@@ -488,10 +490,12 @@
         .script-editor [data-tag="desire"] { text-decoration: underline 3px var(--tag-desire-text); text-underline-offset: 3px; }
         .script-editor [data-tag="plug"] { text-decoration: underline 3px var(--tag-plug-text); text-underline-offset: 3px; }
         .script-editor [data-tag="cta"] { text-decoration: underline 3px var(--tag-cta-text); text-underline-offset: 3px; }
+        .script-editor [data-tag="objection"] { text-decoration: underline 3px var(--tag-objection-text); text-underline-offset: 3px; }
         .script-editor [data-sell="painpoint"] { text-decoration: underline 3px var(--tag-painpoint-text); text-underline-offset: 3px; }
         .script-editor [data-sell="desire"] { text-decoration: underline 3px var(--tag-desire-text); text-underline-offset: 3px; }
         .script-editor [data-sell="plug"] { text-decoration: underline 3px var(--tag-plug-text); text-underline-offset: 3px; }
         .script-editor [data-sell="cta"] { text-decoration: underline 3px var(--tag-cta-text); text-underline-offset: 3px; }
+        .script-editor [data-sell="objection"] { text-decoration: underline 3px var(--tag-objection-text); text-underline-offset: 3px; }
 
         /* ── Formulas Bar ── */
         .formulas-bar {
@@ -997,6 +1001,7 @@
             <span class="script-tag desire" data-tag="desire" data-group="sell"><span class="check">&#10003;</span> Desire</span>
             <span class="script-tag plug" data-tag="plug" data-group="sell"><span class="check">&#10003;</span> Plug</span>
             <span class="script-tag cta" data-tag="cta" data-group="sell"><span class="check">&#10003;</span> CTA</span>
+            <span class="script-tag objection" data-tag="objection" data-group="sell"><span class="check">&#10003;</span> Objection</span>
         </div>
         <div class="script-editor" contenteditable="true" id="scriptEditor">{{ plan.script|safe if plan and plan.script else '' }}</div>
     </div>
@@ -1180,7 +1185,7 @@ function updatePreview() {
 }
 
 /* ── Script Tagging ── */
-const SELL_TAGS = ['painpoint', 'desire', 'plug', 'cta'];
+const SELL_TAGS = ['painpoint', 'desire', 'plug', 'cta', 'objection'];
 const STRUCTURE_TAGS = ['hook', 'promise', 'tension', 'payoff'];
 
 function isSellTag(tag) { return SELL_TAGS.includes(tag); }
