@@ -1341,8 +1341,14 @@ function openFormula(id) {
         document.getElementById('applyFormulaBtn').addEventListener('click', () => {
             if (selectedHook) {
                 $textHook.value = selectedHook;
-                updatePreview();
             }
+            if (f.applies.visual_hook) {
+                $visualHook.value = f.applies.visual_hook;
+            }
+            if (f.applies.script_lines && f.applies.script_lines.length) {
+                $editor.innerHTML = f.applies.script_lines.map(l => `<p>${l}</p>`).join('');
+            }
+            updatePreview();
             closeModal();
             showToast(`Applied: ${f.name}`);
         });

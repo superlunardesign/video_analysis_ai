@@ -5272,6 +5272,7 @@ def api_video_formulas():
                 'formulas': [],
                 'videos': [],
                 'text_hooks': [],
+                'visual_hooks': [],
                 'video_urls_seen': set(),
             }
         grouped[key]['formulas'].append(f)
@@ -5287,6 +5288,11 @@ def api_video_formulas():
             template = f.formula_template.strip()
             if template and len(template) < 200 and template not in grouped[key]['text_hooks']:
                 grouped[key]['text_hooks'].append(template)
+
+        if 'visual' in (f.hook_types or []) and f.formula_template:
+            template = f.formula_template.strip()
+            if template and len(template) < 300 and template not in grouped[key]['visual_hooks']:
+                grouped[key]['visual_hooks'].append(template)
 
     result = []
     for key, data in sorted(grouped.items(), key=lambda x: len(x[1]['formulas']), reverse=True):
@@ -5314,8 +5320,11 @@ def api_video_formulas():
             'exampleVideos': data['videos'][:5],
             'count': len(data['formulas']),
             'topViews': best_formula.view_count_raw or 0,
+            'bestVisualHooks': data['visual_hooks'][:3],
             'applies': {
-                'text_hook': data['text_hooks'][0] if data['text_hooks'] else ''
+                'text_hook': data['text_hooks'][0] if data['text_hooks'] else '',
+                'visual_hook': data['visual_hooks'][0] if data['visual_hooks'] else '',
+                'script_lines': example_lines[:3],
             }
         })
 
