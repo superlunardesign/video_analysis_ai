@@ -50,6 +50,14 @@
             --tag-tension-text: #59287A;
             --tag-payoff-bg: #D5F5E3;
             --tag-payoff-text: #1E8449;
+            --tag-painpoint-bg: #FADBD8;
+            --tag-painpoint-text: #922B21;
+            --tag-desire-bg: #FDEBD0;
+            --tag-desire-text: #935116;
+            --tag-plug-bg: #D4EFDF;
+            --tag-plug-text: #1D6F42;
+            --tag-cta-bg: #D6C7F0;
+            --tag-cta-text: #4A235A;
             --library-bg: #2D2B55;
             --library-search: #242244;
             --library-btn: #4B45A0;
@@ -424,6 +432,28 @@
         .script-tag.promise { background: var(--tag-promise-bg); color: var(--tag-promise-text); }
         .script-tag.tension { background: var(--tag-tension-bg); color: var(--tag-tension-text); }
         .script-tag.payoff { background: var(--tag-payoff-bg); color: var(--tag-payoff-text); }
+        .script-tag.painpoint { background: var(--tag-painpoint-bg); color: var(--tag-painpoint-text); }
+        .script-tag.desire { background: var(--tag-desire-bg); color: var(--tag-desire-text); }
+        .script-tag.plug { background: var(--tag-plug-bg); color: var(--tag-plug-text); }
+        .script-tag.cta { background: var(--tag-cta-bg); color: var(--tag-cta-text); }
+
+        .tags-row-toggle {
+            font-family: var(--font);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-light);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px 0;
+            margin-top: 2px;
+            transition: color 0.2s;
+        }
+        .tags-row-toggle:hover { color: var(--text-dark); }
+        .tags-row-toggle .arrow { display: inline-block; transition: transform 0.2s; font-size: 0.6rem; margin-right: 4px; }
+        .tags-row-toggle.open .arrow { transform: rotate(90deg); }
+        .selling-tags { display: none; margin-top: 6px; }
+        .selling-tags.open { display: flex; }
 
         .script-editor {
             font-family: var(--font);
@@ -452,6 +482,14 @@
         .script-editor [data-tag="promise"] { background: var(--tag-promise-bg); border-radius: 2px; padding: 1px 0; }
         .script-editor [data-tag="tension"] { background: var(--tag-tension-bg); border-radius: 2px; padding: 1px 0; }
         .script-editor [data-tag="payoff"] { background: var(--tag-payoff-bg); border-radius: 2px; padding: 1px 0; }
+        .script-editor [data-tag="painpoint"] { background: var(--tag-painpoint-bg); border-radius: 2px; padding: 1px 0; }
+        .script-editor [data-tag="desire"] { background: var(--tag-desire-bg); border-radius: 2px; padding: 1px 0; }
+        .script-editor [data-tag="plug"] { background: var(--tag-plug-bg); border-radius: 2px; padding: 1px 0; }
+        .script-editor [data-tag="cta"] { background: var(--tag-cta-bg); border-radius: 2px; padding: 1px 0; }
+        .script-editor [data-sell="painpoint"] { text-decoration: underline; text-decoration-color: var(--tag-painpoint-text); text-underline-offset: 3px; }
+        .script-editor [data-sell="desire"] { text-decoration: underline; text-decoration-color: var(--tag-desire-text); text-underline-offset: 3px; }
+        .script-editor [data-sell="plug"] { text-decoration: underline; text-decoration-color: var(--tag-plug-text); text-underline-offset: 3px; }
+        .script-editor [data-sell="cta"] { text-decoration: underline; text-decoration-color: var(--tag-cta-text); text-underline-offset: 3px; }
 
         /* ── Formulas Bar ── */
         .formulas-bar {
@@ -951,6 +989,13 @@
             <span class="script-tag tension" data-tag="tension"><span class="check">&#10003;</span> Tension</span>
             <span class="script-tag payoff" data-tag="payoff"><span class="check">&#10003;</span> Payoff</span>
         </div>
+        <button class="tags-row-toggle" id="sellingTagsToggle"><span class="arrow">&#9654;</span> Selling</button>
+        <div class="script-tags selling-tags" id="sellingTags">
+            <span class="script-tag painpoint" data-tag="painpoint" data-group="sell"><span class="check">&#10003;</span> Pain Point</span>
+            <span class="script-tag desire" data-tag="desire" data-group="sell"><span class="check">&#10003;</span> Desire</span>
+            <span class="script-tag plug" data-tag="plug" data-group="sell"><span class="check">&#10003;</span> Plug</span>
+            <span class="script-tag cta" data-tag="cta" data-group="sell"><span class="check">&#10003;</span> CTA</span>
+        </div>
         <div class="script-editor" contenteditable="true" id="scriptEditor">{{ plan.script|safe if plan and plan.script else '' }}</div>
     </div>
 </div>
@@ -1065,6 +1110,12 @@ function bindEvents() {
         tag.addEventListener('click', () => onTagClick(tag));
     });
 
+    // Selling tags toggle
+    document.getElementById('sellingTagsToggle').addEventListener('click', function() {
+        this.classList.toggle('open');
+        document.getElementById('sellingTags').classList.toggle('open');
+    });
+
     // Formula chips
     $formulaChips.addEventListener('click', e => {
         const chip = e.target.closest('.formula-chip');
@@ -1127,17 +1178,23 @@ function updatePreview() {
 }
 
 /* ── Script Tagging ── */
+const SELL_TAGS = ['painpoint', 'desire', 'plug', 'cta'];
+const STRUCTURE_TAGS = ['hook', 'promise', 'tension', 'payoff'];
+
+function isSellTag(tag) { return SELL_TAGS.includes(tag); }
+
 function onTagClick(tagEl) {
     const tag = tagEl.dataset.tag;
+    const sell = isSellTag(tag);
     const sel = window.getSelection();
 
     if (!sel.rangeCount || sel.isCollapsed) {
-        // Toggle active state
         if (activeTag === tag) {
             activeTag = null;
             tagEl.classList.remove('active');
         } else {
-            document.querySelectorAll('.script-tag').forEach(t => t.classList.remove('active'));
+            const group = sell ? '.script-tag[data-group="sell"]' : '.script-tag:not([data-group="sell"])';
+            document.querySelectorAll(group).forEach(t => t.classList.remove('active'));
             activeTag = tag;
             tagEl.classList.add('active');
         }
@@ -1147,23 +1204,40 @@ function onTagClick(tagEl) {
     const range = sel.getRangeAt(0);
     if (!$editor.contains(range.commonAncestorContainer)) return;
 
-    // Check if selection is inside an existing tag span
     const parentSpan = range.startContainer.parentElement?.closest('[data-tag]');
-    if (parentSpan && parentSpan.dataset.tag === tag) {
-        // Remove tag: unwrap
-        const text = document.createTextNode(parentSpan.textContent);
-        parentSpan.replaceWith(text);
+
+    if (sell && parentSpan && parentSpan.dataset.tag && !isSellTag(parentSpan.dataset.tag)) {
+        // Selling tag on a structural span: toggle underline
+        if (parentSpan.dataset.sell === tag) {
+            delete parentSpan.dataset.sell;
+        } else {
+            parentSpan.dataset.sell = tag;
+        }
         sel.removeAllRanges();
+        updateTagChecks();
         return;
     }
 
-    // Wrap selection in tag span
+    if (parentSpan && parentSpan.dataset.tag === tag) {
+        const text = document.createTextNode(parentSpan.textContent);
+        parentSpan.replaceWith(text);
+        sel.removeAllRanges();
+        updateTagChecks();
+        return;
+    }
+
+    if (sell && parentSpan && parentSpan.dataset.sell === tag) {
+        delete parentSpan.dataset.sell;
+        sel.removeAllRanges();
+        updateTagChecks();
+        return;
+    }
+
     const span = document.createElement('span');
     span.dataset.tag = tag;
     try {
         range.surroundContents(span);
     } catch (e) {
-        // If selection crosses element boundaries, extract and wrap
         const fragment = range.extractContents();
         span.appendChild(fragment);
         range.insertNode(span);
@@ -1173,8 +1247,8 @@ function onTagClick(tagEl) {
 }
 
 function updateTagChecks() {
-    ['hook', 'promise', 'tension', 'payoff'].forEach(tag => {
-        const exists = $editor.querySelector(`[data-tag="${tag}"]`);
+    [...STRUCTURE_TAGS, ...SELL_TAGS].forEach(tag => {
+        const exists = $editor.querySelector(`[data-tag="${tag}"]`) || $editor.querySelector(`[data-sell="${tag}"]`);
         const btn = document.querySelector(`.script-tag.${tag}`);
         if (btn) btn.style.opacity = exists ? '1' : '0.6';
     });
