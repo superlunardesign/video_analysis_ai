@@ -171,6 +171,7 @@ class VideoPlan(db.Model):
     unexplained_curiosity = db.Column(db.Text)
     setting = db.Column(db.Text)
     ongoing_satisfying_process = db.Column(db.Text)
+    captions = db.Column(db.Text)
     script = db.Column(db.Text)
     script_tags = db.Column(db.JSON)
     selected_formula = db.Column(db.String(200))
@@ -189,6 +190,7 @@ class VideoPlan(db.Model):
             'unexplained_curiosity': self.unexplained_curiosity,
             'setting': self.setting,
             'ongoing_satisfying_process': self.ongoing_satisfying_process,
+            'captions': self.captions,
             'script': self.script,
             'script_tags': self.script_tags,
             'selected_formula': self.selected_formula,
@@ -382,6 +384,7 @@ def _run_migrations(app, database_url):
                     unexplained_curiosity TEXT,
                     setting TEXT,
                     ongoing_satisfying_process TEXT,
+                    captions TEXT,
                     script TEXT,
                     script_tags JSONB,
                     selected_formula VARCHAR(200),
@@ -393,6 +396,17 @@ def _run_migrations(app, database_url):
             db.session.execute(text("CREATE INDEX ix_video_plans_user_id ON video_plans(user_id)"))
             db.session.commit()
             print("[DB MIGRATION] Created 'video_plans' table")
+
+        # Migration: Add 'captions' column to video_plans if it doesn't exist
+        if inspector.has_table('video_plans'):
+            vp_columns = [col['name'] for col in inspector.get_columns('video_plans')]
+            if 'captions' not in vp_columns:
+                print("[DB MIGRATION] Adding 'captions' column to video_plans table...")
+                db.session.execute(text(
+                    "ALTER TABLE video_plans ADD COLUMN captions TEXT"
+                ))
+                db.session.commit()
+                print("[DB MIGRATION] Added 'captions' column to video_plans")
 
     except Exception as e:
         print(f"[DB MIGRATION ERROR] {e}")

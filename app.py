@@ -5173,6 +5173,7 @@ def api_create_plan():
         unexplained_curiosity=data.get("unexplained_curiosity"),
         setting=data.get("setting"),
         ongoing_satisfying_process=data.get("ongoing_satisfying_process"),
+        captions=data.get("captions"),
         script=data.get("script"),
         script_tags=data.get("script_tags"),
         selected_formula=data.get("selected_formula"),
@@ -5206,6 +5207,7 @@ def api_update_plan(plan_id):
     plan.unexplained_curiosity = data.get("unexplained_curiosity", plan.unexplained_curiosity)
     plan.setting = data.get("setting", plan.setting)
     plan.ongoing_satisfying_process = data.get("ongoing_satisfying_process", plan.ongoing_satisfying_process)
+    plan.captions = data.get("captions", plan.captions)
     plan.script = data.get("script", plan.script)
     plan.script_tags = data.get("script_tags", plan.script_tags)
     plan.selected_formula = data.get("selected_formula", plan.selected_formula)
@@ -5235,6 +5237,103 @@ def api_archive_plan(plan_id):
     plan.is_archived = True
     db.session.commit()
     return jsonify({"status": "archived"})
+
+
+FORMULA_CONCEPTS = {
+    "this vs. that": "A This vs. That video is designed to compare two of anything. A concept, an object, a person, a theory. This is simply a formula that can be used in a variety of ways. Most successfully done with a Text Hook on screen that displays either “Thing vs. Thing” or “Thing vs …” relying heavily on the text hook to help the viewer understand the context while the video starts straight away into the first thing being compared.",
+    "before & after": "A Before & After video showcases a transformation. The power is in the contrast — the viewer needs to clearly see the “before” state to appreciate the “after.” Works best when the transformation is dramatic and the text hook sets up what changed.",
+    "don't do that, do this": "This format positions the creator as an authority by correcting a common mistake. The “don’t” creates tension and the “do this” provides the resolution. Works best when the mistake is something the viewer is probably doing right now.",
+    "let me show you": "A tutorial or demonstration format where the creator walks the viewer through a process. The hook creates curiosity about the outcome, then the video delivers the “how.” Works best when the process is visual and the result is satisfying.",
+    "you're doing this wrong": "This format leads with a bold claim that the viewer is making a mistake. It creates immediate curiosity and slight defensiveness, which keeps people watching to find out what they’re doing wrong.",
+}
+
+
+@app.route("/api/video-formulas")
+@login_required
+def api_video_formulas():
+    """Return video formulas built from real hook formula data."""
+    from models import HookFormula
+    from sqlalchemy import func
+
+    all_formulas = HookFormula.query.filter(
+        HookFormula.formula_name.isnot(None),
+        HookFormula.formula_name != ''
+    ).order_by(HookFormula.view_count_raw.desc()).all()
+
+    grouped = {}
+    for f in all_formulas:
+        name = f.formula_name.strip()
+        if not name:
+            continue
+        key = name.lower()
+        if key not in grouped:
+            grouped[key] = {
+                'name': name,
+                'formulas': [],
+                'videos': [],
+                'text_hooks': [],
+                'video_urls_seen': set(),
+            }
+        grouped[key]['formulas'].append(f)
+
+        if f.video_url and f.video_url not in grouped[key]['video_urls_seen']:
+            grouped[key]['video_urls_seen'].add(f.video_url)
+            grouped[key]['videos'].append({
+                'title': f.video_title or 'Untitled',
+                'url': f.video_url,
+            })
+
+        if 'text' in (f.hook_types or []) and f.formula_template:
+            template = f.formula_template.strip()
+            if template and len(template) < 200 and template not in grouped[key]['text_hooks']:
+                grouped[key]['text_hooks'].append(template)
+
+    result = []
+    for key, data in sorted(grouped.items(), key=lambda x: len(x[1]['formulas']), reverse=True):
+        best_formula = max(data['formulas'], key=lambda f: f.view_count_raw or 0)
+
+        concept = FORMULA_CONCEPTS.get(key, '')
+        if not concept and best_formula.format_context:
+            concept = best_formula.format_context
+
+        example_lines = []
+        verbal_formulas = [f for f in data['formulas'] if 'verbal' in (f.hook_types or [])]
+        for vf in verbal_formulas[:2]:
+            if vf.formula_template and len(vf.formula_template) > 20:
+                example_lines.append(vf.formula_template)
+
+        result.append({
+            'id': key.replace(' ', '-').replace("'", '').replace(',', ''),
+            'name': data['name'],
+            'concept': concept,
+            'bestTextHooks': data['text_hooks'][:5],
+            'exampleScript': {
+                'subtitle': best_formula.video_title or '',
+                'lines': example_lines[:3],
+            },
+            'exampleVideos': data['videos'][:5],
+            'count': len(data['formulas']),
+            'topViews': best_formula.view_count_raw or 0,
+            'applies': {
+                'text_hook': data['text_hooks'][0] if data['text_hooks'] else ''
+            }
+        })
+
+    if not result:
+        for key, concept in FORMULA_CONCEPTS.items():
+            result.append({
+                'id': key.replace(' ', '-').replace("'", '').replace(',', ''),
+                'name': key.title(),
+                'concept': concept,
+                'bestTextHooks': [],
+                'exampleScript': {'subtitle': '', 'lines': []},
+                'exampleVideos': [],
+                'count': 0,
+                'topViews': 0,
+                'applies': {'text_hook': ''}
+            })
+
+    return jsonify(result)
 
 
 @app.route("/admin/hooks")

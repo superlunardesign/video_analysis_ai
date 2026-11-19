@@ -102,16 +102,6 @@
             pointer-events: none;
         }
         .title-area:hover .edit-icon { opacity: 1; }
-        .edit-hint {
-            font-size: 0.65rem;
-            color: var(--text-light);
-            font-weight: 400;
-            opacity: 0;
-            transition: opacity 0.2s;
-            margin-top: 2px;
-            padding-left: 8px;
-        }
-        .title-area:hover .edit-hint { opacity: 1; }
         .top-actions { display: flex; gap: 12px; align-items: center; }
         .save-btn {
             font-family: var(--font);
@@ -177,42 +167,114 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 24px 16px;
+            padding: 0;
             position: relative;
         }
+        /* Search bar placeholder */
+        .preview-search {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 14px 6px;
+            gap: 6px;
+        }
+        .preview-search-pill {
+            flex: 1;
+            height: 14px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 10px;
+        }
+        .preview-search-icon {
+            width: 12px;
+            height: 12px;
+            border: 1.5px solid rgba(255,255,255,0.15);
+            border-radius: 50%;
+        }
+        /* Text hook area — upper third */
+        .text-hook-zone {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 14px;
+            flex: 0 0 33%;
+        }
         .text-hook-preview {
-            border: 2px solid rgba(255,255,255,0.8);
-            border-radius: 6px;
-            padding: 10px 14px;
-            color: white;
+            background: white;
+            border-radius: 4px;
+            padding: 8px 14px;
+            color: #1A1832;
             font-weight: 500;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             text-align: center;
-            text-transform: uppercase;
-            max-width: 88%;
+            max-width: 90%;
             word-wrap: break-word;
             line-height: 1.35;
-            min-height: 36px;
+            min-height: 28px;
         }
         .text-hook-preview:empty::after {
             content: 'TEXT HOOK';
-            opacity: 0.3;
+            color: #bbb;
         }
+        /* Middle zone */
+        .preview-middle { flex: 1; }
+        /* Right side platform buttons */
+        .preview-actions {
+            position: absolute;
+            right: 10px;
+            bottom: 90px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            align-items: center;
+        }
+        .preview-action-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(165,153,212,0.25);
+        }
+        .preview-action-dot.small {
+            width: 16px;
+            height: 16px;
+        }
+        /* Caption area — TikTok auto-caption style */
         .caption-preview {
             position: absolute;
-            bottom: 20px;
-            left: 14px;
-            right: 14px;
-            color: rgba(255,255,255,0.8);
+            bottom: 42px;
+            left: 10px;
+            right: 10px;
+            color: white;
             font-size: 0.72rem;
-            font-weight: 400;
-            line-height: 1.45;
+            font-weight: 500;
+            line-height: 1.5;
+            text-align: center;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.6);
             overflow: hidden;
             display: -webkit-box;
-            -webkit-line-clamp: 3;
+            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
+        }
+        /* Bottom nav bar */
+        .preview-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 28px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 10px;
+        }
+        .preview-nav-dot {
+            width: 14px;
+            height: 3px;
+            border-radius: 2px;
+            background: rgba(165,153,212,0.2);
+        }
+        .preview-nav-dot.active {
+            background: rgba(165,153,212,0.4);
         }
 
         /* ── Fields Column ── */
@@ -246,6 +308,23 @@
             color: var(--text-dark);
         }
         .field-input::placeholder { color: var(--text-light); font-weight: 400; }
+        .captions-input {
+            font-family: var(--font);
+            font-size: 0.88rem;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--card);
+            color: var(--text-dark);
+            padding: 11px 14px;
+            outline: none;
+            resize: vertical;
+            width: 100%;
+            line-height: 1.5;
+            transition: border-color 0.2s;
+        }
+        .captions-input:focus { border-color: var(--purple); }
+        .captions-input::placeholder { color: var(--text-light); font-weight: 400; }
         .ai-btn {
             background: none;
             border: none;
@@ -457,13 +536,17 @@
 
         /* ── Library Drawer ── */
         .library-overlay {
-            display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.4);
+            background: rgba(0,0,0,0);
             z-index: 200;
+            pointer-events: none;
+            transition: background 0.35s ease;
         }
-        .library-overlay.active { display: block; }
+        .library-overlay.active {
+            background: rgba(0,0,0,0.4);
+            pointer-events: auto;
+        }
         .library-drawer {
             position: fixed;
             top: 0;
@@ -475,10 +558,28 @@
             padding: 32px 24px;
             overflow-y: auto;
             transform: translateX(100%);
-            transition: transform 0.3s ease;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 201;
         }
         .library-overlay.active .library-drawer { transform: translateX(0); }
+        .library-close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.5);
+            font-size: 1.4rem;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: color 0.2s, background 0.2s;
+        }
+        .library-close-btn:hover { color: white; background: rgba(255,255,255,0.1); }
         .library-heading {
             font-size: 2rem;
             font-weight: 500;
@@ -645,7 +746,6 @@
     <div class="title-area">
         <input type="text" class="title-input" id="videoTitle" placeholder="Video Title" value="{{ plan.title if plan else '' }}">
         <span class="edit-icon">&#9998;</span>
-        <div class="edit-hint">(Colored box &amp; dashed line and pencil only show on hover)</div>
     </div>
     <div class="top-actions">
         <button class="save-btn" id="saveBtn">Save</button>
@@ -661,8 +761,28 @@
         <div class="section-label">Layout Preview</div>
         <div class="phone-frame">
             <div class="phone-screen">
-                <div class="text-hook-preview" id="previewHook">{{ plan.text_hook|upper if plan and plan.text_hook else '' }}</div>
+                <div class="preview-search">
+                    <div class="preview-search-pill"></div>
+                    <div class="preview-search-icon"></div>
+                </div>
+                <div class="text-hook-zone">
+                    <div class="text-hook-preview" id="previewHook">{{ plan.text_hook|upper if plan and plan.text_hook else '' }}</div>
+                </div>
+                <div class="preview-middle"></div>
+                <div class="preview-actions">
+                    <div class="preview-action-dot"></div>
+                    <div class="preview-action-dot"></div>
+                    <div class="preview-action-dot"></div>
+                    <div class="preview-action-dot small"></div>
+                </div>
                 <div class="caption-preview" id="previewCaption"></div>
+                <div class="preview-nav">
+                    <div class="preview-nav-dot active"></div>
+                    <div class="preview-nav-dot"></div>
+                    <div class="preview-nav-dot"></div>
+                    <div class="preview-nav-dot"></div>
+                    <div class="preview-nav-dot"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -711,6 +831,10 @@
                 </button>
             </div>
         </div>
+        <div class="field-group">
+            <div class="field-label">Captions</div>
+            <textarea class="captions-input" id="captionsInput" placeholder="First lines of spoken captions that appear on screen..." rows="3">{{ plan.captions if plan and plan.captions else '' }}</textarea>
+        </div>
     </div>
 
     <!-- Script -->
@@ -740,6 +864,7 @@
 <!-- Library Drawer -->
 <div class="library-overlay" id="libraryOverlay">
     <div class="library-drawer" id="libraryDrawer">
+        <button class="library-close-btn" id="libraryCloseBtn" title="Close library">&times;</button>
         <div class="library-heading">Library</div>
         <div class="library-search">
             <input type="text" class="library-search-input" id="librarySearch" placeholder="Search videos...">
@@ -759,100 +884,8 @@ let currentPlanId = {{ plan.id if plan else 'null' }};
 let activeTag = null;
 let openMenuId = null;
 
-/* ── Video Formulas ── */
-const FORMULAS = [
-    {
-        id: 'this-vs-that',
-        name: 'This vs. That',
-        concept: 'A This vs. That video is designed to compare two of anything. A concept, an object, a person, a theory. This is simply formula that can be used in a variety of ways. Most successfully done with a Text Hook on screen that displays either “Thing vs. Thing” or “Thing vs …” relying heavily on the text hook to help the viewer understand the context while the video starts straight away into the first thing being compared',
-        bestTextHooks: ['Thing vs. Thing', 'Thing vs...'],
-        exampleScript: {
-            subtitle: 'Amateur vs. Professional Designers',
-            lines: [
-                '“Oh no problem – what colors do you like? I can send you come color palettes?”',
-                '“Thanks so much for telling me – I want to make sure we’re focusing on the strategy when we make changes like this – do you feel this is more of a personal preference or do you feel these colors fail at communicating the strategy we developed?”'
-            ]
-        },
-        exampleVideos: [
-            {handle: '@alixearle', url: '#'},
-            {handle: '@superlunardesign', url: '#'},
-            {handle: '@chris', url: '#'}
-        ],
-        applies: {text_hook: 'Thing vs. Thing'}
-    },
-    {
-        id: 'before-after',
-        name: 'Before & After',
-        concept: 'A Before & After video showcases a transformation. The power is in the contrast — the viewer needs to clearly see the “before” state to appreciate the “after.” Works best when the transformation is dramatic and the text hook sets up what changed. Can be done as a side-by-side, a reveal, or a timeline.',
-        bestTextHooks: ['Watch this transformation', 'The glow up is real', 'Before vs. After'],
-        exampleScript: {
-            subtitle: 'Website Redesign Reveal',
-            lines: [
-                '“So this client came to us with a website that looked like it was built in 2015…”',
-                '“And after 6 weeks of strategic design work, here’s what we delivered — a site that actually converts visitors into clients.”'
-            ]
-        },
-        exampleVideos: [
-            {handle: '@superlunardesign', url: '#'},
-            {handle: '@designjoy', url: '#'}
-        ],
-        applies: {text_hook: 'Before vs. After'}
-    },
-    {
-        id: 'dont-do-that',
-        name: "Don't do that, Do this",
-        concept: 'This format positions the creator as an authority by correcting a common mistake. The “don’t” creates tension and the “do this” provides the resolution. The text hook is critical — it needs to call out the mistake clearly. Works best when the mistake is something the viewer is probably doing right now.',
-        bestTextHooks: ['Stop doing this', "Don't make this mistake", 'Do this instead'],
-        exampleScript: {
-            subtitle: 'Website Navigation Mistake',
-            lines: [
-                '“If your website menu has more than 5 items, you’re overwhelming your visitors. Don’t do that.”',
-                '“Instead, do this — prioritize your top 3 pages and put everything else in a simple footer. Your bounce rate will thank you.”'
-            ]
-        },
-        exampleVideos: [
-            {handle: '@superlunardesign', url: '#'},
-            {handle: '@jasonfns', url: '#'}
-        ],
-        applies: {text_hook: "Don't do that, Do this"}
-    },
-    {
-        id: 'let-me-show-you',
-        name: 'Let me show you',
-        concept: 'A tutorial or demonstration format where the creator walks the viewer through a process step by step. The hook creates curiosity about the outcome, then the video delivers the “how.” Works best when the process is visual and the result is satisfying. The text hook should promise the outcome, not describe the process.',
-        bestTextHooks: ["Here's how", 'Let me show you', 'Watch me do this'],
-        exampleScript: {
-            subtitle: 'Design Tool Tutorial',
-            lines: [
-                '“Everyone asks how I make these animations — let me show you the exact process.”',
-                '“Step one, grab your reference. Step two, block out the layout. Step three, animate. That’s it. 3 steps.”'
-            ]
-        },
-        exampleVideos: [
-            {handle: '@rifruf', url: '#'},
-            {handle: '@figma', url: '#'}
-        ],
-        applies: {text_hook: 'Let me show you'}
-    },
-    {
-        id: 'youre-doing-this-wrong',
-        name: "You're doing this wrong",
-        concept: 'This format leads with a bold claim that the viewer is making a mistake. It creates immediate curiosity and slight defensiveness, which keeps people watching to find out what they’re doing wrong. The text hook is the entire opener — it needs to be specific enough to feel personal but broad enough to apply to most viewers.',
-        bestTextHooks: ["You're doing this wrong", 'Everyone makes this mistake', "This is why it's not working"],
-        exampleScript: {
-            subtitle: 'Website Selling Mistakes',
-            lines: [
-                '“So many of you are ruining your website experience because you are doing the selling part wrong.”',
-                '“If you want to actually grow your email list or get inquiries through your website that aren’t bullshit — you need to optimize your site to sell and I’m going to tell you how to do that.”'
-            ]
-        },
-        exampleVideos: [
-            {handle: '@superlunardesign', url: '#'},
-            {handle: '@garyvee', url: '#'}
-        ],
-        applies: {text_hook: "You're doing this wrong"}
-    }
-];
+/* ── Video Formulas (loaded from API) ── */
+let FORMULAS = [];
 
 /* ── DOM Refs ── */
 const $title = document.getElementById('videoTitle');
@@ -861,6 +894,7 @@ const $visualHook = document.getElementById('visualHook');
 const $curiosity = document.getElementById('unexplainedCuriosity');
 const $setting = document.getElementById('setting');
 const $process = document.getElementById('ongoingSatisfyingProcess');
+const $captions = document.getElementById('captionsInput');
 const $editor = document.getElementById('scriptEditor');
 const $previewHook = document.getElementById('previewHook');
 const $previewCaption = document.getElementById('previewCaption');
@@ -873,22 +907,36 @@ const $librarySearch = document.getElementById('librarySearch');
 const $toast = document.getElementById('toast');
 
 /* ── Init ── */
-function init() {
-    renderFormulaChips();
+async function init() {
+    await loadFormulas();
     updatePreview();
     bindEvents();
 }
 
+async function loadFormulas() {
+    try {
+        const resp = await fetch('/api/video-formulas');
+        FORMULAS = await resp.json();
+    } catch (e) {
+        FORMULAS = [];
+    }
+    renderFormulaChips();
+}
+
 function renderFormulaChips() {
+    if (!FORMULAS.length) {
+        $formulaChips.innerHTML = '<span style="color:var(--text-light);font-weight:400;font-size:0.85rem">No formulas yet — analyze videos to build your formula library</span>';
+        return;
+    }
     $formulaChips.innerHTML = FORMULAS.map(f =>
-        `<button class="formula-chip" data-id="${f.id}">${f.name}</button>`
+        `<button class="formula-chip" data-id="${f.id}">${f.name}${f.count ? ' <span style="opacity:0.5;font-size:0.75rem">(' + f.count + ')</span>' : ''}</button>`
     ).join('');
 }
 
 function bindEvents() {
-    // Text hook → preview
+    // Text hook + captions → preview
     $textHook.addEventListener('input', updatePreview);
-    $editor.addEventListener('input', updatePreview);
+    $captions.addEventListener('input', updatePreview);
 
     // Paste plain text in script editor
     $editor.addEventListener('paste', e => {
@@ -915,6 +963,7 @@ function bindEvents() {
 
     // Library
     document.getElementById('libraryToggle').addEventListener('click', openLibrary);
+    document.getElementById('libraryCloseBtn').addEventListener('click', closeLibrary);
     $libraryOverlay.addEventListener('click', e => {
         if (e.target === $libraryOverlay) closeLibrary();
     });
@@ -955,8 +1004,8 @@ function updatePreview() {
     const hookText = $textHook.value.trim();
     $previewHook.textContent = hookText ? hookText.toUpperCase() : '';
 
-    const scriptText = $editor.innerText.trim();
-    $previewCaption.textContent = scriptText ? scriptText.substring(0, 200) : '';
+    const captionText = $captions.value.trim();
+    $previewCaption.textContent = captionText ? captionText.substring(0, 120) : '';
 }
 
 /* ── Script Tagging ── */
@@ -1029,31 +1078,35 @@ function openFormula(id) {
                     <button class="close-btn" id="closeModalBtn">X</button>
                 </div>
             </div>
-            <div class="modal-section">
+            ${f.concept ? `<div class="modal-section">
                 <div class="modal-section-title">Concept</div>
                 <div class="concept-block">${f.concept}</div>
-            </div>
-            <div class="modal-section">
+            </div>` : ''}
+            ${f.bestTextHooks.length ? `<div class="modal-section">
                 <div class="modal-section-title">Best Text Hooks</div>
                 <div class="hook-chips">
                     ${f.bestTextHooks.map(h => `<span class="hook-chip${h === selectedHook ? ' selected' : ''}" data-hook="${h}">${h}</span>`).join('')}
                 </div>
-            </div>
-            <div class="modal-section">
+            </div>` : ''}
+            ${f.exampleScript.lines.length ? `<div class="modal-section">
                 <div class="example-header">
                     <div class="modal-section-title">Example Script</div>
-                    <span class="example-subtitle">${f.exampleScript.subtitle}</span>
+                    ${f.exampleScript.subtitle ? `<span class="example-subtitle">${f.exampleScript.subtitle}</span>` : ''}
                 </div>
                 <div class="example-block">
                     ${f.exampleScript.lines.map(l => `<p>${l}</p>`).join('')}
                 </div>
-            </div>
-            <div class="modal-section">
+            </div>` : ''}
+            ${f.exampleVideos.length ? `<div class="modal-section">
                 <div class="modal-section-title">Example Videos</div>
                 <div class="video-chips">
-                    ${f.exampleVideos.map(v => `<a href="${v.url}" target="_blank" class="video-chip">${v.handle} <span class="arrow">&#8599;</span></a>`).join('')}
+                    ${f.exampleVideos.map(v => {
+                        const label = v.title && v.title !== 'Untitled' ? v.title : v.url;
+                        const short = label.length > 35 ? label.substring(0, 35) + '...' : label;
+                        return `<a href="${v.url}" target="_blank" class="video-chip">${short} <span class="arrow">&#8599;</span></a>`;
+                    }).join('')}
                 </div>
-            </div>
+            </div>` : ''}
         `;
 
         // Hook chip selection
@@ -1156,6 +1209,7 @@ function getFormData() {
         unexplained_curiosity: $curiosity.value,
         setting: $setting.value,
         ongoing_satisfying_process: $process.value,
+        captions: $captions.value,
         script: $editor.innerHTML,
     };
 }
@@ -1167,6 +1221,7 @@ function clearFields() {
     $curiosity.value = '';
     $setting.value = '';
     $process.value = '';
+    $captions.value = '';
     $editor.innerHTML = '';
     updatePreview();
 }
@@ -1207,6 +1262,7 @@ async function loadPlan(id) {
         $curiosity.value = plan.unexplained_curiosity || '';
         $setting.value = plan.setting || '';
         $process.value = plan.ongoing_satisfying_process || '';
+        $captions.value = plan.captions || '';
         $editor.innerHTML = plan.script || '';
         updatePreview();
         updateTagChecks();
