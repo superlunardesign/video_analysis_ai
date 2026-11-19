@@ -68,12 +68,51 @@
             overflow-x: hidden;
         }
 
+        /* ── Header Nav ── */
+        .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 32px;
+            border-bottom: 1px solid var(--border);
+        }
+        .dash-header-brand {
+            font-family: var(--font);
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            text-decoration: none;
+        }
+        .dash-header-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .dash-nav-link {
+            font-family: var(--font);
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-light);
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 8px;
+            transition: color 0.2s, background 0.2s;
+        }
+        .dash-nav-link:hover {
+            color: var(--text-dark);
+            background: rgba(51,49,109,0.06);
+        }
+        .dash-nav-link.active {
+            color: var(--accent);
+            background: rgba(51,49,109,0.08);
+        }
+
         /* ── Top Bar ── */
         .top-bar {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            padding: 24px 32px 8px;
+            padding: 16px 32px 8px;
         }
         .title-area { position: relative; }
         .title-input {
@@ -744,6 +783,31 @@
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
 
+        /* ── Footer ── */
+        .dash-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 32px;
+            margin-top: 32px;
+            border-top: 1px solid var(--border);
+        }
+        .dash-footer-left {
+            font-family: var(--font);
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: var(--text-light);
+        }
+        .dash-footer-right a {
+            font-family: var(--font);
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: var(--text-light);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .dash-footer-right a:hover { color: var(--accent); }
+
         /* ── Responsive ── */
         @media (max-width: 1024px) {
             .main-grid {
@@ -755,7 +819,9 @@
         }
         @media (max-width: 640px) {
             .main-grid { grid-template-columns: 1fr; padding: 12px 16px 0; }
-            .top-bar { padding: 16px; }
+            .dash-header { padding: 12px 16px; }
+            .top-bar { padding: 12px 16px 8px; }
+            .dash-footer { padding: 16px; }
             .formulas-bar { padding: 16px; }
             .title-input { min-width: 200px; font-size: 1.2rem; }
             .formula-chip { min-width: 120px; padding: 10px 16px; font-size: 0.82rem; }
@@ -763,6 +829,16 @@
     </style>
 </head>
 <body>
+
+<!-- ── Header ── -->
+<header class="dash-header">
+    <a href="/" class="dash-header-brand">Video Analyzer</a>
+    <nav class="dash-header-nav">
+        <a href="/" class="dash-nav-link">Analyze</a>
+        <a href="/dashboard" class="dash-nav-link active">Planner</a>
+        <a href="/history" class="dash-nav-link">History</a>
+    </nav>
+</header>
 
 <!-- ── Dashboard ── -->
 <div class="top-bar">
@@ -901,6 +977,14 @@
         <div class="library-list" id="libraryList"></div>
     </div>
 </div>
+
+<!-- ── Footer ── -->
+<footer class="dash-footer">
+    <div class="dash-footer-left">&copy; 2025 Video Analyzer</div>
+    <div class="dash-footer-right">
+        <a href="https://superlunardesign.com" target="_blank">Superlunar Design Co.</a>
+    </div>
+</footer>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
