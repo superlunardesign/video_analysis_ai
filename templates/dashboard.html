@@ -50,14 +50,14 @@
             --tag-tension-text: #59287A;
             --tag-payoff-bg: #D5F5E3;
             --tag-payoff-text: #1E8449;
-            --tag-painpoint-bg: #FADBD8;
-            --tag-painpoint-text: #922B21;
-            --tag-desire-bg: #FDEBD0;
-            --tag-desire-text: #935116;
-            --tag-plug-bg: #D4EFDF;
-            --tag-plug-text: #1D6F42;
-            --tag-cta-bg: #D6C7F0;
-            --tag-cta-text: #4A235A;
+            --tag-painpoint-bg: #F5B7B1;
+            --tag-painpoint-text: #C0392B;
+            --tag-desire-bg: #F8C471;
+            --tag-desire-text: #B7600A;
+            --tag-plug-bg: #7DCEA0;
+            --tag-plug-text: #0E6B30;
+            --tag-cta-bg: #BB8FCE;
+            --tag-cta-text: #6C3483;
             --library-bg: #2D2B55;
             --library-search: #242244;
             --library-btn: #4B45A0;
@@ -447,6 +447,8 @@
             cursor: pointer;
             padding: 2px 0;
             margin-top: 2px;
+            text-align: left;
+            display: block;
             transition: color 0.2s;
         }
         .tags-row-toggle:hover { color: var(--text-dark); }
@@ -482,14 +484,14 @@
         .script-editor [data-tag="promise"] { background: var(--tag-promise-bg); border-radius: 2px; padding: 1px 0; }
         .script-editor [data-tag="tension"] { background: var(--tag-tension-bg); border-radius: 2px; padding: 1px 0; }
         .script-editor [data-tag="payoff"] { background: var(--tag-payoff-bg); border-radius: 2px; padding: 1px 0; }
-        .script-editor [data-tag="painpoint"] { background: var(--tag-painpoint-bg); border-radius: 2px; padding: 1px 0; }
-        .script-editor [data-tag="desire"] { background: var(--tag-desire-bg); border-radius: 2px; padding: 1px 0; }
-        .script-editor [data-tag="plug"] { background: var(--tag-plug-bg); border-radius: 2px; padding: 1px 0; }
-        .script-editor [data-tag="cta"] { background: var(--tag-cta-bg); border-radius: 2px; padding: 1px 0; }
-        .script-editor [data-sell="painpoint"] { text-decoration: underline; text-decoration-color: var(--tag-painpoint-text); text-underline-offset: 3px; }
-        .script-editor [data-sell="desire"] { text-decoration: underline; text-decoration-color: var(--tag-desire-text); text-underline-offset: 3px; }
-        .script-editor [data-sell="plug"] { text-decoration: underline; text-decoration-color: var(--tag-plug-text); text-underline-offset: 3px; }
-        .script-editor [data-sell="cta"] { text-decoration: underline; text-decoration-color: var(--tag-cta-text); text-underline-offset: 3px; }
+        .script-editor [data-tag="painpoint"] { background: var(--tag-painpoint-bg); border-radius: 2px; padding: 1px 0; text-decoration: underline 2px var(--tag-painpoint-text); text-underline-offset: 3px; }
+        .script-editor [data-tag="desire"] { background: var(--tag-desire-bg); border-radius: 2px; padding: 1px 0; text-decoration: underline 2px var(--tag-desire-text); text-underline-offset: 3px; }
+        .script-editor [data-tag="plug"] { background: var(--tag-plug-bg); border-radius: 2px; padding: 1px 0; text-decoration: underline 2px var(--tag-plug-text); text-underline-offset: 3px; }
+        .script-editor [data-tag="cta"] { background: var(--tag-cta-bg); border-radius: 2px; padding: 1px 0; text-decoration: underline 2px var(--tag-cta-text); text-underline-offset: 3px; }
+        .script-editor [data-sell="painpoint"] { text-decoration: underline 2px var(--tag-painpoint-text); text-underline-offset: 3px; }
+        .script-editor [data-sell="desire"] { text-decoration: underline 2px var(--tag-desire-text); text-underline-offset: 3px; }
+        .script-editor [data-sell="plug"] { text-decoration: underline 2px var(--tag-plug-text); text-underline-offset: 3px; }
+        .script-editor [data-sell="cta"] { text-decoration: underline 2px var(--tag-cta-text); text-underline-offset: 3px; }
 
         /* ── Formulas Bar ── */
         .formulas-bar {
