@@ -427,7 +427,8 @@
             transition: all 0.15s;
             user-select: none;
         }
-        .script-tag .check { font-size: 0.7rem; }
+        .script-tag .check { font-size: 0.7rem; display: none; }
+        .script-tag.used .check { display: inline; }
         .script-tag.active { border-color: currentColor; }
         .script-tag.hook { background: var(--tag-hook-bg); color: var(--tag-hook-text); }
         .script-tag.promise { background: var(--tag-promise-bg); color: var(--tag-promise-text); }
@@ -1272,7 +1273,10 @@ function updateTagChecks() {
     [...STRUCTURE_TAGS, ...SELL_TAGS].forEach(tag => {
         const exists = $editor.querySelector(`[data-tag="${tag}"]`) || $editor.querySelector(`[data-sell="${tag}"]`);
         const btn = document.querySelector(`.script-tag.${tag}`);
-        if (btn) btn.style.opacity = exists ? '1' : '0.6';
+        if (btn) {
+            btn.classList.toggle('used', !!exists);
+            btn.style.opacity = exists ? '1' : '0.6';
+        }
     });
 }
 
